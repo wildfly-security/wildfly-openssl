@@ -23,7 +23,7 @@ public class Test {
         sslHostConfig.setCaCertificateFile("/Users/stuart/workspace/undertow/core/src/test/resources/ca.crt");
 
         sslHostConfig.setConfigType(SSLHostConfig.Type.OPENSSL);
-        sslHostConfig.setProtocols("TLSv1.1");
+        sslHostConfig.setProtocols("TLSv1");
         sslHostConfig.setCiphers("ALL");
         sslHostConfig.setCertificateVerification("NONE");
         sslHostConfig.setHostName("localhost");

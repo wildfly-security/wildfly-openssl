@@ -22,6 +22,16 @@
 #define P2J(P)          ((jlong)LLT(P))
 #define J2P(P, T)       ((T)LLT((jlong)P))
 
+
+#if defined(SSL_OP_NO_TLSv1_1)
+#define HAVE_TLSV1_1
+#endif
+
+#if defined(SSL_OP_NO_TLSv1_2)
+#define HAVE_TLSV1_2
+#endif
+
+
 static int ssl_initialized = 0;
 static jclass byteArrayClass, stringClass;
 
@@ -111,7 +121,7 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
 }
 
 /* Initialize server context */
-UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jlong pool,
+UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
                                             jint protocol, jint mode)
 {
     tcn_ssl_ctxt_t *c = NULL;
@@ -131,6 +141,9 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jlong pool,
             ctx = SSL_CTX_new(TLSv1_2_server_method());
         else
             ctx = SSL_CTX_new(TLSv1_2_method());
+#else
+        throwIllegalStateException(e, "TLSV1_2 not supported");
+        goto init_failed;
 #endif
     } else if (protocol == SSL_PROTOCOL_TLSV1_1) {
 #ifdef HAVE_TLSV1_1
@@ -140,6 +153,9 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jlong pool,
             ctx = SSL_CTX_new(TLSv1_1_server_method());
         else
             ctx = SSL_CTX_new(TLSv1_1_method());
+#else
+        throwIllegalStateException(e, "TLSV1_1 not supported");
+        goto init_failed;
 #endif
     } else if (protocol == SSL_PROTOCOL_TLSV1) {
         if (mode == SSL_MODE_CLIENT)
@@ -157,13 +173,19 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jlong pool,
             ctx = SSL_CTX_new(SSLv3_method());
     } else if (protocol == SSL_PROTOCOL_SSLV2) {
         /* requested but not supported */
+        throwIllegalStateException(e, "SSLV2 not supported");
+        goto init_failed;
 #ifndef HAVE_TLSV1_2
     } else if (protocol & SSL_PROTOCOL_TLSV1_2) {
         /* requested but not supported */
+        throwIllegalStateException(e, "TLSV1_2 not supported");
+        goto init_failed;
 #endif
 #ifndef HAVE_TLSV1_1
     } else if (protocol & SSL_PROTOCOL_TLSV1_1) {
         /* requested but not supported */
+        throwIllegalStateException(e, "TLSV1_1 not supported");
+        goto init_failed;
 #endif
     } else {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -182,7 +204,6 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jlong pool,
                 ctx = SSL_CTX_new(TLS_method());
 #endif
     }
-
     if (!ctx) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
