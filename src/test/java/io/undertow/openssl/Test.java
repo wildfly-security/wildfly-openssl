@@ -15,12 +15,12 @@ public class Test {
         ServerSocket socket = new ServerSocket(7676);
         final SSLHostConfig sslHostConfig = new SSLHostConfig();
         final SSLHostConfigCertificate certificate = new SSLHostConfigCertificate(sslHostConfig, SSLHostConfigCertificate.Type.RSA);
-        certificate.setCertificateFile("/Users/stuart/workspace/undertow/core/src/test/resources/server.crt");
-        certificate.setCertificateKeyFile("/Users/stuart/workspace/undertow/core/src/test/resources/server.key");
+        certificate.setCertificateFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/server.crt");
+        certificate.setCertificateKeyFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/server.key");
         sslHostConfig.addCertificate(certificate);
 
-        sslHostConfig.setCaCertificatePath("/Users/stuart/workspace/undertow/core/src/test/resources/ca.crt");
-        sslHostConfig.setCaCertificateFile("/Users/stuart/workspace/undertow/core/src/test/resources/ca.crt");
+        sslHostConfig.setCaCertificatePath("/Users/stuart/workspace/undertow-openssl/src/test/resources/ca.crt");
+        sslHostConfig.setCaCertificateFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/ca.crt");
 
         sslHostConfig.setConfigType(SSLHostConfig.Type.OPENSSL);
         sslHostConfig.setProtocols("TLSv1");

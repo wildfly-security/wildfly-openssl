@@ -73,14 +73,16 @@ jint throwIllegalStateException( JNIEnv *env, char *message )
 
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...) {
-
+    throwIllegalStateException(env, fmt);
+//TODO
+/*
     char msg[8124] = {'\0'};
     va_list ap;
 
     va_start(ap, fmt);
     snprintf(msg, 8124, fmt, ap);
     throwIllegalStateException(env, msg);
-    va_end(ap);
+    va_end(ap);*/
 }
 
 jint tcn_get_java_env(JNIEnv **env)

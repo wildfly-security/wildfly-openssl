@@ -837,7 +837,7 @@ cleanup:
     return rv;
 }
 
-UT_OPENSSL(void, setVerify)(JNIEnv *e, jobject o, jlong ctx,
+UT_OPENSSL(void, setSSLContextVerify)(JNIEnv *e, jobject o, jlong ctx,
                                                 jint level, jint depth)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
