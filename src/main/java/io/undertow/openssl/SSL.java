@@ -29,12 +29,6 @@ public class SSL {
     private static native void initialize();
 
     /**
-     * Name of the system property containing
-     * the tomcat instance installation path
-     */
-    public static final String CATALINA_BASE_PROP = "catalina.base";
-
-    /**
      * JSSE and OpenSSL protocol names
      */
     public static final String SSL_PROTO_ALL        = "all";
@@ -262,96 +256,6 @@ public class SSL {
     /* Return OpenSSL version number */
     public static native int version();
 
-    /* Return OpenSSL version string */
-    public static native String versionString();
-
-    /**
-     * Initialize OpenSSL support.
-     * This function needs to be called once for the
-     * lifetime of JVM. Library.init() has to be called before.
-     * @param engine Support for external a Crypto Device ("engine"),
-     *                usually
-     * a hardware accelerator card for crypto operations.
-     * @return APR status code
-     */
-    public static native int initialize(String engine);
-
-    /**
-     * Get the status of FIPS Mode.
-     *
-     * @return FIPS_mode return code. It is <code>0</code> if OpenSSL is not
-     *  in FIPS mode, <code>1</code> if OpenSSL is in FIPS Mode.
-     * @throws Exception If tcnative was not compiled with FIPS Mode available.
-     * @see <a href="http://wiki.openssl.org/index.php/FIPS_mode%28%29">OpenSSL method FIPS_mode()</a>
-     */
-    public static native int fipsModeGet() throws Exception;
-
-    /**
-     * Enable/Disable FIPS Mode.
-     *
-     * @param mode 1 - enable, 0 - disable
-     *
-     * @return FIPS_mode_set return code
-     * @throws Exception If tcnative was not compiled with FIPS Mode available,
-     *  or if {@code FIPS_mode_set()} call returned an error value.
-     * @see <a href="http://wiki.openssl.org/index.php/FIPS_mode_set%28%29">OpenSSL method FIPS_mode_set()</a>
-     */
-    public static native int fipsModeSet(int mode) throws Exception;
-
-    /**
-     * Add content of the file to the PRNG
-     * @param filename Filename containing random data.
-     *        If null the default file will be tested.
-     *        The seed file is $RANDFILE if that environment variable is
-     *        set, $HOME/.rnd otherwise.
-     *        In case both files are unavailable builtin
-     *        random seed generator is used.
-     */
-    public static native boolean randLoad(String filename);
-
-    /**
-     * Writes a number of random bytes (currently 1024) to
-     * file <code>filename</code> which can be used to initialize the PRNG
-     * by calling randLoad in a later session.
-     * @param filename Filename to save the data
-     */
-    public static native boolean randSave(String filename);
-
-    /**
-     * Creates random data to filename
-     * @param filename Filename to save the data
-     * @param len The length of random sequence in bytes
-     * @param base64 Output the data in Base64 encoded format
-     */
-    public static native boolean randMake(String filename, int len,
-                                          boolean base64);
-
-    /**
-     * Sets global random filename.
-     * @param filename Filename to use.
-     *        If set it will be used for SSL initialization
-     *        and all contexts where explicitly not set.
-     */
-    public static native void randSet(String filename);
-
-    /**
-     * Close BIO and dereference callback object
-     * @param bio BIO to close and destroy.
-     * @return APR Status code
-     */
-    public static native int closeBIO(long bio);
-
-    /**
-     * Set global Password for decrypting certificates and keys.
-     * @param password Password to use.
-     */
-    public static native void setPassword(String password);
-
-    /**
-     * Return last SSL error string
-     */
-    public static native String getLastError();
-
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.
      *
@@ -391,21 +295,6 @@ public class SSL {
      * @return pointer to SSL instance (SSL *)
      */
     public static native long newSSL(long ctx, boolean server);
-
-    /**
-     * SSL_set_bio
-     * @param ssl SSL pointer (SSL *)
-     * @param rbio read BIO pointer (BIO *)
-     * @param wbio write BIO pointer (BIO *)
-     */
-    public static native void setBIO(long ssl, long rbio, long wbio);
-
-    /**
-     * SSL_get_error
-     * @param ssl SSL pointer (SSL *)
-     * @param ret TLS/SSL I/O return value
-     */
-    public static native int getError(long ssl, int ret);
 
     /**
      * BIO_ctrl_pending.
@@ -458,13 +347,6 @@ public class SSL {
     public static native int getShutdown(long ssl);
 
     /**
-     * SSL_set_shutdown
-     * @param ssl the SSL instance (SSL *)
-     * @param mode
-     */
-    public static native void setShutdown(long ssl, int mode);
-
-    /**
      * SSL_free
      * @param ssl the SSL instance (SSL *)
      */
@@ -488,12 +370,6 @@ public class SSL {
      * @param bio
      */
     public static native void freeBIO(long bio);
-
-    /**
-     * BIO_flush
-     * @param bio
-     */
-    public static native void flushBIO(long bio);
 
     /**
      * SSL_shutdown
@@ -688,34 +564,6 @@ public class SSL {
     public static native int freeSSLContext(long ctx);
 
     /**
-     * Set Session context id. Usually host:port combination.
-     * @param ctx Context to use.
-     * @param id  String that uniquely identifies this context.
-     */
-    public static native void setContextId(long ctx, String id);
-
-    /**
-     * Associate BIOCallback for input or output data capture.
-     * <br>
-     * First word in the output string will contain error
-     * level in the form:
-     * <PRE>
-     * [ERROR]  -- Critical error messages
-     * [WARN]   -- Warning messages
-     * [INFO]   -- Informational messages
-     * [DEBUG]  -- Debugging messaged
-     * </PRE>
-     * Callback can use that word to determine application logging level
-     * by intercepting <b>write</b> call.
-     * If the <b>bio</b> is set to 0 no error messages will be displayed.
-     * Default is to use the stderr output stream.
-     * @param ctx Server or Client context to use.
-     * @param bio BIO handle to use, created with SSL.newBIO
-     * @param dir BIO direction (1 for input 0 for output).
-     */
-    public static native void setBIO(long ctx, long bio, int dir);
-
-    /**
      * Set OpenSSL Option.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
@@ -723,39 +571,11 @@ public class SSL {
     public static native void setSSLContextOptions(long ctx, int options);
 
     /**
-     * Get OpenSSL Option.
-     * @param ctx Server or Client context to use.
-     * @return options  See SSL.SSL_OP_* for option flags.
-     */
-    public static native int getSSLContextOptions(long ctx);
-
-    /**
      * Clears OpenSSL Options.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
     public static native void clearSSLContextOptions(long ctx, int options);
-
-    /**
-     * Sets the "quiet shutdown" flag for <b>ctx</b> to be
-     * <b>mode</b>. SSL objects created from <b>ctx</b> inherit the
-     * <b>mode</b> valid at the time and may be 0 or 1.
-     * <br>
-     * Normally when a SSL connection is finished, the parties must send out
-     * "close notify" alert messages using L&lt;SSL_shutdown(3)|SSL_shutdown(3)&gt;
-     * for a clean shutdown.
-     * <br>
-     * When setting the "quiet shutdown" flag to 1, <b>SSL.shutdown</b>
-     * will set the internal flags to SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN.
-     * (<b>SSL_shutdown</b> then behaves like called with
-     * SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN.)
-     * The session is thus considered to be shutdown, but no "close notify" alert
-     * is sent to the peer. This behaviour violates the TLS standard.
-     * The default is normal shutdown behaviour as described by the TLS standard.
-     * @param ctx Server or Client context to use.
-     * @param mode True to set the quiet shutdown.
-     */
-    public static native void setQuietShutdown(long ctx, boolean mode);
 
     /**
      * Cipher Suite available for negotiation in SSL handshake.
@@ -796,29 +616,6 @@ public class SSL {
     public static native boolean setCARevocation(long ctx, String file,
                                                  String path)
             throws Exception;
-
-    /**
-     * Set File of PEM-encoded Server CA Certificates
-     * <br>
-     * This directive sets the optional all-in-one file where you can assemble the
-     * certificates of Certification Authorities (CA) which form the certificate
-     * chain of the server certificate. This starts with the issuing CA certificate
-     * of of the server certificate and can range up to the root CA certificate.
-     * Such a file is simply the concatenation of the various PEM-encoded CA
-     * Certificate files, usually in certificate chain order.
-     * <br>
-     * But be careful: Providing the certificate chain works only if you are using
-     * a single (either RSA or DSA) based server certificate. If you are using a
-     * coupled RSA+DSA certificate pair, this will work only if actually both
-     * certificates use the same certificate chain. Else the browsers will be
-     * confused in this situation.
-     * @param ctx Server or Client context to use.
-     * @param file File of PEM-encoded Server CA Certificates.
-     * @param skipfirst Skip first certificate if chain file is inside
-     *                  certificate file.
-     */
-    public static native boolean setCertificateChainFile(long ctx, String file,
-                                                         boolean skipfirst);
 
     /**
      * Set Certificate
@@ -927,27 +724,6 @@ public class SSL {
     public static native boolean setCACertificate(long ctx, String file,
                                                   String path)
             throws Exception;
-
-    /**
-     * Set file for randomness
-     * @param ctx Server or Client context to use.
-     * @param file random file.
-     */
-    public static native void setRandom(long ctx, String file);
-
-    /**
-     * Set SSL connection shutdown type
-     * <br>
-     * The following levels are available for level:
-     * <PRE>
-     * SSL_SHUTDOWN_TYPE_STANDARD
-     * SSL_SHUTDOWN_TYPE_UNCLEAN
-     * SSL_SHUTDOWN_TYPE_ACCURATE
-     * </PRE>
-     * @param ctx Server or Client context to use.
-     * @param type Shutdown type to use.
-     */
-    public static native void setShutdownType(long ctx, int type);
 
     /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
@@ -1078,27 +854,6 @@ public class SSL {
     public static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
 
     /**
-     * Set next protocol for next protocol negotiation extension
-     * @param ctx Server context to use.
-     * @param nextProtos comma delimited list of protocols in priority order
-     *
-     * @deprecated use {@link #setNpnProtos(long, String[], int)}
-     */
-    @Deprecated
-    public static void setNextProtos(long ctx, String nextProtos) {
-        setNpnProtos(ctx, nextProtos.split(","), SSL.SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL);
-    }
-
-    /**
-     * Set next protocol for next protocol negotiation extension
-     * @param ctx Server context to use.
-     * @param nextProtos protocols in priority order
-     * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
-     *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
-     */
-    public static native void setNpnProtos(long ctx, String[] nextProtos, int selectorFailureBehavior);
-
-    /**
      * Set application layer protocol for application layer protocol negotiation extension
      * @param ctx Server context to use.
      * @param alpnProtos protocols in priority order
@@ -1106,24 +861,6 @@ public class SSL {
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
     public static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
-
-    /**
-     * Set DH parameters
-     * @param ctx Server context to use.
-     * @param cert DH param file (can be generated from e.g. {@code openssl dhparam -rand - 2048 > dhparam.pem} -
-     *             see the <a href="https://www.openssl.org/docs/apps/dhparam.html">OpenSSL documentation</a>).
-     */
-    public static native void setTmpDH(long ctx, String cert)
-            throws Exception;
-
-    /**
-     * Set ECDH elliptic curve by name
-     * @param ctx Server context to use.
-     * @param curveName the name of the elliptic curve to use
-     *             (available names can be obtained from {@code openssl ecparam -list_curves}).
-     */
-    public static native void setTmpECDHByCurveName(long ctx, String curveName)
-            throws Exception;
 
     /**
      * Set the context within which session be reused (server side only)

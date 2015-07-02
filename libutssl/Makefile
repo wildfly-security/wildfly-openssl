@@ -4,20 +4,19 @@
 
 CFILES=$(sort $(wildcard src/*.c))
 LINUX_x86_64_OFILES=$(patsubst src/%.c,linux-x86_64/%.o,$(CFILES))
-LINUX_i686_OFILES=$(patsubst src/%.c,linux-i686/%.o,$(CFILES))
 MAC_OFILES=$(patsubst src/%.c,mac/%.o,$(CFILES))
 
-ALL_OFILES=$(LINUX_x86_64_OFILES) $(LINUX_i686_OFILES) $(MAC_OFILES)
+ALL_OFILES=$(LINUX_x86_64_OFILES) $(MAC_OFILES)
 
-ALL_TARGETS=linux-x86_64/libutssl.so linux-i686/libutssl.so mac/libutssl.dylib
+ALL_TARGETS=linux-x86_64/libutssl.so mac/libutssl.dylib
 
 STRIP=strip
 
-CFLAGS=-D_REENTRANT
+CFLAGS=-D_REENTRANT -I/usr/local/opt/openssl/include
 
 default: all
 
-linux: linux-x86_64/libutssl.so linux-i686/libutssl.so
+linux: linux-x86_64/libutssl.so
 
 mac: mac/libutssl.dylib
 
@@ -35,15 +34,7 @@ linux-x86_64/%.o: src/%.c
 
 linux-x86_64/libutssl.so: $(LINUX_x86_64_OFILES)
 	@echo '     link ' $@
-	@$(CC) -m64 -lcrypto -lssl -shared $(LINUX_x86_64_OFILES) -o $@
-
-linux-i686/%.o: src/%.c
-	@echo '  compile ' $@
-	@$(CC) $(CFLAGS) -m32 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/linux/include -Wall -Werror
-
-linux-i686/libutssl.so: $(LINUX_i686_OFILES)
-	@echo '     link ' $@
-	@$(CC) -m32  -lcrypto -lssl -shared $(LINUX_i686_OFILES) -o $@
+	@$(CC)  -L/usr/local/opt/openssl/lib -m64 -lcrypto -lssl -shared $(LINUX_x86_64_OFILES) -o $@
 
 mac/%.o: src/%.c
 	@echo '  compile ' $@
@@ -51,4 +42,4 @@ mac/%.o: src/%.c
 
 mac/libutssl.dylib: $(MAC_OFILES)
 	@echo '     link ' $@
-	@$(CC) -m64  -lcrypto -lssl -dynamiclib $(MAC_OFILES) -o $@
+	@$(CC) -L/usr/local/opt/openssl/lib -m64  -lcrypto -lssl -dynamiclib $(MAC_OFILES) -o $@

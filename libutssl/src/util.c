@@ -1,5 +1,5 @@
 #include "utssl.h"
-#include "tcn.h"
+#include "utssl_private.h"
 #include <jni.h>
 
 #include <unistd.h>
@@ -69,6 +69,18 @@ jint throwIllegalStateException( JNIEnv *env, char *message )
 
     exClass = (*env)->FindClass( env, className);
     return (*env)->ThrowNew( env, exClass, message );
+}
+
+
+void tcn_Throw(JNIEnv *env, char *fmt, ...) {
+
+    char msg[8124] = {'\0'};
+    va_list ap;
+
+    va_start(ap, fmt);
+    snprintf(msg, 8124, fmt, ap);
+    throwIllegalStateException(env, msg);
+    va_end(ap);
 }
 
 jint tcn_get_java_env(JNIEnv **env)

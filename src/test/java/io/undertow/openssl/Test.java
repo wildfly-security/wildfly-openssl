@@ -31,5 +31,7 @@ public class Test {
 
         OpenSSLContext sslContext = new OpenSSLContext(sslHostConfig, certificate);
 
+        sslContext.init(null, null);
+
     }
 }

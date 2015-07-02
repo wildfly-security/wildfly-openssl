@@ -136,8 +136,6 @@
                                 "Enter password :"
 
 
-#define UT_OPENSSL(type, name) JNIEXPORT  type JNICALL Java_io_undertow_openssl_SSL_##name
-
 // Use "weak" to redeclare optional features
 #define weak __attribute__((weak))
 
@@ -213,7 +211,3 @@ typedef struct {
 } tcn_ssl_ctxt_t;
 
 
-
-jint throwIllegalStateException( JNIEnv *env, char *message);
-jint tcn_get_java_env(JNIEnv **env);
-JavaVM * tcn_get_java_vm();

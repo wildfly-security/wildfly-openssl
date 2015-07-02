@@ -150,9 +150,8 @@ public class OpenSSLContext {
      * @param kms Must contain a KeyManager of the type
      * {@code OpenSSLKeyManager}
      * @param tms
-     * @param sr Is not used for this implementation.
      */
-    public synchronized void init(KeyManager[] kms, TrustManager[] tms, SecureRandom sr) {
+    public synchronized void init(KeyManager[] kms, TrustManager[] tms) {
         if (initialized) {
             ROOT_LOGGER.initCalledMultipleTimes();
             return;
@@ -317,7 +316,6 @@ public class OpenSSLContext {
                 });
             }
             String[] protos = new OpenSSLProtocols(enabledProtocol).getProtocols();
-            SSL.setNpnProtos(ctx, protos, SSL.SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL);
 
             sessionContext = new OpenSSLServerSessionContext(ctx);
             initialized = true;
