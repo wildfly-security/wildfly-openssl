@@ -30,12 +30,12 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
         if (seconds < 0) {
             throw new IllegalArgumentException();
         }
-        SSLContext.setSessionCacheTimeout(context, seconds);
+        SSL.setSessionCacheTimeout(context, seconds);
     }
 
     @Override
     public int getSessionTimeout() {
-        return (int) SSLContext.getSessionCacheTimeout(context);
+        return (int) SSL.getSessionCacheTimeout(context);
     }
 
     @Override
@@ -43,23 +43,23 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
         if (size < 0) {
             throw new IllegalArgumentException();
         }
-        SSLContext.setSessionCacheSize(context, size);
+        SSL.setSessionCacheSize(context, size);
     }
 
     @Override
     public int getSessionCacheSize() {
-        return (int) SSLContext.getSessionCacheSize(context);
+        return (int) SSL.getSessionCacheSize(context);
     }
 
     @Override
     public void setSessionCacheEnabled(boolean enabled) {
         long mode = enabled ? SSL.SSL_SESS_CACHE_SERVER : SSL.SSL_SESS_CACHE_OFF;
-        SSLContext.setSessionCacheMode(context, mode);
+        SSL.setSessionCacheMode(context, mode);
     }
 
     @Override
     public boolean isSessionCacheEnabled() {
-        return SSLContext.getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_SERVER;
+        return SSL.getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_SERVER;
     }
 
     /**
@@ -72,6 +72,6 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
      * @return {@code true} if success, {@code false} otherwise.
      */
     public boolean setSessionIdContext(byte[] sidCtx) {
-        return SSLContext.setSessionIdContext(context, sidCtx);
+        return SSL.setSessionIdContext(context, sidCtx);
     }
 }

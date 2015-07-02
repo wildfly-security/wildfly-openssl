@@ -56,10 +56,10 @@ public final class OpenSSLEngine extends SSLEngine {
     static {
         final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
         try {
-            final long sslCtx = SSLContext.make(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
+            final long sslCtx = SSL.makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
             try {
-                SSLContext.setOptions(sslCtx, SSL.SSL_OP_ALL);
-                SSLContext.setCipherSuite(sslCtx, "ALL");
+                SSL.setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
+                SSL.setCipherSuite(sslCtx, "ALL");
                 final long ssl = SSL.newSSL(sslCtx, true);
                 try {
                     for (String c: SSL.getCiphers(ssl)) {
@@ -73,7 +73,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     SSL.freeSSL(ssl);
                 }
             } finally {
-                SSLContext.free(sslCtx);
+                SSL.freeSSLContext(sslCtx);
             }
         } catch (Exception e) {
             ROOT_LOGGER.ciphersFailure(e);

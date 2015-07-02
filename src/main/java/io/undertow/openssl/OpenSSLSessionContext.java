@@ -52,7 +52,7 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
         if (keys == null) {
             throw OpenSSLLogger.ROOT_LOGGER.nullTicketKeys();
         }
-        SSLContext.setSessionTicketKeys(context, keys);
+        SSL.setSessionTicketKeys(context, keys);
     }
 
     /**

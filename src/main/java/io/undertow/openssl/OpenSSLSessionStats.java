@@ -33,49 +33,49 @@ public final class OpenSSLSessionStats {
      * Returns the current number of sessions in the internal session cache.
      */
     public long number() {
-        return SSLContext.sessionNumber(context);
+        return SSL.sessionNumber(context);
     }
 
     /**
      * Returns the number of started SSL/TLS handshakes in client mode.
      */
     public long connect() {
-        return SSLContext.sessionConnect(context);
+        return SSL.sessionConnect(context);
     }
 
     /**
      * Returns the number of successfully established SSL/TLS sessions in client mode.
      */
     public long connectGood() {
-        return SSLContext.sessionConnectGood(context);
+        return SSL.sessionConnectGood(context);
     }
 
     /**
      * Returns the number of start renegotiations in client mode.
      */
     public long connectRenegotiate() {
-        return SSLContext.sessionConnectRenegotiate(context);
+        return SSL.sessionConnectRenegotiate(context);
     }
 
     /**
      * Returns the number of started SSL/TLS handshakes in server mode.
      */
     public long accept() {
-        return SSLContext.sessionAccept(context);
+        return SSL.sessionAccept(context);
     }
 
     /**
      * Returns the number of successfully established SSL/TLS sessions in server mode.
      */
     public long acceptGood() {
-        return SSLContext.sessionAcceptGood(context);
+        return SSL.sessionAcceptGood(context);
     }
 
     /**
      * Returns the number of start renegotiations in server mode.
      */
     public long acceptRenegotiate() {
-        return SSLContext.sessionAcceptRenegotiate(context);
+        return SSL.sessionAcceptRenegotiate(context);
     }
 
     /**
@@ -84,14 +84,14 @@ public final class OpenSSLSessionStats {
      * external cache is counted as a hit.
      */
     public long hits() {
-        return SSLContext.sessionHits(context);
+        return SSL.sessionHits(context);
     }
 
     /**
      * Returns the number of successfully retrieved sessions from the external session cache in server mode.
      */
     public long cbHits() {
-        return SSLContext.sessionCbHits(context);
+        return SSL.sessionCbHits(context);
     }
 
     /**
@@ -99,7 +99,7 @@ public final class OpenSSLSessionStats {
      * in server mode.
      */
     public long misses() {
-        return SSLContext.sessionMisses(context);
+        return SSL.sessionMisses(context);
     }
 
     /**
@@ -108,13 +108,13 @@ public final class OpenSSLSessionStats {
      * count.
      */
     public long timeouts() {
-        return SSLContext.sessionTimeouts(context);
+        return SSL.sessionTimeouts(context);
     }
 
     /**
      * Returns the number of sessions that were removed because the maximum session cache size was exceeded.
      */
     public long cacheFull() {
-        return SSLContext.sessionCacheFull(context);
+        return SSL.sessionCacheFull(context);
     }
 }

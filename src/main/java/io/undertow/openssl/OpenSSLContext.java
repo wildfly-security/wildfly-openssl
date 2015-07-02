@@ -131,7 +131,7 @@ public class OpenSSLContext {
 
             // Create SSL Context
             try {
-                ctx = SSLContext.make(value, SSL.SSL_MODE_SERVER);
+                ctx = SSL.makeSSLContext(value, SSL.SSL_MODE_SERVER);
             } catch (Exception e) {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
@@ -163,9 +163,9 @@ public class OpenSSLContext {
                 legacyRenegSupported = SSL.hasOp(SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
                 if (legacyRenegSupported)
                     if (sslHostConfig.getInsecureRenegotiation()) {
-                        SSLContext.setOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
                     } else {
-                        SSLContext.clearOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
                     }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -181,9 +181,9 @@ public class OpenSSLContext {
                 orderCiphersSupported = SSL.hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 if (orderCiphersSupported) {
                     if (sslHostConfig.getHonorCipherOrder()) {
-                        SSLContext.setOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                     } else {
-                        SSLContext.clearOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                     }
                 }
             } catch (UnsatisfiedLinkError e) {
@@ -200,9 +200,9 @@ public class OpenSSLContext {
                 disableCompressionSupported = SSL.hasOp(SSL.SSL_OP_NO_COMPRESSION);
                 if (disableCompressionSupported) {
                     if (sslHostConfig.getDisableCompression()) {
-                        SSLContext.setOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
+                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
                     } else {
-                        SSLContext.clearOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
+                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
                     }
                 }
             } catch (UnsatisfiedLinkError e) {
@@ -218,9 +218,9 @@ public class OpenSSLContext {
                 disableSessionTicketsSupported = SSL.hasOp(SSL.SSL_OP_NO_TICKET);
                 if (disableSessionTicketsSupported) {
                     if (sslHostConfig.getDisableSessionTickets()) {
-                        SSLContext.setOptions(ctx, SSL.SSL_OP_NO_TICKET);
+                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
                     } else {
-                        SSLContext.clearOptions(ctx, SSL.SSL_OP_NO_TICKET);
+                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
                     }
                 }
             } catch (UnsatisfiedLinkError e) {
@@ -233,22 +233,22 @@ public class OpenSSLContext {
 
             // Set session cache size, if specified
             if (sslHostConfig.getSessionCacheSize() > 0) {
-                SSLContext.setSessionCacheSize(ctx, sslHostConfig.getSessionCacheSize());
+                SSL.setSessionCacheSize(ctx, sslHostConfig.getSessionCacheSize());
             } else {
                 // Get the default session cache size using SSLContext.setSessionCacheSize()
-                long sessionCacheSize = SSLContext.setSessionCacheSize(ctx, 20480);
+                long sessionCacheSize = SSL.setSessionCacheSize(ctx, 20480);
                 // Revert the session cache size to the default value.
-                SSLContext.setSessionCacheSize(ctx, sessionCacheSize);
+                SSL.setSessionCacheSize(ctx, sessionCacheSize);
             }
 
             // Set session timeout, if specified
             if (sslHostConfig.getSessionTimeout() > 0) {
-                SSLContext.setSessionCacheTimeout(ctx, sslHostConfig.getSessionTimeout());
+                SSL.setSessionCacheTimeout(ctx, sslHostConfig.getSessionTimeout());
             } else {
                 // Get the default session timeout using SSLContext.setSessionCacheTimeout()
-                long sessionTimeout = SSLContext.setSessionCacheTimeout(ctx, 300);
+                long sessionTimeout = SSL.setSessionCacheTimeout(ctx, 300);
                 // Revert the session timeout to the default value.
-                SSLContext.setSessionCacheTimeout(ctx, sessionTimeout);
+                SSL.setSessionCacheTimeout(ctx, sessionTimeout);
             }
 
             // List the ciphers that the client is permitted to negotiate
@@ -266,18 +266,18 @@ public class OpenSSLContext {
             } else {
                 this.ciphers = OpenSSLCipherConfigurationParser.parseExpression(ciphers);
             }
-            SSLContext.setCipherSuite(ctx, ciphers);
+            SSL.setCipherSuite(ctx, ciphers);
             // Load Server key and certificate
-            SSLContext.setCertificate(ctx,
+            SSL.setCertificate(ctx,
                     SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()),
                     SSLHostConfig.adjustRelativePath(certificate.getCertificateKeyFile()),
                     certificate.getCertificateKeyPassword(), SSL.SSL_AIDX_RSA);
             // Support Client Certificates
-            SSLContext.setCACertificate(ctx,
+            SSL.setCACertificate(ctx,
                     SSLHostConfig.adjustRelativePath(sslHostConfig.getCaCertificateFile()),
                     SSLHostConfig.adjustRelativePath(sslHostConfig.getCaCertificatePath()));
             // Set revocation
-            SSLContext.setCARevocation(ctx,
+            SSL.setCARevocation(ctx,
                     SSLHostConfig.adjustRelativePath(
                             sslHostConfig.getCertificateRevocationListFile()),
                     SSLHostConfig.adjustRelativePath(
@@ -298,11 +298,11 @@ public class OpenSSLContext {
                 value = SSL.SSL_CVERIFY_REQUIRE;
                 break;
             }
-            SSLContext.setVerify(ctx, value, sslHostConfig.getCertificateVerificationDepth());
+            SSL.setSSLContextVerify(ctx, value, sslHostConfig.getCertificateVerificationDepth());
 
             if (tms != null) {
                 final X509TrustManager manager = chooseTrustManager(tms);
-                SSLContext.setCertVerifyCallback(ctx, new CertificateVerifier() {
+                SSL.setCertVerifyCallback(ctx, new CertificateVerifier() {
                     @Override
                     public boolean verify(long ssl, byte[][] chain, String auth) {
                         X509Certificate[] peerCerts = certificates(chain);
@@ -317,7 +317,7 @@ public class OpenSSLContext {
                 });
             }
             String[] protos = new OpenSSLProtocols(enabledProtocol).getProtocols();
-            SSLContext.setNpnProtos(ctx, protos, SSL.SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL);
+            SSL.setNpnProtos(ctx, protos, SSL.SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL);
 
             sessionContext = new OpenSSLServerSessionContext(ctx);
             initialized = true;
@@ -413,7 +413,7 @@ public class OpenSSLContext {
         super.finalize();
         synchronized (OpenSSLContext.class) {
             if (ctx != 0) {
-                SSLContext.free(ctx);
+                SSL.freeSSLContext(ctx);
             }
         }
     }

@@ -13,6 +13,8 @@ ALL_TARGETS=linux-x86_64/libutssl.so linux-i686/libutssl.so mac/libutssl.dylib
 
 STRIP=strip
 
+CFLAGS=-D_REENTRANT
+
 default: all
 
 linux: linux-x86_64/libutssl.so linux-i686/libutssl.so
@@ -29,7 +31,7 @@ $(ALL_OFILES): Makefile
 
 linux-x86_64/%.o: src/%.c
 	@echo '  compile ' $@
-	@$(CC) -m64 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/linux/include -Wall -Werror
+	@$(CC) $(CFLAGS) -m64 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/linux/include -Wall -Werror
 
 linux-x86_64/libutssl.so: $(LINUX_x86_64_OFILES)
 	@echo '     link ' $@
@@ -37,7 +39,7 @@ linux-x86_64/libutssl.so: $(LINUX_x86_64_OFILES)
 
 linux-i686/%.o: src/%.c
 	@echo '  compile ' $@
-	@$(CC) -m32 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/linux/include -Wall -Werror
+	@$(CC) $(CFLAGS) -m32 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/linux/include -Wall -Werror
 
 linux-i686/libutssl.so: $(LINUX_i686_OFILES)
 	@echo '     link ' $@
@@ -45,7 +47,7 @@ linux-i686/libutssl.so: $(LINUX_i686_OFILES)
 
 mac/%.o: src/%.c
 	@echo '  compile ' $@
-	@$(CC) -m64 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -Wall -Werror
+	@$(CC) $(CFLAGS) -m64 $< -Iinclude -std=gnu99 -fPIC -g -c -o $@ -O2 -I$(JAVA_HOME)/include -Wall -Werror
 
 mac/libutssl.dylib: $(MAC_OFILES)
 	@echo '     link ' $@
