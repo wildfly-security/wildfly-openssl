@@ -1,0 +1,17 @@
+target
+*.iml
+.idea
+.settings
+.project
+.classpath
+*~
+local-test
+out
+lib
+bin
+dependency-reduced-pom.xml
+hotspot.log
+.directory
+*.o
+*.so
+*.dylib
