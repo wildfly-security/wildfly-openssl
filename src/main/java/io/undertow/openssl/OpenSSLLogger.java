@@ -27,6 +27,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import java.nio.ByteBuffer;
 
+import static org.jboss.logging.Logger.Level.WARN;
+
 /**
  * @author Stuart Douglas
  */
@@ -35,19 +37,19 @@ public interface OpenSSLLogger extends BasicLogger {
 
     OpenSSLLogger ROOT_LOGGER = Logger.getMessageLogger(OpenSSLLogger.class, OpenSSLLogger.class.getPackage().getName());
 
-    @Message(id = 1, value = "engine.engineClosed")
+    @Message(id = 1, value = "Engine is closed")
     SSLException engineClosed();
 
-    @Message(id = 2, value = "engine.renegociationUnsupported")
+    @Message(id = 2, value = "Renegotiation is not supported")
     SSLException renegotiationUnsupported();
 
-    @Message(id = 3, value = "engine.oversizedPacket")
+    @Message(id = 3, value = "Oversized packet")
     SSLException oversizedPacket();
 
-    @Message(id = 4, value = "engine.noSSLContext")
+    @Message(id = 4, value = "No SSL Context")
     IllegalStateException noSSLContext();
 
-    @Message(id = 5, value = "engine.writeToSSLFailed")
+    @Message(id = 5, value = "Write to SSL failed. Error code %s")
     IllegalStateException writeToEngineFailed(int sslWrote);
 
     @Message(id = 6, value = "Buffer is null")
@@ -83,10 +85,69 @@ public interface OpenSSLLogger extends BasicLogger {
     @Message(id = 16, value = "Invalid offest (%s) and length (%s) into buffer array of length (%s)")
     IndexOutOfBoundsException invalidBufferIndex(int offset, int length, int dlength);
 
-    @LogMessage(level = Logger.Level.WARN)
+    @LogMessage(level = WARN)
     @Message(id = 17, value = "Failed to initialize ciphers")
     void ciphersFailure(@Cause Exception e);
 
     @Message(id = 18, value = "null ticket keys")
     IllegalArgumentException nullTicketKeys();
+
+    @Message(id = 19, value = "Invalid option %s")
+    IllegalArgumentException invalidOption(String value);
+
+    @Message(id = 20, value = "Null private key file")
+    IllegalArgumentException nullPrivateKeyFile();
+
+    @Message(id = 21, value = "Null certificate chain")
+    IllegalArgumentException nullCertificateChain();
+
+    @LogMessage(level = WARN)
+    @Message(id = 22, value = "File %s does not exist")
+    void fileDoesNotExist(String newPath);
+
+    @Message(id = 23, value = "Trust manager is missing")
+    IllegalStateException trustManagerMissing();
+
+    @Message(id = 24, value = "Trust manager is missing")
+    IllegalStateException keyManagerMissing();
+
+    @LogMessage(level = WARN)
+    @Message(id = 25, value = "The version of SSL in use does not support cipher ordering")
+    void noHonorCipherOrder();
+
+    @LogMessage(level = WARN)
+    @Message(id = 26, value = "The version of SSL in use does not support disabling compression")
+    void noDisableCompression();
+
+    @LogMessage(level = WARN)
+    @Message(id = 27, value = "The version of SSL in use does not support disabling session tickets")
+    void noDisableSessionTickets();
+
+    @Message(id = 28, value = "Certificate file is null")
+    SSLException certificateRequired();
+
+    @LogMessage(level = WARN)
+    @Message(id = 29, value = "Ignoring second invocation of init() method")
+    void initCalledMultipleTimes();
+
+    @Message(id = 30, value = "Invalid SSL protocol (%s)")
+    SSLException invalidSSLProtocol(String protocol);
+
+    @Message(id = 31, value = "Failed to make SSL context")
+    SSLException failedToMakeSSLContext(@Cause Exception e);
+
+    @Message(id = 32, value = "Failed to initialise OpenSSL context")
+    SSLException failedToInitialiseSSLContext(@Cause Exception e);
+
+    @LogMessage(level = WARN)
+    @Message(id = 33, value = "Prefix missing when parsing SSL config hostname:%s string:%s")
+    void prefixMissing(String trimmed, String hostName);
+
+    @LogMessage(level = WARN)
+    @Message(id = 34, value = "config type mismatch for %s on host %s. Actual: %s Expected: %s")
+    void configTypeMismatch(String name, String hostName, SSLHostConfig.Type actual, SSLHostConfig.Type expected);
+
+    @LogMessage(level = WARN)
+    @Message(id = 35, value = "Unknown element %s")
+    void unknownElement(String alias);
 }

@@ -16,16 +16,6 @@
  */
 package io.undertow.openssl;
 
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
-import org.apache.tomcat.jni.Pool;
-import org.apache.tomcat.jni.SSLContext;
-import org.apache.tomcat.util.net.AbstractEndpoint;
-import org.apache.tomcat.util.net.Constants;
-import org.apache.tomcat.util.net.SSLHostConfig;
-import org.apache.tomcat.util.net.SSLHostConfigCertificate;
-import org.apache.tomcat.util.net.jsse.openssl.OpenSSLCipherConfigurationParser;
-import org.apache.tomcat.util.res.StringManager;
 
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -56,13 +46,9 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
-public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
+import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
 
-    private static final Log log = LogFactory.getLog(OpenSSLContext.class);
-
-    // Note: this uses the main "net" package strings as many are common with APR
-    private static final StringManager netSm = StringManager.getManager(AbstractEndpoint.class);
-    private static final StringManager sm = StringManager.getManager(OpenSSLContext.class);
+public class OpenSSLContext {
 
     private static final String defaultProtocol = "TLS";
 
@@ -86,7 +72,6 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
         enabledProtocol = (protocol == null) ? defaultProtocol : protocol;
     }
 
-    private final long aprPool;
     protected final long ctx;
 
     @SuppressWarnings("unused")
@@ -100,7 +85,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
         try {
             X509_CERT_FACTORY = CertificateFactory.getInstance("X.509");
         } catch (CertificateException e) {
-            throw new IllegalStateException(sm.getString("openssl.X509FactoryError"), e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -108,12 +93,11 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
             throws SSLException {
         this.sslHostConfig = sslHostConfig;
         this.certificate = certificate;
-        aprPool = Pool.create(0);
         boolean success = false;
         try {
             if (SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()) == null) {
                 // This is required
-                throw new Exception(netSm.getString("endpoint.apr.noSslCertFile"));
+                throw ROOT_LOGGER.certificateRequired();
             }
 
             // SSL protocol
@@ -122,54 +106,41 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                 value = SSL.SSL_PROTOCOL_ALL;
             } else {
                 for (String protocol : sslHostConfig.getProtocols()) {
-                    if (Constants.SSL_PROTO_SSLv2Hello.equalsIgnoreCase(protocol)) {
+                    if (SSL.SSL_PROTO_SSLv2Hello.equalsIgnoreCase(protocol)) {
                         // NO-OP. OpenSSL always supports SSLv2Hello
-                    } else if (Constants.SSL_PROTO_SSLv2.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_SSLv2.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_SSLV2;
-                    } else if (Constants.SSL_PROTO_SSLv3.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_SSLv3.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_SSLV3;
-                    } else if (Constants.SSL_PROTO_TLSv1.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_TLSv1.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_TLSV1;
-                    } else if (Constants.SSL_PROTO_TLSv1_1.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_TLSv1_1.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_TLSV1_1;
-                    } else if (Constants.SSL_PROTO_TLSv1_2.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_TLSv1_2.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_TLSV1_2;
-                    } else if (Constants.SSL_PROTO_ALL.equalsIgnoreCase(protocol)) {
+                    } else if (SSL.SSL_PROTO_ALL.equalsIgnoreCase(protocol)) {
                         value |= SSL.SSL_PROTOCOL_ALL;
                     } else {
                         // Protocol not recognized, fail to start as it is safer than
                         // continuing with the default which might enable more than the
                         // is required
-                        throw new Exception(netSm.getString(
-                                "endpoint.apr.invalidSslProtocol", protocol));
+                        throw ROOT_LOGGER.invalidSSLProtocol(protocol);
                     }
                 }
             }
 
             // Create SSL Context
             try {
-                ctx = SSLContext.make(aprPool, value, SSL.SSL_MODE_SERVER);
+                ctx = SSLContext.make(value, SSL.SSL_MODE_SERVER);
             } catch (Exception e) {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
                 // the AprLifecycleListener settings from here
-                throw new Exception(
-                        netSm.getString("endpoint.apr.failSslContextMake"), e);
+                throw ROOT_LOGGER.failedToMakeSSLContext(e);
             }
             success = true;
         } catch(Exception e) {
-            throw new SSLException(sm.getString("openssl.errorSSLCtxInit"), e);
-        } finally {
-            if (!success) {
-                destroyPools();
-            }
-        }
-    }
-
-    private void destroyPools() {
-        // Guard against multiple destroyPools() calls triggered by construction exception and finalize() later
-        if (aprPool != 0 && DESTROY_UPDATER.compareAndSet(this, 0, 1)) {
-            Pool.destroy(aprPool);
+            throw ROOT_LOGGER.failedToInitialiseSSLContext(e);
         }
     }
 
@@ -181,10 +152,9 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
      * @param tms
      * @param sr Is not used for this implementation.
      */
-    @Override
     public synchronized void init(KeyManager[] kms, TrustManager[] tms, SecureRandom sr) {
         if (initialized) {
-            log.warn(sm.getString("openssl.doubleInit"));
+            ROOT_LOGGER.initCalledMultipleTimes();
             return;
         }
         try {
@@ -202,8 +172,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
             }
             if (!legacyRenegSupported) {
                 // OpenSSL does not support unsafe legacy renegotiation.
-                log.warn(netSm.getString("endpoint.warn.noInsecureReneg",
-                                      SSL.versionString()));
+                ROOT_LOGGER.debug("Your version of OpenSSL does not support legacy renegotiation");
             }
             // Use server's preference order for ciphers (rather than
             // client's)
@@ -222,8 +191,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
             }
             if (!orderCiphersSupported) {
                 // OpenSSL does not support ciphers ordering.
-                log.warn(netSm.getString("endpoint.warn.noHonorCipherOrder",
-                                      SSL.versionString()));
+                ROOT_LOGGER.noHonorCipherOrder();
             }
 
             // Disable compression if requested
@@ -241,9 +209,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                 // Ignore
             }
             if (!disableCompressionSupported) {
-                // OpenSSL does not support ciphers ordering.
-                log.warn(netSm.getString("endpoint.warn.noDisableCompression",
-                                      SSL.versionString()));
+                ROOT_LOGGER.noDisableCompression();
             }
 
             // Disable TLS Session Tickets (RFC4507) to protect perfect forward secrecy
@@ -262,8 +228,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
             }
             if (!disableSessionTicketsSupported) {
                 // OpenSSL is too old to support TLS Session Tickets.
-                log.warn(netSm.getString("endpoint.warn.noDisableSessionTickets",
-                                      SSL.versionString()));
+                ROOT_LOGGER.noDisableSessionTickets();
             }
 
             // Set session cache size, if specified
@@ -345,7 +310,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                             manager.checkClientTrusted(peerCerts, auth);
                             return true;
                         } catch (Exception e) {
-                            log.debug(sm.getString("openssl.certificateVerificationFailed"), e);
+                            ROOT_LOGGER.debug("Certificate verification failed", e);
                         }
                         return false;
                     }
@@ -357,8 +322,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
             sessionContext = new OpenSSLServerSessionContext(ctx);
             initialized = true;
         } catch (Exception e) {
-            log.warn(sm.getString("openssl.errorSSLCtxInit"), e);
-            destroyPools();
+            throw new RuntimeException(e);
         }
     }
 
@@ -368,7 +332,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                 return (OpenSSLKeyManager) manager;
             }
         }
-        throw new IllegalStateException(sm.getString("openssl.keyManagerMissing"));
+        throw ROOT_LOGGER.keyManagerMissing();
     }
 
     static X509TrustManager chooseTrustManager(TrustManager[] managers) {
@@ -377,7 +341,7 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                 return (X509TrustManager) m;
             }
         }
-        throw new IllegalStateException(sm.getString("openssl.trustManagerMissing"));
+        throw ROOT_LOGGER.trustManagerMissing();
     }
 
     private static X509Certificate[] certificates(byte[][] chain) {
@@ -388,22 +352,18 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
         return peerCerts;
     }
 
-    @Override
     public SSLSessionContext getServerSessionContext() {
         return sessionContext;
     }
 
-    @Override
     public SSLEngine createSSLEngine() {
         return new OpenSSLEngine(ctx, defaultProtocol, false, sessionContext);
     }
 
-    @Override
     public SSLServerSocketFactory getServerSocketFactory() {
         throw new UnsupportedOperationException();
     }
 
-    @Override
     public SSLParameters getSupportedSSLParameters() {
         throw new UnsupportedOperationException();
     }
@@ -456,6 +416,5 @@ public class OpenSSLContext implements org.apache.tomcat.util.net.SSLContext {
                 SSLContext.free(ctx);
             }
         }
-        destroyPools();
     }
 }
