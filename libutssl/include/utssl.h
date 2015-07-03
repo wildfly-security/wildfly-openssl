@@ -20,6 +20,9 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
+#ifndef __UTSSL__
+#define __UTSSL__
+
 #define _GNU_SOURCE
 
 #include <jni.h>
@@ -234,3 +237,4 @@ typedef struct {
     } reneg_state;
 } tcn_ssl_conn_t;
 
+#endif

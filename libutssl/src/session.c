@@ -1,12 +1,7 @@
-#include "utssl.h"
-#include "utssl_private.h"
-#include <jni.h>
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
 
+#include "utssl_private.h"
+
+/*functions related to openssl session management */
 
 UT_OPENSSL(jlong, setSessionCacheMode)(JNIEnv *e, jobject o, jlong ctx, jlong mode)
 {

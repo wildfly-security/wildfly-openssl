@@ -1,6 +1,5 @@
-#include "utssl.h"
 #include "utssl_private.h"
-#include <jni.h>
+
 
 #include <unistd.h>
 

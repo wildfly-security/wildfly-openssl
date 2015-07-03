@@ -1,7 +1,7 @@
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-
+#include "utssl.h"
 #include <jni.h>
 #include <openssl/crypto.h>
 #include <openssl/pkcs12.h>
@@ -74,6 +74,8 @@ todo
 #define J2S(V)  c##V
 
 
+#ifndef __UTSSLPRIVATE__
+#define __UTSSLPRIVATE__
 /*
  * Adapted from OpenSSL:
  * http://osxr.org/openssl/source/ssl/ssl_locl.h#0291
@@ -114,3 +116,8 @@ jint tcn_get_java_env(JNIEnv **env);
 JavaVM * tcn_get_java_vm();
 
 jstring tcn_new_string(JNIEnv *env, const char *str);
+
+/*thread setup function*/
+void ssl_thread_setup();
+
+#endif
