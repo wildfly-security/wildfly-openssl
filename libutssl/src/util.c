@@ -99,3 +99,12 @@ JavaVM * tcn_get_java_vm()
 {
     return tcn_global_vm;
 }
+
+
+jstring tcn_new_string(JNIEnv *env, const char *str)
+{
+    if (!str)
+        return NULL;
+    else
+        return (*env)->NewStringUTF(env, str);
+}

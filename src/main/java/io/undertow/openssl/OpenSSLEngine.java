@@ -363,7 +363,7 @@ public final class OpenSSLEngine extends SSLEngine {
             throw ROOT_LOGGER.nullBuffer();
         }
 
-        if (offset >= srcs.length || offset + length > srcs.length) {
+        if (offset + length > srcs.length) {
             throw ROOT_LOGGER.invalidBufferIndex(offset, length, srcs.length);
         }
 

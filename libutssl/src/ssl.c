@@ -1493,3 +1493,162 @@ UT_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     }
     SSL_free(ssl_);
 }
+
+
+UT_OPENSSL(jlong, bufferAddress)(JNIEnv *e, jobject o, jobject bb)
+{
+    UNREFERENCED(o);
+    return P2J((*e)->GetDirectBufferAddress(e, bb));
+}
+
+
+/* Make a BIO pair (network and internal) for the provided SSL * and return the network BIO */
+UT_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    BIO *internal_bio;
+    BIO *network_bio;
+
+    UNREFERENCED(o);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        goto fail;
+    }
+
+    if (BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
+        throwIllegalStateException(e, "BIO_new_bio_pair failed");
+        goto fail;
+    }
+
+    SSL_set_bio(ssl_, internal_bio, internal_bio);
+
+    return P2J(network_bio);
+ fail:
+    return 0;
+}
+
+
+UT_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+
+    return SSL_do_handshake(ssl_);
+}
+
+
+UT_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o) {
+    return ERR_get_error();
+}
+
+
+
+UT_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o,
+                                                                     jlong bio /* BIO * */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_ctrl_pending(J2P(bio, BIO *));
+}
+
+/* How much is available for reading in the given SSL struct? */
+UT_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_pending(J2P(ssl, SSL *));
+}
+
+/* Write wlen bytes from wbuf into bio */
+UT_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o,
+                                                       jlong bio /* BIO * */,
+                                                       jlong wbuf /* char* */,
+                                                       jint wlen /* sizeof(wbuf) */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
+
+}
+
+/* Read up to rlen bytes from bio into rbuf */
+UT_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o,
+                                                        jlong bio /* BIO * */,
+                                                        jlong rbuf /* char * */,
+                                                        jint rlen /* sizeof(rbuf) - 1 */) {
+    UNREFERENCED_STDARGS;
+
+    return BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+}
+
+/* Write up to wlen bytes of application data to the ssl BIO (encrypt) */
+UT_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o,
+                                                       jlong ssl /* SSL * */,
+                                                       jlong wbuf /* char * */,
+                                                       jint wlen /* sizeof(wbuf) */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+}
+
+/* Read up to rlen bytes of application data from the given SSL BIO (decrypt) */
+UT_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o,
+                                                        jlong ssl /* SSL * */,
+                                                        jlong rbuf /* char * */,
+                                                        jint rlen /* sizeof(rbuf) - 1 */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+}
+
+/* Get the shutdown status of the engine */
+UT_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o,
+                                                        jlong ssl /* SSL * */) {
+    UNREFERENCED_STDARGS;
+
+    return SSL_get_shutdown(J2P(ssl, SSL *));
+}
+
+/* Called when the peer closes the connection */
+UT_OPENSSL(void, setShutdown)(JNIEnv *e, jobject o,
+                                           jlong ssl /* SSL * */,
+                                           jint mode) {
+    UNREFERENCED_STDARGS;
+
+    SSL_set_shutdown(J2P(ssl, SSL *), mode);
+}
+
+
+UT_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
+                                        jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    UNREFERENCED(o);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return 0;
+    } else {
+        return SSL_in_init(ssl_);
+    }
+}
+
+/* Free a BIO * (typically, the network BIO) */
+UT_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o,
+                                       jlong bio /* BIO * */) {
+    BIO *bio_;
+    UNREFERENCED_STDARGS;
+
+    bio_ = J2P(bio, BIO *);
+    BIO_free(bio_);
+}
+
+
+UT_OPENSSL(jstring, getErrorString)(JNIEnv *e, jobject o, jlong number)
+{
+    char buf[256];
+    UNREFERENCED(o);
+    ERR_error_string(number, buf);
+    return tcn_new_string(e, buf);
+}

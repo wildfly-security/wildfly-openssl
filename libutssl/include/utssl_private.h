@@ -112,3 +112,5 @@ void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);
 jint tcn_get_java_env(JNIEnv **env);
 JavaVM * tcn_get_java_vm();
+
+jstring tcn_new_string(JNIEnv *env, const char *str);
