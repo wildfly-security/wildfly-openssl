@@ -25,13 +25,154 @@ static jclass byteArrayClass, stringClass;
  */
 static jclass    ssl_context_class;
 static jmethodID sni_java_callback;
-
+static int ssl_lock_num_locks;
 
 tcn_pass_cb_t tcn_password_callback;
 
 static int SSL_app_data2_idx = -1;
 static int SSL_app_data3_idx = -1;
 
+#ifdef WIN32
+#define ssl_lock_type HANDLE
+static HANDLE* ssl_lock_cs;
+struct CRYPTO_dynlock_value = todo;
+#else
+#define ssl_lock_type pthread_mutex_t
+static pthread_mutex_t* ssl_lock_cs;
+struct CRYPTO_dynlock_value {
+    pthread_mutex_t mutex;
+};
+#endif
+
+
+static void ssl_thread_lock(int mode, int type,
+                            const char *file, int line)
+{
+    if (type < ssl_lock_num_locks) {
+        if (mode & CRYPTO_LOCK) {
+#ifdef WIN32
+            todo
+#else
+            pthread_mutex_lock(&ssl_lock_cs[type]);
+#endif
+        }
+        else {
+#ifdef WIN32
+            todo
+#else
+            pthread_mutex_unlock(&ssl_lock_cs[type]);
+#endif
+        }
+    }
+}
+
+static unsigned long ssl_thread_id(void)
+{
+    /* OpenSSL needs this to return an unsigned long.  On OS/390, the pthread
+     * id is a structure twice that big.  Use the TCB pointer instead as a
+     * unique unsigned long.
+     */
+#ifdef __MVS__
+    struct PSA {
+        char unmapped[540];
+        unsigned long PSATOLD;
+    } *psaptr = 0;
+
+    return psaptr->PSATOLD;
+#elif defined(WIN32)
+    return (unsigned long)GetCurrentThreadId();
+#else
+    return (unsigned long)(pthread_self());
+#endif
+}
+
+/*
+ * Dynamic lock creation callback
+ */
+static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
+                                                     int line)
+{
+    struct CRYPTO_dynlock_value *value;
+    #ifdef WIN32
+    todo
+    #else
+        value = malloc(sizeof(*value));
+        if(value == NULL) {
+            printf("Failed to allocate memory for mutex");
+            return NULL;
+        }
+        int val = pthread_mutex_init(&(value->mutex), 0);
+        if(val != 0) {
+                printf("Failed to create mutex, error %d", val);
+                return NULL;
+        }
+    #endif
+    return value;
+}
+
+/*
+ * Dynamic locking and unlocking function
+ */
+
+static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
+                           const char *file, int line)
+{
+    if (mode & CRYPTO_LOCK) {
+#ifdef WIN32
+            todo
+#else
+        pthread_mutex_lock(&(l->mutex));
+#endif
+    }
+    else {
+#ifdef WIN32
+        todo
+#else
+        pthread_mutex_unlock(&(l->mutex));
+#endif
+    }
+}
+
+/*
+ * Dynamic lock destruction callback
+ */
+static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
+                          const char *file, int line)
+{
+
+#ifdef WIN32
+            todo
+#else
+    pthread_mutex_destroy(&(l->mutex));
+    free(l);
+#endif
+}
+static void ssl_thread_setup()
+{
+    int i;
+    ssl_lock_num_locks = CRYPTO_num_locks();
+    ssl_lock_cs = malloc(ssl_lock_num_locks * sizeof(ssl_lock_type));
+
+    for (i = 0; i < ssl_lock_num_locks; i++) {
+#ifdef WINDOWS
+        todo
+#else
+         pthread_mutex_init(&ssl_lock_cs[i], 0);
+#endif
+    }
+
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
+    CRYPTO_set_id_callback(ssl_thread_id);
+#endif
+    CRYPTO_set_locking_callback(ssl_thread_lock);
+
+    /* Set up dynamic locking scaffolding for OpenSSL to use at its
+     * convenience.
+     */
+    CRYPTO_set_dynlock_create_callback(ssl_dyn_create_function);
+    CRYPTO_set_dynlock_lock_callback(ssl_dyn_lock_function);
+    CRYPTO_set_dynlock_destroy_callback(ssl_dyn_destroy_function);
+}
 
 /* Storage and initialization for DH parameters. */
 static struct dhparam {
@@ -239,7 +380,6 @@ void SSL_set_app_data3(SSL *ssl, void *arg)
 {
     SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
 }
-
 /* Callback used when OpenSSL receives a client hello with a Server Name
  * Indication extension.
  */
@@ -304,7 +444,7 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
 #endif
     OPENSSL_load_builtin_modules();
 
-    //TODO: initialise threads
+    ssl_thread_setup();
 
     //TODO: engine support?
 
@@ -413,6 +553,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "malloc failed");
         goto init_failed;
     }
+    memset(c, 0, sizeof(*c));
 
     c->protocol = protocol;
     c->mode     = mode;
@@ -594,11 +735,13 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
     /* Run and destroy the cleanup callback */
     if (c) {
         int i;
-        if (c->crl)
+        if (c->crl) {
             X509_STORE_free(c->crl);
+        }
         c->crl = NULL;
-        if (c->ctx)
+        if (c->ctx) {
             SSL_CTX_free(c->ctx);
+        }
         c->ctx = NULL;
         for (i = 0; i < SSL_AIDX_MAX; i++) {
             if (c->certs[i]) {
@@ -606,6 +749,7 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
                 c->certs[i] = NULL;
             }
             if (c->keys[i]) {
+                printf("b %d", i);
                 EVP_PKEY_free(c->keys[i]);
                 c->keys[i] = NULL;
             }
@@ -642,7 +786,7 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
     return 0;
 }
 
-UT_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ctx,
+UT_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
                                                  jint opt)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -657,7 +801,7 @@ UT_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ctx,
     SSL_CTX_set_options(c->ctx, opt);
 }
 
-UT_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ctx)
+UT_OPENSSL(jint, getSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
@@ -667,7 +811,7 @@ UT_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ctx)
     return SSL_CTX_get_options(c->ctx);
 }
 
-UT_OPENSSL(void, clearOptions)(JNIEnv *e, jobject o, jlong ctx,
+UT_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
                                                    jint opt)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -1277,4 +1421,75 @@ UT_OPENSSL(jboolean, setSessionIdContext)(JNIEnv *e, jobject o, jlong ctx, jbyte
         return JNI_TRUE;
     }
     return JNI_FALSE;
+}
+
+
+static void ssl_info_callback(const SSL *ssl, int where, int ret) {
+    int *handshakeCount = NULL;
+    if (0 != (where & SSL_CB_HANDSHAKE_START)) {
+        handshakeCount = (int*) SSL_get_app_data3(ssl);
+        if (handshakeCount != NULL) {
+            ++(*handshakeCount);
+        }
+    }
+}
+
+UT_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */,
+                                                   jboolean server) {
+    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    int *handshakeCount = malloc(sizeof(int));
+    SSL *ssl;
+    tcn_ssl_conn_t *con;
+
+    UNREFERENCED_STDARGS;
+
+    TCN_ASSERT(ctx != 0);
+    ssl = SSL_new(c->ctx);
+    if (ssl == NULL) {
+        throwIllegalStateException(e, "cannot create new ssl");
+        return 0;
+    }
+    if ((con = malloc(sizeof(tcn_ssl_conn_t))) == NULL) {
+        throwIllegalStateException(e, "Failed to allocate memory");
+        return 0;
+    }
+    memset(con, 0, sizeof(*con));
+    con->ctx  = c;
+    con->ssl  = ssl;
+    con->shutdown_type = c->shutdown_type;
+
+    /* Store the handshakeCount in the SSL instance. */
+    *handshakeCount = 0;
+    SSL_set_app_data3(ssl, handshakeCount);
+
+    /* Add callback to keep track of handshakes. */
+    SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
+
+    if (server) {
+        SSL_set_accept_state(ssl);
+    } else {
+        SSL_set_connect_state(ssl);
+    }
+
+    /* Setup verify and seed */
+    SSL_set_verify_result(ssl, X509_V_OK);
+    //TODO: do we need our seed? It seems the default seed should be more secure
+    //SSL_rand_seed(c->rand_file);
+
+    /* Store for later usage in SSL_callback_SSL_verify */
+    SSL_set_app_data2(ssl, c);
+    SSL_set_app_data(ssl, con);
+    return P2J(ssl);
+}
+
+
+/* Free the SSL * and its associated internal BIO */
+UT_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+    SSL *ssl_ = J2P(ssl, SSL *);
+    int *handshakeCount = SSL_get_app_data3(ssl_);
+
+    if (handshakeCount != NULL) {
+        free(handshakeCount);
+    }
+    SSL_free(ssl_);
 }

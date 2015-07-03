@@ -1,7 +1,11 @@
 package io.undertow.openssl;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 
 /**
  * @author Stuart Douglas
@@ -12,7 +16,6 @@ public class Test {
     public void testSomeSuff() throws IOException {
         System.loadLibrary("utssl");
 
-        ServerSocket socket = new ServerSocket(7676);
         final SSLHostConfig sslHostConfig = new SSLHostConfig();
         final SSLHostConfigCertificate certificate = new SSLHostConfigCertificate(sslHostConfig, SSLHostConfigCertificate.Type.RSA);
         certificate.setCertificateFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/server.crt");
@@ -29,9 +32,35 @@ public class Test {
         sslHostConfig.setHostName("localhost");
         sslHostConfig.setCertificateVerificationDepth(100);
 
-        OpenSSLContext sslContext = new OpenSSLContext(sslHostConfig, certificate);
+        final OpenSSLContext sslContext = new OpenSSLContext(sslHostConfig, certificate);
 
         sslContext.init(null, null);
+
+        Thread acceptThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ServerSocket socket = new ServerSocket(7676);
+                    while (true) {
+                        final Socket s = socket.accept();
+                        Thread t = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                SSLEngine engine = sslContext.createSSLEngine();
+                            }
+                        });
+                        t.start();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        acceptThread.start();
+
+        final Socket socket = SSLSocketFactory.getDefault().createSocket();
+        socket.connect(new InetSocketAddress("localhost", 7676));
 
     }
 }

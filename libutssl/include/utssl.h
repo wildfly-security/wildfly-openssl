@@ -211,3 +211,26 @@ typedef struct {
 } tcn_ssl_ctxt_t;
 
 
+typedef struct {
+    tcn_ssl_ctxt_t *ctx;
+    SSL            *ssl;
+    X509           *peer;
+    int             shutdown_type;
+    /* Track the handshake/renegotiation state for the connection so
+     * that all client-initiated renegotiations can be rejected, as a
+     * partial fix for CVE-2009-3555.
+     */
+    enum {
+        RENEG_INIT = 0, /* Before initial handshake */
+        RENEG_REJECT,   /* After initial handshake; any client-initiated
+                         * renegotiation should be rejected
+                         */
+        RENEG_ALLOW,    /* A server-initated renegotiation is taking
+                         * place (as dictated by configuration)
+                         */
+        RENEG_ABORT     /* Renegotiation initiated by client, abort the
+                         * connection
+                         */
+    } reneg_state;
+} tcn_ssl_conn_t;
+

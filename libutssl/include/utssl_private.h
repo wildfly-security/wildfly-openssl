@@ -10,6 +10,12 @@
 #include <openssl/err.h>
 #include <openssl/conf.h>
 
+#ifdef WIN32
+todo
+#else
+#include <pthread.h>
+#endif
+
 #define TCN_BEGIN_MACRO     if (1) {
 #define TCN_END_MACRO       } else (void)(0)
 
