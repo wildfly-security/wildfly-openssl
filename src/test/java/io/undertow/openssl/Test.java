@@ -2,12 +2,7 @@ package io.undertow.openssl;
 
 import org.junit.Assert;
 
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -18,6 +13,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 
 /**
  * @author Stuart Douglas
@@ -26,27 +27,73 @@ public class Test {
 
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
 
+    private static KeyStore loadKeyStore(final String name) throws IOException {
+        final InputStream stream = Test.class.getClassLoader().getResourceAsStream(name);
+        try {
+            KeyStore loadedKeystore = KeyStore.getInstance("JKS");
+            loadedKeystore.load(stream, "password".toCharArray());
+
+            return loadedKeystore;
+        } catch (KeyStoreException e) {
+            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+        } catch (CertificateException e) {
+            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+        } finally {
+            stream.close();
+        }
+    }
+
+    private static OpenSSLContext createSSLContext() throws IOException {
+        KeyManager[] keyManagers;
+        try {
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(loadKeyStore("server.keystore"), "password".toCharArray());
+            keyManagers = keyManagerFactory.getKeyManagers();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("Unable to initialise KeyManager[]", e);
+        } catch (UnrecoverableKeyException e) {
+            throw new IOException("Unable to initialise KeyManager[]", e);
+        } catch (KeyStoreException e) {
+            throw new IOException("Unable to initialise KeyManager[]", e);
+        }
+
+        TrustManager[] trustManagers = null;
+        try {
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(loadKeyStore("server.truststore"));
+            trustManagers = trustManagerFactory.getTrustManagers();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("Unable to initialise TrustManager[]", e);
+        } catch (KeyStoreException e) {
+            throw new IOException("Unable to initialise TrustManager[]", e);
+        }
+
+        try {
+
+            final SSLHostConfig sslHostConfig = new SSLHostConfig();
+            sslHostConfig.setConfigType(SSLHostConfig.Type.OPENSSL);
+            sslHostConfig.setProtocols("TLSv1");
+            sslHostConfig.setCiphers("ALL");
+            sslHostConfig.setCertificateVerification("NONE");
+            sslHostConfig.setHostName("localhost");
+            sslHostConfig.setCertificateVerificationDepth(100);
+            OpenSSLContext context = new OpenSSLContext(sslHostConfig);
+            context.init(keyManagers, trustManagers);
+            return context;
+        } catch (Exception e) {
+            throw new IOException("Unable to create and initialise the SSLContext", e);
+        }
+    }
+
+
     @org.junit.Test
     public void testSomeSuff() throws IOException {
         System.loadLibrary("utssl");
 
-        final SSLHostConfig sslHostConfig = new SSLHostConfig();
-        final SSLHostConfigCertificate certificate = new SSLHostConfigCertificate(sslHostConfig, SSLHostConfigCertificate.Type.RSA);
-        certificate.setCertificateFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/server.crt");
-        certificate.setCertificateKeyFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/server.key");
-        sslHostConfig.addCertificate(certificate);
 
-        sslHostConfig.setCaCertificatePath("/Users/stuart/workspace/undertow-openssl/src/test/resources/ca.crt");
-        sslHostConfig.setCaCertificateFile("/Users/stuart/workspace/undertow-openssl/src/test/resources/ca.crt");
-
-        sslHostConfig.setConfigType(SSLHostConfig.Type.OPENSSL);
-        sslHostConfig.setProtocols("TLSv1");
-        sslHostConfig.setCiphers("ALL");
-        sslHostConfig.setCertificateVerification("NONE");
-        sslHostConfig.setHostName("localhost");
-        sslHostConfig.setCertificateVerificationDepth(100);
-
-        final OpenSSLContext sslContext = new OpenSSLContext(sslHostConfig, certificate);
+        final OpenSSLContext sslContext = createSSLContext();
 
         sslContext.init(null, null);
 

@@ -42,23 +42,6 @@ static struct dhparam {
     { get_rfc2409_prime_1024, NULL, 0 }
 };
 
-/*  _________________________________________________________________
-**
-**  Custom (EC)DH parameter support
-**  _________________________________________________________________
-*/
-DH *SSL_dh_GetParamFromFile(const char *file)
-{
-    DH *dh = NULL;
-    BIO *bio;
-
-    if ((bio = BIO_new_file(file, "r")) == NULL)
-        return NULL;
-    dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
-    BIO_free(bio);
-    return dh;
-}
-
 /* Hand out the same DH structure though once generated as we leak
  * memory otherwise and freeing the structure up after use would be
  * hard to track and in fact is not needed at all as it is safe to
@@ -870,177 +853,61 @@ UT_OPENSSL(void, setSSLContextVerify)(JNIEnv *e, jobject o, jlong ctx,
     //SSL_CTX_set_verify(c->ctx, verify, SSL_callback_SSL_verify);
 }
 
-static EVP_PKEY *load_pem_key(tcn_ssl_ctxt_t *c, const char *file)
-{
-    BIO *bio = NULL;
-    EVP_PKEY *key = NULL;
-    tcn_pass_cb_t *cb_data = c->cb_data;
-    int i;
-
-    if ((bio = BIO_new(BIO_s_file())) == NULL) {
-        return NULL;
-    }
-    if (BIO_read_filename(bio, file) <= 0) {
-        BIO_free(bio);
-        return NULL;
-    }
-    if (!cb_data)
-        cb_data = &tcn_password_callback;
-    for (i = 0; i < 3; i++) {
-        key = PEM_read_bio_PrivateKey(bio, NULL,
-                    (pem_password_cb *)SSL_password_callback,
-                    (void *)cb_data);
-        if (key)
-            break;
-        cb_data->password[0] = '\0';
-        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
-    }
-    BIO_free(bio);
-    return key;
-}
-
-static X509 *load_pem_cert(tcn_ssl_ctxt_t *c, const char *file)
-{
-    BIO *bio = NULL;
-    X509 *cert = NULL;
-    tcn_pass_cb_t *cb_data = c->cb_data;
-
-    if ((bio = BIO_new(BIO_s_file())) == NULL) {
-        return NULL;
-    }
-    if (BIO_read_filename(bio, file) <= 0) {
-        BIO_free(bio);
-        return NULL;
-    }
-    if (!cb_data)
-        cb_data = &tcn_password_callback;
-    cert = PEM_read_bio_X509_AUX(bio, NULL,
-                (pem_password_cb *)SSL_password_callback,
-                (void *)cb_data);
-    if (cert == NULL &&
-       (ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE)) {
-        ERR_clear_error();
-        BIO_ctrl(bio, BIO_CTRL_RESET, 0, NULL);
-        cert = d2i_X509_bio(bio, NULL);
-    }
-    BIO_free(bio);
-    return cert;
-}
-
-static int ssl_load_pkcs12(tcn_ssl_ctxt_t *c, const char *file,
-                           EVP_PKEY **pkey, X509 **cert, STACK_OF(X509) **ca)
-{
-    const char *pass;
-    char        buff[PEM_BUFSIZE];
-    int         len, rc = 0;
-    PKCS12     *p12;
-    BIO        *in;
-    tcn_pass_cb_t *cb_data = c->cb_data;
-
-    if ((in = BIO_new(BIO_s_file())) == 0)
-        return 0;
-    if (BIO_read_filename(in, file) <= 0) {
-        BIO_free(in);
-        return 0;
-    }
-    p12 = d2i_PKCS12_bio(in, 0);
-    if (p12 == 0) {
-        /* Error loading PKCS12 file */
-        goto cleanup;
-    }
-    /* See if an empty password will do */
-    if (PKCS12_verify_mac(p12, "", 0) || PKCS12_verify_mac(p12, 0, 0)) {
-        pass = "";
-    }
-    else {
-        if (!cb_data)
-            cb_data = &tcn_password_callback;
-        len = SSL_password_callback(buff, PEM_BUFSIZE, 0, cb_data);
-        if (len < 0) {
-            /* Passpharse callback error */
-            goto cleanup;
-        }
-        if (!PKCS12_verify_mac(p12, buff, len)) {
-            /* Mac verify error (wrong password?) in PKCS12 file */
-            goto cleanup;
-        }
-        pass = buff;
-    }
-    rc = PKCS12_parse(p12, pass, pkey, cert, ca);
-cleanup:
-    if (p12 != 0)
-        PKCS12_free(p12);
-    BIO_free(in);
-    return rc;
-}
-
 UT_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
-                                                         jstring cert, jstring key,
-                                                         jstring password, jint idx)
+                                                         jbyteArray javaCert, jbyteArray javaKey, jint idx)
 {
+    /* we get the key contents into a byte array */
+    jbyte* bufferPtr = (*e)->GetByteArrayElements(e, javaKey, NULL);
+    jsize lengthOfKey = (*e)->GetArrayLength(e, javaKey);
+    unsigned char* key = malloc(lengthOfKey);
+    memcpy(key, bufferPtr, lengthOfKey);
+    (*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
+
+    bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
+    jsize lengthOfCert = (*e)->GetArrayLength(e, javaCert);
+    unsigned char* cert = malloc(lengthOfCert);
+    memcpy(cert, bufferPtr, lengthOfCert);
+    (*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
+
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jboolean rv = JNI_TRUE;
-    TCN_ALLOC_CSTRING(cert);
-    TCN_ALLOC_CSTRING(key);
-    TCN_ALLOC_CSTRING(password);
-    const char *key_file, *cert_file;
-    const char *p;
     char err[256];
-#ifdef HAVE_ECC
-    EC_GROUP *ecparams;
-    int nid;
-    EC_KEY *eckey = NULL;
-#endif
-    DH *dhparams;
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
 
     if (idx < 0 || idx >= SSL_AIDX_MAX) {
-        /* TODO: Throw something */
+        throwIllegalStateException(e, "Invalid key type");
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if (J2S(password)) {
-        if (!c->cb_data)
-            c->cb_data = &tcn_password_callback;
-        strncpy(c->cb_data->password, J2S(password), SSL_MAX_PASSWORD_LEN);
-        c->cb_data->password[SSL_MAX_PASSWORD_LEN-1] = '\0';
-    }
-    key_file  = J2S(key);
-    cert_file = J2S(cert);
-    if (!key_file)
-        key_file = cert_file;
-    if (!key_file || !cert_file) {
-        tcn_Throw(e, "No Certificate file specified or invalid file format");
+    const unsigned char *tmp = (const unsigned char *)cert;
+    if ((c->certs[idx] = d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
+        ERR_error_string(ERR_get_error(), err);
+        throwIllegalStateException(e, err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if ((p = strrchr(cert_file, '.')) != NULL && strcmp(p, ".pkcs12") == 0) {
-        if (!ssl_load_pkcs12(c, cert_file, &c->keys[idx], &c->certs[idx], 0)) {
-            ERR_error_string(ERR_get_error(), err);
-            tcn_Throw(e, "Unable to load certificate %s (%s)",
-                      cert_file, err);
-            rv = JNI_FALSE;
-            goto cleanup;
-        }
+
+    EVP_PKEY * evp = malloc(sizeof(EVP_PKEY));
+    memset(evp, 0, sizeof(EVP_PKEY));
+    if(c->keys[idx] != NULL) {
+        free(c->keys[idx]);
     }
-    else {
-        if ((c->keys[idx] = load_pem_key(c, key_file)) == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            tcn_Throw(e, "Unable to load certificate key %s (%s)",
-                      key_file, err);
-            rv = JNI_FALSE;
-            goto cleanup;
-        }
-        if ((c->certs[idx] = load_pem_cert(c, cert_file)) == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            tcn_Throw(e, "Unable to load certificate %s (%s)",
-                      cert_file, err);
-            rv = JNI_FALSE;
-            goto cleanup;
-        }
+    c->keys[idx] = evp;
+
+    BIO * bio = BIO_new(BIO_s_mem());
+    BIO_write(bio, key, lengthOfKey);
+
+    c->keys[idx] = PEM_read_bio_PrivateKey(bio, NULL, 0, NULL);
+    BIO_free(bio);
+    if (c->keys[idx] == NULL) {
+        ERR_error_string(ERR_get_error(), err);
+        throwIllegalStateException(e, err);
+        rv = JNI_FALSE;
+        goto cleanup;
     }
+
     if (SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error setting certificate (%s)", err);
@@ -1060,46 +927,11 @@ UT_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
         rv = JNI_FALSE;
         goto cleanup;
     }
-
-    /*
-     * Try to read DH parameters from the (first) SSLCertificateFile
-     */
-    /* XXX Does this also work for pkcs12 or only for PEM files?
-     * If only for PEM files move above to the PEM handling */
-    if ((idx == 0) && (dhparams = SSL_dh_GetParamFromFile(cert_file))) {
-        SSL_CTX_set_tmp_dh(c->ctx, dhparams);
-    }
-
-#ifdef HAVE_ECC
-    /*
-     * Similarly, try to read the ECDH curve name from SSLCertificateFile...
-     */
-    /* XXX Does this also work for pkcs12 or only for PEM files?
-     * If only for PEM files move above to the PEM handling */
-    if ((ecparams = SSL_ec_GetParamFromFile(cert_file)) &&
-        (nid = EC_GROUP_get_curve_name(ecparams)) &&
-        (eckey = EC_KEY_new_by_curve_name(nid))) {
-        SSL_CTX_set_tmp_ecdh(c->ctx, eckey);
-    }
-    /*
-     * ...otherwise, configure NIST P-256 (required to enable ECDHE)
-     */
-    else {
-#if defined(SSL_CTX_set_ecdh_auto)
-        SSL_CTX_set_ecdh_auto(c->ctx, 1);
-#else
-        eckey = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-        SSL_CTX_set_tmp_ecdh(c->ctx, eckey);
-#endif
-    }
-    EC_KEY_free(eckey);
-#endif
-    SSL_CTX_set_tmp_dh_callback(c->ctx, SSL_callback_tmp_DH);
+    //TODO: read DH and ECC params?
 
 cleanup:
-    TCN_FREE_CSTRING(cert);
-    TCN_FREE_CSTRING(key);
-    TCN_FREE_CSTRING(password);
+    free(key);
+    free(cert);
     return rv;
 }
 

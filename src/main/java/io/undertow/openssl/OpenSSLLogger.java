@@ -150,4 +150,10 @@ public interface OpenSSLLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 35, value = "Unknown element %s")
     void unknownElement(String alias);
+
+    @Message(id = 36, value = "could not find suitable trust manager")
+    IllegalArgumentException couldNotFindSuitableKeyManger();
+
+    @Message(id = 37, value = "KeyManager does not contain a valid certificates")
+    IllegalStateException couldNotExtractAliasFromKeyManager();
 }

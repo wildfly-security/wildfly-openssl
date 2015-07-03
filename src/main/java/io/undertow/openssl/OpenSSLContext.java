@@ -30,30 +30,39 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
 
 public class OpenSSLContext {
+    private static final String BEGIN_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
+
+    private static final String END_CERT = "\n-----END RSA PRIVATE KEY-----";
+
+    private static final String[] ALGORITHMS = {"RSA", "DSA"};
 
     private static final String defaultProtocol = "TLS";
 
     private final SSLHostConfig sslHostConfig;
-    private final SSLHostConfigCertificate certificate;
+    private SSLHostConfigCertificate certificate;
     private OpenSSLServerSessionContext sessionContext;
 
     private List<String> ciphers = new ArrayList<>();
@@ -74,10 +83,6 @@ public class OpenSSLContext {
 
     protected final long ctx;
 
-    @SuppressWarnings("unused")
-    private volatile int aprPoolDestroyed;
-    private static final AtomicIntegerFieldUpdater<OpenSSLContext> DESTROY_UPDATER
-            = AtomicIntegerFieldUpdater.newUpdater(OpenSSLContext.class, "aprPoolDestroyed");
     static final CertificateFactory X509_CERT_FACTORY;
     private boolean initialized = false;
 
@@ -89,16 +94,11 @@ public class OpenSSLContext {
         }
     }
 
-    public OpenSSLContext(SSLHostConfig sslHostConfig, SSLHostConfigCertificate certificate)
+    public OpenSSLContext(SSLHostConfig sslHostConfig)
             throws SSLException {
         this.sslHostConfig = sslHostConfig;
-        this.certificate = certificate;
         boolean success = false;
         try {
-            if (SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()) == null) {
-                // This is required
-                throw ROOT_LOGGER.certificateRequired();
-            }
 
             // SSL protocol
             int value = SSL.SSL_PROTOCOL_NONE;
@@ -139,7 +139,7 @@ public class OpenSSLContext {
                 throw ROOT_LOGGER.failedToMakeSSLContext(e);
             }
             success = true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw ROOT_LOGGER.failedToInitialiseSSLContext(e);
         }
     }
@@ -148,7 +148,7 @@ public class OpenSSLContext {
      * Setup the SSL_CTX
      *
      * @param kms Must contain a KeyManager of the type
-     * {@code OpenSSLKeyManager}
+     *            {@code OpenSSLKeyManager}
      * @param tms
      */
     public synchronized void init(KeyManager[] kms, TrustManager[] tms) {
@@ -267,10 +267,33 @@ public class OpenSSLContext {
             }
             SSL.setCipherSuite(ctx, ciphers);
             // Load Server key and certificate
-            SSL.setCertificate(ctx,
-                    SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()),
-                    SSLHostConfig.adjustRelativePath(certificate.getCertificateKeyFile()),
-                    certificate.getCertificateKeyPassword(), SSL.SSL_AIDX_RSA);
+            X509KeyManager keyManager = chooseKeyManager(kms);
+            if (keyManager == null) {
+                throw OpenSSLLogger.ROOT_LOGGER.couldNotFindSuitableKeyManger();
+            }
+            boolean oneFound = false;
+            for (String algorithm : ALGORITHMS) {
+
+                final String[] aliases = keyManager.getServerAliases(algorithm, null);
+                if (aliases != null && aliases.length != 0) {
+                    oneFound = true;
+                    String alias = aliases[0];
+                    ROOT_LOGGER.debugf("Using alias %s", alias);
+
+                    X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                    PrivateKey key = keyManager.getPrivateKey(alias);
+                    StringBuilder sb = new StringBuilder(BEGIN_CERT);
+                    sb.append(Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(key.getEncoded()));
+                    sb.append(END_CERT);
+
+                    SSL.setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                }
+            }
+
+            if (!oneFound) {
+                throw ROOT_LOGGER.couldNotExtractAliasFromKeyManager();
+            }
+            /*
             // Support Client Certificates
             SSL.setCACertificate(ctx,
                     SSLHostConfig.adjustRelativePath(sslHostConfig.getCaCertificateFile()),
@@ -281,21 +304,22 @@ public class OpenSSLContext {
                             sslHostConfig.getCertificateRevocationListFile()),
                     SSLHostConfig.adjustRelativePath(
                             sslHostConfig.getCertificateRevocationListPath()));
+            */
             // Client certificate verification
             int value = 0;
             switch (sslHostConfig.getCertificateVerification()) {
-            case NONE:
-                value = SSL.SSL_CVERIFY_NONE;
-                break;
-            case OPTIONAL:
-                value = SSL.SSL_CVERIFY_OPTIONAL;
-                break;
-            case OPTIONAL_NO_CA:
-                value = SSL.SSL_CVERIFY_OPTIONAL_NO_CA;
-                break;
-            case REQUIRED:
-                value = SSL.SSL_CVERIFY_REQUIRE;
-                break;
+                case NONE:
+                    value = SSL.SSL_CVERIFY_NONE;
+                    break;
+                case OPTIONAL:
+                    value = SSL.SSL_CVERIFY_OPTIONAL;
+                    break;
+                case OPTIONAL_NO_CA:
+                    value = SSL.SSL_CVERIFY_OPTIONAL_NO_CA;
+                    break;
+                case REQUIRED:
+                    value = SSL.SSL_CVERIFY_REQUIRE;
+                    break;
             }
             SSL.setSSLContextVerify(ctx, value, sslHostConfig.getCertificateVerificationDepth());
 
@@ -324,10 +348,10 @@ public class OpenSSLContext {
         }
     }
 
-    static OpenSSLKeyManager chooseKeyManager(KeyManager[] managers) throws Exception {
-        for (KeyManager manager : managers) {
-            if (manager instanceof OpenSSLKeyManager) {
-                return (OpenSSLKeyManager) manager;
+    private X509KeyManager chooseKeyManager(KeyManager[] tms) {
+        for (KeyManager tm : tms) {
+            if (tm instanceof X509KeyManager) {
+                return (X509KeyManager) tm;
             }
         }
         throw ROOT_LOGGER.keyManagerMissing();
@@ -370,22 +394,20 @@ public class OpenSSLContext {
      * Generates a key specification for an (encrypted) private key.
      *
      * @param password characters, if {@code null} or empty an unencrypted key
-     * is assumed
-     * @param key bytes of the DER encoded private key
-     *
+     *                 is assumed
+     * @param key      bytes of the DER encoded private key
      * @return a key specification
-     *
-     * @throws IOException if parsing {@code key} fails
-     * @throws NoSuchAlgorithmException if the algorithm used to encrypt
-     * {@code key} is unknown
-     * @throws NoSuchPaddingException if the padding scheme specified in the
-     * decryption algorithm is unknown
-     * @throws InvalidKeySpecException if the decryption key based on
-     * {@code password} cannot be generated
-     * @throws InvalidKeyException if the decryption key based on
-     * {@code password} cannot be used to decrypt {@code key}
+     * @throws IOException                        if parsing {@code key} fails
+     * @throws NoSuchAlgorithmException           if the algorithm used to encrypt
+     *                                            {@code key} is unknown
+     * @throws NoSuchPaddingException             if the padding scheme specified in the
+     *                                            decryption algorithm is unknown
+     * @throws InvalidKeySpecException            if the decryption key based on
+     *                                            {@code password} cannot be generated
+     * @throws InvalidKeyException                if the decryption key based on
+     *                                            {@code password} cannot be used to decrypt {@code key}
      * @throws InvalidAlgorithmParameterException if decryption algorithm
-     * parameters are somehow faulty
+     *                                            parameters are somehow faulty
      */
     protected static PKCS8EncodedKeySpec generateKeySpec(char[] password, byte[] key)
             throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
