@@ -71,6 +71,15 @@ jint throwIllegalStateException( JNIEnv *env, char *message )
 }
 
 
+jint throwIllegalArgumentException( JNIEnv *env, char *message )
+{
+    jclass exClass;
+    char *className = "java/lang/IllegalArgumentException";
+
+    exClass = (*env)->FindClass( env, className);
+    return (*env)->ThrowNew( env, exClass, message );
+}
+
 void tcn_Throw(JNIEnv *env, char *fmt, ...) {
     throwIllegalStateException(env, fmt);
 //TODO

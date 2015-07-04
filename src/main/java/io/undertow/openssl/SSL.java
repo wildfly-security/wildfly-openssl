@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SSL {
 
     static {
+        System.loadLibrary("utssl");
         initialize();
     }
 

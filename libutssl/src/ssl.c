@@ -1184,6 +1184,9 @@ UT_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
 UT_OPENSSL(jlong, bufferAddress)(JNIEnv *e, jobject o, jobject bb)
 {
     UNREFERENCED(o);
+    if(bb == NULL) {
+        throwIllegalArgumentException(e, "Buffer was null");
+    }
     return P2J((*e)->GetDirectBufferAddress(e, bb));
 }
 
@@ -1337,4 +1340,128 @@ UT_OPENSSL(jstring, getErrorString)(JNIEnv *e, jobject o, jlong number)
     UNREFERENCED(o);
     ERR_error_string(number, buf);
     return tcn_new_string(e, buf);
+}
+
+
+UT_OPENSSL(void, setVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint depth)
+{
+    tcn_ssl_ctxt_t *c;
+    int verify;
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return;
+    }
+
+    c = SSL_get_app_data2(ssl_);
+
+    verify = SSL_VERIFY_NONE;
+
+    UNREFERENCED(o);
+    TCN_ASSERT(ctx != 0);
+    c->verify_mode = level;
+
+    if (c->verify_mode == SSL_CVERIFY_UNSET)
+        c->verify_mode = SSL_CVERIFY_NONE;
+    if (depth > 0)
+        c->verify_depth = depth;
+    /*
+     *  Configure callbacks for SSL context
+     */
+    if (c->verify_mode == SSL_CVERIFY_REQUIRE)
+        verify |= SSL_VERIFY_PEER_STRICT;
+    if ((c->verify_mode == SSL_CVERIFY_OPTIONAL) ||
+        (c->verify_mode == SSL_CVERIFY_OPTIONAL_NO_CA))
+        verify |= SSL_VERIFY_PEER;
+    if (!c->store) {
+        if (SSL_CTX_set_default_verify_paths(c->ctx)) {
+            c->store = SSL_CTX_get_cert_store(c->ctx);
+            X509_STORE_set_flags(c->store, 0);
+        }
+        else {
+            /* XXX: See if this is fatal */
+        }
+    }
+
+    //TODO: hook up the trustmanager
+    //SSL_set_verify(ssl_, verify, SSL_callback_SSL_verify);
+}
+
+/* Read which cipher was negotiated for the given SSL *. */
+UT_OPENSSL(jstring, getCipherForSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */)
+{
+    return AJP_TO_JSTRING(SSL_get_cipher(J2P(ssl, SSL*)));
+}
+
+
+/* Read which protocol was negotiated for the given SSL *. */
+UT_OPENSSL(jstring, getVersion)(JNIEnv *e, jobject o, jlong ssl /* SSL * */)
+{
+    return AJP_TO_JSTRING(SSL_get_version(J2P(ssl, SSL*)));
+}
+
+
+UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
+                                                  jlong ssl /* SSL * */)
+{
+    STACK_OF(X509) *sk;
+    int len;
+    int i;
+    X509 *cert;
+    int length;
+    unsigned char *buf;
+    jobjectArray array;
+    jbyteArray bArray;
+
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return NULL;
+    }
+
+    UNREFERENCED(o);
+
+    // Get a stack of all certs in the chain.
+    sk = SSL_get_peer_cert_chain(ssl_);
+
+    len = sk_X509_num(sk);
+    if (len <= 0) {
+        /* No peer certificate chain as no auth took place yet, or the auth was not successful. */
+        return NULL;
+    }
+    /* Create the byte[][] array that holds all the certs */
+    array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
+
+    for(i = 0; i < len; i++) {
+        cert = (X509*) sk_X509_value(sk, i);
+
+        buf = NULL;
+        length = i2d_X509(cert, &buf);
+        if (length < 0) {
+            OPENSSL_free(buf);
+            /* In case of error just return an empty byte[][] */
+            return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
+        }
+        bArray = (*e)->NewByteArray(e, length);
+        (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+        (*e)->SetObjectArrayElement(e, array, i, bArray);
+
+        /*
+         * Delete the local reference as we not know how long the chain is and local references are otherwise
+         * only freed once jni method returns.
+         */
+        (*e)->DeleteLocalRef(e, bArray);
+
+        OPENSSL_free(buf);
+    }
+    return array;
+}
+
+
+/* Send CLOSE_NOTIFY to peer */
+UT_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl) {
+
+    return SSL_shutdown(J2P(ssl, SSL *));
 }

@@ -78,10 +78,6 @@ public class BasicOpenSSLTest {
         try {
 
             final SSLHostConfig sslHostConfig = new SSLHostConfig();
-            sslHostConfig.setProtocols("TLSv1");
-            sslHostConfig.setCiphers("ALL");
-            sslHostConfig.setCertificateVerification("NONE");
-            sslHostConfig.setHostName("localhost");
             sslHostConfig.setCertificateVerificationDepth(100);
             OpenSSLContext context = new OpenSSLContext(sslHostConfig);
             context.init(keyManagers, trustManagers, new SecureRandom());
@@ -94,8 +90,6 @@ public class BasicOpenSSLTest {
 
     @org.junit.Test
     public void testSomeSuff() throws IOException {
-        System.loadLibrary("utssl");
-
 
         final SSLContext sslContext = createSSLContext();
 

@@ -16,14 +16,9 @@
  */
 package io.undertow.openssl;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -75,6 +70,7 @@ public class SSLHostConfig {
     public SSLHostConfig() {
         // Set defaults that can't be (easily) set when defining the fields.
         setProtocols(SSL.SSL_PROTO_ALL);
+        setCiphers("ALL");
     }
 
 

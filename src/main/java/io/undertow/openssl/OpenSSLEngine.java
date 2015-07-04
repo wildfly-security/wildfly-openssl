@@ -1267,8 +1267,9 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setEnableSessionCreation(boolean b) {
+        //TODO
         if (b) {
-            throw new UnsupportedOperationException();
+            //throw new UnsupportedOperationException();
         }
     }
 

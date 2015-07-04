@@ -7,11 +7,12 @@ import javax.net.ssl.SSLException;
  * @author Stuart Douglas
  */
 public class OpenSSLContext extends SSLContext {
+
     /**
      * Creates an SSLContext object.
      *
      */
-    protected OpenSSLContext(SSLHostConfig config) throws SSLException {
+    public OpenSSLContext(SSLHostConfig config) throws SSLException {
         super(new OpenSSLContextSPI(config), null, "TLS");
     }
 }

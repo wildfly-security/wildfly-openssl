@@ -7,7 +7,7 @@
         <version>19</version>
     </parent>
 
-    <groupId>io.undertow.openssl.apr</groupId>
+    <groupId>io.undertow.openssl</groupId>
     <artifactId>undertow-openssl</artifactId>
     <version>1.0.0.Alpha1</version>
 
