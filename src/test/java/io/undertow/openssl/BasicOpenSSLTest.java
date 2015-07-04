@@ -4,6 +4,7 @@ import org.junit.Assert;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSocket;
@@ -22,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
@@ -48,7 +50,7 @@ public class BasicOpenSSLTest {
         }
     }
 
-    private static OpenSSLContext createSSLContext() throws IOException {
+    private static SSLContext createSSLContext() throws IOException {
         KeyManager[] keyManagers;
         try {
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
@@ -82,7 +84,7 @@ public class BasicOpenSSLTest {
             sslHostConfig.setHostName("localhost");
             sslHostConfig.setCertificateVerificationDepth(100);
             OpenSSLContext context = new OpenSSLContext(sslHostConfig);
-            context.init(keyManagers, trustManagers);
+            context.init(keyManagers, trustManagers, new SecureRandom());
             return context;
         } catch (Exception e) {
             throw new IOException("Unable to create and initialise the SSLContext", e);
@@ -95,9 +97,7 @@ public class BasicOpenSSLTest {
         System.loadLibrary("utssl");
 
 
-        final OpenSSLContext sslContext = createSSLContext();
-
-        sslContext.init(null, null);
+        final SSLContext sslContext = createSSLContext();
 
         Thread acceptThread = new Thread(new Runnable() {
             @Override

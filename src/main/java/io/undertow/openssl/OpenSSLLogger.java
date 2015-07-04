@@ -152,4 +152,7 @@ public interface OpenSSLLogger extends BasicLogger {
 
     @Message(id = 37, value = "KeyManager does not contain a valid certificates")
     IllegalStateException couldNotExtractAliasFromKeyManager();
+
+    @Message(id = 38, value = "method not supported")
+    UnsupportedOperationException unsupportedMethod();
 }

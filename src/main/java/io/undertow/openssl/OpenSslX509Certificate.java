@@ -179,7 +179,7 @@ final class OpenSslX509Certificate extends X509Certificate {
         X509Certificate wrapped = this.wrapped;
         if (wrapped == null) {
             try {
-                wrapped = this.wrapped = (X509Certificate) OpenSSLContext.X509_CERT_FACTORY.generateCertificate(
+                wrapped = this.wrapped = (X509Certificate) OpenSSLContextSPI.X509_CERT_FACTORY.generateCertificate(
                         new ByteArrayInputStream(bytes));
             } catch (CertificateException e) {
                 throw new IllegalStateException(e);
