@@ -1024,10 +1024,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 public String getProtocol() {
                     String applicationProtocol = OpenSSLEngine.this.applicationProtocol;
                     if (applicationProtocol == null) {
-                        applicationProtocol = SSL.getNextProtoNegotiated(ssl);
-                        if (applicationProtocol == null) {
-                            applicationProtocol = fallbackApplicationProtocol;
-                        }
+                        applicationProtocol = fallbackApplicationProtocol;
                         if (applicationProtocol != null) {
                             OpenSSLEngine.this.applicationProtocol = applicationProtocol.replace(':', '_');
                         } else {

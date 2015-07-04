@@ -1465,3 +1465,50 @@ UT_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl) {
 
     return SSL_shutdown(J2P(ssl, SSL *));
 }
+
+
+UT_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
+                                                  jlong ssl /* SSL * */)
+{
+    X509 *cert;
+    int length;
+    unsigned char *buf = NULL;
+    jbyteArray bArray;
+
+    SSL *ssl_ = J2P(ssl, SSL *);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return NULL;
+    }
+
+    UNREFERENCED(o);
+
+    /* Get a stack of all certs in the chain */
+    cert = SSL_get_peer_certificate(ssl_);
+    if (cert == NULL) {
+        return NULL;
+    }
+
+    length = i2d_X509(cert, &buf);
+
+    bArray = (*e)->NewByteArray(e, length);
+    (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
+
+    /*
+     * We need to free the cert as the reference count is incremented by one and it is not destroyed when the
+     * session is freed.
+     * See https://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html
+     */
+    X509_free(cert);
+
+    OPENSSL_free(buf);
+
+    return bArray;
+}
+
+
+UT_OPENSSL(jint, version)(JNIEnv *e)
+{
+    return OPENSSL_VERSION_NUMBER;
+}
