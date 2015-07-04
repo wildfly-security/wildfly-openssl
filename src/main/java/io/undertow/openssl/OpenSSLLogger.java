@@ -144,10 +144,6 @@ public interface OpenSSLLogger extends BasicLogger {
     void prefixMissing(String trimmed, String hostName);
 
     @LogMessage(level = WARN)
-    @Message(id = 34, value = "config type mismatch for %s on host %s. Actual: %s Expected: %s")
-    void configTypeMismatch(String name, String hostName, SSLHostConfig.Type actual, SSLHostConfig.Type expected);
-
-    @LogMessage(level = WARN)
     @Message(id = 35, value = "Unknown element %s")
     void unknownElement(String alias);
 

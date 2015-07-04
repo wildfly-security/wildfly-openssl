@@ -62,7 +62,6 @@ public class OpenSSLContext {
     private static final String defaultProtocol = "TLS";
 
     private final SSLHostConfig sslHostConfig;
-    private SSLHostConfigCertificate certificate;
     private OpenSSLServerSessionContext sessionContext;
 
     private List<String> ciphers = new ArrayList<>();

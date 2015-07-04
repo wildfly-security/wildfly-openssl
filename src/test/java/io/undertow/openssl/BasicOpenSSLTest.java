@@ -2,8 +2,14 @@ package io.undertow.openssl;
 
 import org.junit.Assert;
 
-import javax.net.ssl.*;
-import java.io.ByteArrayInputStream;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -13,7 +19,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -23,12 +28,10 @@ import java.security.cert.CertificateException;
 /**
  * @author Stuart Douglas
  */
-public class Test {
-
-    private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
+public class BasicOpenSSLTest {
 
     private static KeyStore loadKeyStore(final String name) throws IOException {
-        final InputStream stream = Test.class.getClassLoader().getResourceAsStream(name);
+        final InputStream stream = BasicOpenSSLTest.class.getClassLoader().getResourceAsStream(name);
         try {
             KeyStore loadedKeystore = KeyStore.getInstance("JKS");
             loadedKeystore.load(stream, "password".toCharArray());
@@ -73,7 +76,6 @@ public class Test {
         try {
 
             final SSLHostConfig sslHostConfig = new SSLHostConfig();
-            sslHostConfig.setConfigType(SSLHostConfig.Type.OPENSSL);
             sslHostConfig.setProtocols("TLSv1");
             sslHostConfig.setCiphers("ALL");
             sslHostConfig.setCertificateVerification("NONE");
