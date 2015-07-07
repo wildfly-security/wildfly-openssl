@@ -20,7 +20,10 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SSL {
+/**
+ * 
+ */
+class SSL {
 
     static {
         System.loadLibrary("utssl");
@@ -32,135 +35,135 @@ public class SSL {
     /**
      * JSSE and OpenSSL protocol names
      */
-    public static final String SSL_PROTO_ALL        = "all";
-    public static final String SSL_PROTO_TLS        = "TLS";
-    public static final String SSL_PROTO_TLSv1_2    = "TLSv1.2";
-    public static final String SSL_PROTO_TLSv1_1    = "TLSv1.1";
-    public static final String SSL_PROTO_TLSv1      = "TLSv1";
-    public static final String SSL_PROTO_SSLv3      = "SSLv3";
-    public static final String SSL_PROTO_SSLv2      = "SSLv2";
-    public static final String SSL_PROTO_SSLv2Hello = "SSLv2Hello";
+    static final String SSL_PROTO_ALL        = "all";
+    static final String SSL_PROTO_TLS        = "TLS";
+    static final String SSL_PROTO_TLSv1_2    = "TLSv1.2";
+    static final String SSL_PROTO_TLSv1_1    = "TLSv1.1";
+    static final String SSL_PROTO_TLSv1      = "TLSv1";
+    static final String SSL_PROTO_SSLv3      = "SSLv3";
+    static final String SSL_PROTO_SSLv2      = "SSLv2";
+    static final String SSL_PROTO_SSLv2Hello = "SSLv2Hello";
 
     /*
      * Type definitions mostly from mod_ssl
      */
-    public static final int UNSET            = -1;
+    static final int UNSET            = -1;
     /*
      * Define the certificate algorithm types
      */
-    public static final int SSL_ALGO_UNKNOWN = 0;
-    public static final int SSL_ALGO_RSA     = (1<<0);
-    public static final int SSL_ALGO_DSA     = (1<<1);
-    public static final int SSL_ALGO_ALL     = (SSL_ALGO_RSA|SSL_ALGO_DSA);
+    static final int SSL_ALGO_UNKNOWN = 0;
+    static final int SSL_ALGO_RSA     = (1<<0);
+    static final int SSL_ALGO_DSA     = (1<<1);
+    static final int SSL_ALGO_ALL     = (SSL_ALGO_RSA|SSL_ALGO_DSA);
 
-    public static final int SSL_AIDX_RSA     = 0;
-    public static final int SSL_AIDX_DSA     = 1;
-    public static final int SSL_AIDX_ECC     = 3;
-    public static final int SSL_AIDX_MAX     = 4;
+    static final int SSL_AIDX_RSA     = 0;
+    static final int SSL_AIDX_DSA     = 1;
+    static final int SSL_AIDX_ECC     = 3;
+    static final int SSL_AIDX_MAX     = 4;
     /*
      * Define IDs for the temporary RSA keys and DH params
      */
 
-    public static final int SSL_TMP_KEY_RSA_512  = 0;
-    public static final int SSL_TMP_KEY_RSA_1024 = 1;
-    public static final int SSL_TMP_KEY_RSA_2048 = 2;
-    public static final int SSL_TMP_KEY_RSA_4096 = 3;
-    public static final int SSL_TMP_KEY_DH_512   = 4;
-    public static final int SSL_TMP_KEY_DH_1024  = 5;
-    public static final int SSL_TMP_KEY_DH_2048  = 6;
-    public static final int SSL_TMP_KEY_DH_4096  = 7;
-    public static final int SSL_TMP_KEY_MAX      = 8;
+    static final int SSL_TMP_KEY_RSA_512  = 0;
+    static final int SSL_TMP_KEY_RSA_1024 = 1;
+    static final int SSL_TMP_KEY_RSA_2048 = 2;
+    static final int SSL_TMP_KEY_RSA_4096 = 3;
+    static final int SSL_TMP_KEY_DH_512   = 4;
+    static final int SSL_TMP_KEY_DH_1024  = 5;
+    static final int SSL_TMP_KEY_DH_2048  = 6;
+    static final int SSL_TMP_KEY_DH_4096  = 7;
+    static final int SSL_TMP_KEY_MAX      = 8;
 
     /*
      * Define the SSL options
      */
-    public static final int SSL_OPT_NONE           = 0;
-    public static final int SSL_OPT_RELSET         = (1<<0);
-    public static final int SSL_OPT_STDENVVARS     = (1<<1);
-    public static final int SSL_OPT_EXPORTCERTDATA = (1<<3);
-    public static final int SSL_OPT_FAKEBASICAUTH  = (1<<4);
-    public static final int SSL_OPT_STRICTREQUIRE  = (1<<5);
-    public static final int SSL_OPT_OPTRENEGOTIATE = (1<<6);
-    public static final int SSL_OPT_ALL            = (SSL_OPT_STDENVVARS|SSL_OPT_EXPORTCERTDATA|SSL_OPT_FAKEBASICAUTH|SSL_OPT_STRICTREQUIRE|SSL_OPT_OPTRENEGOTIATE);
+    static final int SSL_OPT_NONE           = 0;
+    static final int SSL_OPT_RELSET         = (1<<0);
+    static final int SSL_OPT_STDENVVARS     = (1<<1);
+    static final int SSL_OPT_EXPORTCERTDATA = (1<<3);
+    static final int SSL_OPT_FAKEBASICAUTH  = (1<<4);
+    static final int SSL_OPT_STRICTREQUIRE  = (1<<5);
+    static final int SSL_OPT_OPTRENEGOTIATE = (1<<6);
+    static final int SSL_OPT_ALL            = (SSL_OPT_STDENVVARS|SSL_OPT_EXPORTCERTDATA|SSL_OPT_FAKEBASICAUTH|SSL_OPT_STRICTREQUIRE|SSL_OPT_OPTRENEGOTIATE);
 
     /*
      * Define the SSL Protocol options
      */
-    public static final int SSL_PROTOCOL_NONE  = 0;
-    public static final int SSL_PROTOCOL_SSLV2 = (1<<0);
-    public static final int SSL_PROTOCOL_SSLV3 = (1<<1);
-    public static final int SSL_PROTOCOL_TLSV1 = (1<<2);
-    public static final int SSL_PROTOCOL_TLSV1_1 = (1<<3);
-    public static final int SSL_PROTOCOL_TLSV1_2 = (1<<4);
-    public static final int SSL_PROTOCOL_ALL   = (SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
+    static final int SSL_PROTOCOL_NONE  = 0;
+    static final int SSL_PROTOCOL_SSLV2 = (1<<0);
+    static final int SSL_PROTOCOL_SSLV3 = (1<<1);
+    static final int SSL_PROTOCOL_TLSV1 = (1<<2);
+    static final int SSL_PROTOCOL_TLSV1_1 = (1<<3);
+    static final int SSL_PROTOCOL_TLSV1_2 = (1<<4);
+    static final int SSL_PROTOCOL_ALL   = (SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
 
     /*
      * Define the SSL verify levels
      */
-    public static final int SSL_CVERIFY_UNSET          = UNSET;
-    public static final int SSL_CVERIFY_NONE           = 0;
-    public static final int SSL_CVERIFY_OPTIONAL       = 1;
-    public static final int SSL_CVERIFY_REQUIRE        = 2;
-    public static final int SSL_CVERIFY_OPTIONAL_NO_CA = 3;
+    static final int SSL_CVERIFY_UNSET          = UNSET;
+    static final int SSL_CVERIFY_NONE           = 0;
+    static final int SSL_CVERIFY_OPTIONAL       = 1;
+    static final int SSL_CVERIFY_REQUIRE        = 2;
+    static final int SSL_CVERIFY_OPTIONAL_NO_CA = 3;
 
     /* Use either SSL_VERIFY_NONE or SSL_VERIFY_PEER, the last 2 options
      * are 'ored' with SSL_VERIFY_PEER if they are desired
      */
-    public static final int SSL_VERIFY_NONE                 = 0;
-    public static final int SSL_VERIFY_PEER                 = 1;
-    public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 2;
-    public static final int SSL_VERIFY_CLIENT_ONCE          = 4;
-    public static final int SSL_VERIFY_PEER_STRICT          = (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+    static final int SSL_VERIFY_NONE                 = 0;
+    static final int SSL_VERIFY_PEER                 = 1;
+    static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 2;
+    static final int SSL_VERIFY_CLIENT_ONCE          = 4;
+    static final int SSL_VERIFY_PEER_STRICT          = (SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
 
-    public static final int SSL_OP_MICROSOFT_SESS_ID_BUG            = 0x00000001;
-    public static final int SSL_OP_NETSCAPE_CHALLENGE_BUG           = 0x00000002;
-    public static final int SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG = 0x00000008;
-    public static final int SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG      = 0x00000010;
-    public static final int SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER       = 0x00000020;
-    public static final int SSL_OP_MSIE_SSLV2_RSA_PADDING           = 0x00000040;
-    public static final int SSL_OP_SSLEAY_080_CLIENT_DH_BUG         = 0x00000080;
-    public static final int SSL_OP_TLS_D5_BUG                       = 0x00000100;
-    public static final int SSL_OP_TLS_BLOCK_PADDING_BUG            = 0x00000200;
+    static final int SSL_OP_MICROSOFT_SESS_ID_BUG            = 0x00000001;
+    static final int SSL_OP_NETSCAPE_CHALLENGE_BUG           = 0x00000002;
+    static final int SSL_OP_NETSCAPE_REUSE_CIPHER_CHANGE_BUG = 0x00000008;
+    static final int SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG      = 0x00000010;
+    static final int SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER       = 0x00000020;
+    static final int SSL_OP_MSIE_SSLV2_RSA_PADDING           = 0x00000040;
+    static final int SSL_OP_SSLEAY_080_CLIENT_DH_BUG         = 0x00000080;
+    static final int SSL_OP_TLS_D5_BUG                       = 0x00000100;
+    static final int SSL_OP_TLS_BLOCK_PADDING_BUG            = 0x00000200;
 
     /* Disable SSL 3.0/TLS 1.0 CBC vulnerability workaround that was added
      * in OpenSSL 0.9.6d.  Usually (depending on the application protocol)
      * the workaround is not needed.  Unfortunately some broken SSL/TLS
      * implementations cannot handle it at all, which is why we include
      * it in SSL_OP_ALL. */
-    public static final int SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS      = 0x00000800;
+    static final int SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS      = 0x00000800;
 
     /* SSL_OP_ALL: various bug workarounds that should be rather harmless.
      *             This used to be 0x000FFFFFL before 0.9.7. */
-    public static final int SSL_OP_ALL                              = 0x00000FFF;
+    static final int SSL_OP_ALL                              = 0x00000FFF;
     /* As server, disallow session resumption on renegotiation */
-    public static final int SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000;
+    static final int SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000;
     /* Don't use compression even if supported */
-    public static final int SSL_OP_NO_COMPRESSION                         = 0x00020000;
+    static final int SSL_OP_NO_COMPRESSION                         = 0x00020000;
     /* Permit unsafe legacy renegotiation */
-    public static final int SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION      = 0x00040000;
+    static final int SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION      = 0x00040000;
     /* If set, always create a new key when using tmp_eddh parameters */
-    public static final int SSL_OP_SINGLE_ECDH_USE                  = 0x00080000;
+    static final int SSL_OP_SINGLE_ECDH_USE                  = 0x00080000;
     /* If set, always create a new key when using tmp_dh parameters */
-    public static final int SSL_OP_SINGLE_DH_USE                    = 0x00100000;
+    static final int SSL_OP_SINGLE_DH_USE                    = 0x00100000;
     /* Set to always use the tmp_rsa key when doing RSA operations,
      * even when this violates protocol specs */
-    public static final int SSL_OP_EPHEMERAL_RSA                    = 0x00200000;
+    static final int SSL_OP_EPHEMERAL_RSA                    = 0x00200000;
     /* Set on servers to choose the cipher according to the server's
      * preferences */
-    public static final int SSL_OP_CIPHER_SERVER_PREFERENCE         = 0x00400000;
+    static final int SSL_OP_CIPHER_SERVER_PREFERENCE         = 0x00400000;
     /* If set, a server will allow a client to issue a SSLv3.0 version number
      * as latest version supported in the premaster secret, even when TLSv1.0
      * (version 3.1) was announced in the client hello. Normally this is
      * forbidden to prevent version rollback attacks. */
-    public static final int SSL_OP_TLS_ROLLBACK_BUG                 = 0x00800000;
+    static final int SSL_OP_TLS_ROLLBACK_BUG                 = 0x00800000;
 
-    public static final int SSL_OP_NO_SSLv2                         = 0x01000000;
-    public static final int SSL_OP_NO_SSLv3                         = 0x02000000;
-    public static final int SSL_OP_NO_TLSv1                         = 0x04000000;
-    public static final int SSL_OP_NO_TLSv1_2                       = 0x08000000;
-    public static final int SSL_OP_NO_TLSv1_1                       = 0x10000000;
+    static final int SSL_OP_NO_SSLv2                         = 0x01000000;
+    static final int SSL_OP_NO_SSLv3                         = 0x02000000;
+    static final int SSL_OP_NO_TLSv1                         = 0x04000000;
+    static final int SSL_OP_NO_TLSv1_2                       = 0x08000000;
+    static final int SSL_OP_NO_TLSv1_1                       = 0x10000000;
 
-    public static final int SSL_OP_NO_TICKET                        = 0x00004000;
+    static final int SSL_OP_NO_TICKET                        = 0x00004000;
 
     // SSL_OP_PKCS1_CHECK_1 and SSL_OP_PKCS1_CHECK_2 flags are unsupported
     // in the current version of OpenSSL library. See ssl.h changes in commit
@@ -169,93 +172,93 @@ public class SSL {
      * @deprecated Unsupported in the current version of OpenSSL
      */
     @Deprecated
-    public static final int SSL_OP_PKCS1_CHECK_1                    = 0x08000000;
+    static final int SSL_OP_PKCS1_CHECK_1                    = 0x08000000;
     /**
      * @deprecated Unsupported in the current version of OpenSSL
      */
     @Deprecated
-    public static final int SSL_OP_PKCS1_CHECK_2                    = 0x10000000;
-    public static final int SSL_OP_NETSCAPE_CA_DN_BUG               = 0x20000000;
-    public static final int SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG  = 0x40000000;
+    static final int SSL_OP_PKCS1_CHECK_2                    = 0x10000000;
+    static final int SSL_OP_NETSCAPE_CA_DN_BUG               = 0x20000000;
+    static final int SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG  = 0x40000000;
 
-    public static final int SSL_CRT_FORMAT_UNDEF    = 0;
-    public static final int SSL_CRT_FORMAT_ASN1     = 1;
-    public static final int SSL_CRT_FORMAT_TEXT     = 2;
-    public static final int SSL_CRT_FORMAT_PEM      = 3;
-    public static final int SSL_CRT_FORMAT_NETSCAPE = 4;
-    public static final int SSL_CRT_FORMAT_PKCS12   = 5;
-    public static final int SSL_CRT_FORMAT_SMIME    = 6;
-    public static final int SSL_CRT_FORMAT_ENGINE   = 7;
+    static final int SSL_CRT_FORMAT_UNDEF    = 0;
+    static final int SSL_CRT_FORMAT_ASN1     = 1;
+    static final int SSL_CRT_FORMAT_TEXT     = 2;
+    static final int SSL_CRT_FORMAT_PEM      = 3;
+    static final int SSL_CRT_FORMAT_NETSCAPE = 4;
+    static final int SSL_CRT_FORMAT_PKCS12   = 5;
+    static final int SSL_CRT_FORMAT_SMIME    = 6;
+    static final int SSL_CRT_FORMAT_ENGINE   = 7;
 
-    public static final int SSL_MODE_CLIENT         = 0;
-    public static final int SSL_MODE_SERVER         = 1;
-    public static final int SSL_MODE_COMBINED       = 2;
+    static final int SSL_MODE_CLIENT         = 0;
+    static final int SSL_MODE_SERVER         = 1;
+    static final int SSL_MODE_COMBINED       = 2;
 
-    public static final int SSL_SHUTDOWN_TYPE_UNSET    = 0;
-    public static final int SSL_SHUTDOWN_TYPE_STANDARD = 1;
-    public static final int SSL_SHUTDOWN_TYPE_UNCLEAN  = 2;
-    public static final int SSL_SHUTDOWN_TYPE_ACCURATE = 3;
+    static final int SSL_SHUTDOWN_TYPE_UNSET    = 0;
+    static final int SSL_SHUTDOWN_TYPE_STANDARD = 1;
+    static final int SSL_SHUTDOWN_TYPE_UNCLEAN  = 2;
+    static final int SSL_SHUTDOWN_TYPE_ACCURATE = 3;
 
-    public static final int SSL_INFO_SESSION_ID                = 0x0001;
-    public static final int SSL_INFO_CIPHER                    = 0x0002;
-    public static final int SSL_INFO_CIPHER_USEKEYSIZE         = 0x0003;
-    public static final int SSL_INFO_CIPHER_ALGKEYSIZE         = 0x0004;
-    public static final int SSL_INFO_CIPHER_VERSION            = 0x0005;
-    public static final int SSL_INFO_CIPHER_DESCRIPTION        = 0x0006;
-    public static final int SSL_INFO_PROTOCOL                  = 0x0007;
+    static final int SSL_INFO_SESSION_ID                = 0x0001;
+    static final int SSL_INFO_CIPHER                    = 0x0002;
+    static final int SSL_INFO_CIPHER_USEKEYSIZE         = 0x0003;
+    static final int SSL_INFO_CIPHER_ALGKEYSIZE         = 0x0004;
+    static final int SSL_INFO_CIPHER_VERSION            = 0x0005;
+    static final int SSL_INFO_CIPHER_DESCRIPTION        = 0x0006;
+    static final int SSL_INFO_PROTOCOL                  = 0x0007;
 
     /* To obtain the CountryName of the Client Certificate Issuer
      * use the SSL_INFO_CLIENT_I_DN + SSL_INFO_DN_COUNTRYNAME
      */
-    public static final int SSL_INFO_CLIENT_S_DN               = 0x0010;
-    public static final int SSL_INFO_CLIENT_I_DN               = 0x0020;
-    public static final int SSL_INFO_SERVER_S_DN               = 0x0040;
-    public static final int SSL_INFO_SERVER_I_DN               = 0x0080;
+    static final int SSL_INFO_CLIENT_S_DN               = 0x0010;
+    static final int SSL_INFO_CLIENT_I_DN               = 0x0020;
+    static final int SSL_INFO_SERVER_S_DN               = 0x0040;
+    static final int SSL_INFO_SERVER_I_DN               = 0x0080;
 
-    public static final int SSL_INFO_DN_COUNTRYNAME            = 0x0001;
-    public static final int SSL_INFO_DN_STATEORPROVINCENAME    = 0x0002;
-    public static final int SSL_INFO_DN_LOCALITYNAME           = 0x0003;
-    public static final int SSL_INFO_DN_ORGANIZATIONNAME       = 0x0004;
-    public static final int SSL_INFO_DN_ORGANIZATIONALUNITNAME = 0x0005;
-    public static final int SSL_INFO_DN_COMMONNAME             = 0x0006;
-    public static final int SSL_INFO_DN_TITLE                  = 0x0007;
-    public static final int SSL_INFO_DN_INITIALS               = 0x0008;
-    public static final int SSL_INFO_DN_GIVENNAME              = 0x0009;
-    public static final int SSL_INFO_DN_SURNAME                = 0x000A;
-    public static final int SSL_INFO_DN_DESCRIPTION            = 0x000B;
-    public static final int SSL_INFO_DN_UNIQUEIDENTIFIER       = 0x000C;
-    public static final int SSL_INFO_DN_EMAILADDRESS           = 0x000D;
+    static final int SSL_INFO_DN_COUNTRYNAME            = 0x0001;
+    static final int SSL_INFO_DN_STATEORPROVINCENAME    = 0x0002;
+    static final int SSL_INFO_DN_LOCALITYNAME           = 0x0003;
+    static final int SSL_INFO_DN_ORGANIZATIONNAME       = 0x0004;
+    static final int SSL_INFO_DN_ORGANIZATIONALUNITNAME = 0x0005;
+    static final int SSL_INFO_DN_COMMONNAME             = 0x0006;
+    static final int SSL_INFO_DN_TITLE                  = 0x0007;
+    static final int SSL_INFO_DN_INITIALS               = 0x0008;
+    static final int SSL_INFO_DN_GIVENNAME              = 0x0009;
+    static final int SSL_INFO_DN_SURNAME                = 0x000A;
+    static final int SSL_INFO_DN_DESCRIPTION            = 0x000B;
+    static final int SSL_INFO_DN_UNIQUEIDENTIFIER       = 0x000C;
+    static final int SSL_INFO_DN_EMAILADDRESS           = 0x000D;
 
-    public static final int SSL_INFO_CLIENT_M_VERSION          = 0x0101;
-    public static final int SSL_INFO_CLIENT_M_SERIAL           = 0x0102;
-    public static final int SSL_INFO_CLIENT_V_START            = 0x0103;
-    public static final int SSL_INFO_CLIENT_V_END              = 0x0104;
-    public static final int SSL_INFO_CLIENT_A_SIG              = 0x0105;
-    public static final int SSL_INFO_CLIENT_A_KEY              = 0x0106;
-    public static final int SSL_INFO_CLIENT_CERT               = 0x0107;
-    public static final int SSL_INFO_CLIENT_V_REMAIN           = 0x0108;
+    static final int SSL_INFO_CLIENT_M_VERSION          = 0x0101;
+    static final int SSL_INFO_CLIENT_M_SERIAL           = 0x0102;
+    static final int SSL_INFO_CLIENT_V_START            = 0x0103;
+    static final int SSL_INFO_CLIENT_V_END              = 0x0104;
+    static final int SSL_INFO_CLIENT_A_SIG              = 0x0105;
+    static final int SSL_INFO_CLIENT_A_KEY              = 0x0106;
+    static final int SSL_INFO_CLIENT_CERT               = 0x0107;
+    static final int SSL_INFO_CLIENT_V_REMAIN           = 0x0108;
 
-    public static final int SSL_INFO_SERVER_M_VERSION          = 0x0201;
-    public static final int SSL_INFO_SERVER_M_SERIAL           = 0x0202;
-    public static final int SSL_INFO_SERVER_V_START            = 0x0203;
-    public static final int SSL_INFO_SERVER_V_END              = 0x0204;
-    public static final int SSL_INFO_SERVER_A_SIG              = 0x0205;
-    public static final int SSL_INFO_SERVER_A_KEY              = 0x0206;
-    public static final int SSL_INFO_SERVER_CERT               = 0x0207;
+    static final int SSL_INFO_SERVER_M_VERSION          = 0x0201;
+    static final int SSL_INFO_SERVER_M_SERIAL           = 0x0202;
+    static final int SSL_INFO_SERVER_V_START            = 0x0203;
+    static final int SSL_INFO_SERVER_V_END              = 0x0204;
+    static final int SSL_INFO_SERVER_A_SIG              = 0x0205;
+    static final int SSL_INFO_SERVER_A_KEY              = 0x0206;
+    static final int SSL_INFO_SERVER_CERT               = 0x0207;
     /* Return client certificate chain.
      * Add certificate chain number to that flag (0 ... verify depth)
      */
-    public static final int SSL_INFO_CLIENT_CERT_CHAIN         = 0x0400;
+    static final int SSL_INFO_CLIENT_CERT_CHAIN         = 0x0400;
 
     /* Only support OFF and SERVER for now */
-    public static final long SSL_SESS_CACHE_OFF = 0x0000;
-    public static final long SSL_SESS_CACHE_SERVER = 0x0002;
+    static final long SSL_SESS_CACHE_OFF = 0x0000;
+    static final long SSL_SESS_CACHE_SERVER = 0x0002;
 
-    public static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
-    public static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
+    static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
+    static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
     /* Return OpenSSL version number */
-    public static native int version();
+    static native int version();
 
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.
@@ -269,24 +272,24 @@ public class SSL {
      *
      * @return true if all SSL_OP_* are supported by OpenSSL library.
      */
-    public static native boolean hasOp(int op);
+    static native boolean hasOp(int op);
 
     /*
      * Begin Twitter API additions
      */
 
-    public static final int SSL_SENT_SHUTDOWN = 1;
-    public static final int SSL_RECEIVED_SHUTDOWN = 2;
+    static final int SSL_SENT_SHUTDOWN = 1;
+    static final int SSL_RECEIVED_SHUTDOWN = 2;
 
-    public static final int SSL_ERROR_NONE             = 0;
-    public static final int SSL_ERROR_SSL              = 1;
-    public static final int SSL_ERROR_WANT_READ        = 2;
-    public static final int SSL_ERROR_WANT_WRITE       = 3;
-    public static final int SSL_ERROR_WANT_X509_LOOKUP = 4;
-    public static final int SSL_ERROR_SYSCALL          = 5; /* look at error stack/return value/errno */
-    public static final int SSL_ERROR_ZERO_RETURN      = 6;
-    public static final int SSL_ERROR_WANT_CONNECT     = 7;
-    public static final int SSL_ERROR_WANT_ACCEPT      = 8;
+    static final int SSL_ERROR_NONE             = 0;
+    static final int SSL_ERROR_SSL              = 1;
+    static final int SSL_ERROR_WANT_READ        = 2;
+    static final int SSL_ERROR_WANT_WRITE       = 3;
+    static final int SSL_ERROR_WANT_X509_LOOKUP = 4;
+    static final int SSL_ERROR_SYSCALL          = 5; /* look at error stack/return value/errno */
+    static final int SSL_ERROR_ZERO_RETURN      = 6;
+    static final int SSL_ERROR_WANT_CONNECT     = 7;
+    static final int SSL_ERROR_WANT_ACCEPT      = 8;
 
     /**
      * SSL_new
@@ -295,19 +298,19 @@ public class SSL {
      *               if false configure SSL instance to use connect handshake routines
      * @return pointer to SSL instance (SSL *)
      */
-    public static native long newSSL(long ctx, boolean server);
+    static native long newSSL(long ctx, boolean server);
 
     /**
      * BIO_ctrl_pending.
      * @param bio BIO pointer (BIO *)
      */
-    public static native int pendingWrittenBytesInBIO(long bio);
+    static native int pendingWrittenBytesInBIO(long bio);
 
     /**
      * SSL_pending.
      * @param ssl SSL pointer (SSL *)
      */
-    public static native int pendingReadableBytesInSSL(long ssl);
+    static native int pendingReadableBytesInSSL(long ssl);
 
     /**
      * BIO_write.
@@ -315,7 +318,7 @@ public class SSL {
      * @param wbuf
      * @param wlen
      */
-    public static native int writeToBIO(long bio, long wbuf, int wlen);
+    static native int writeToBIO(long bio, long wbuf, int wlen);
 
     /**
      * BIO_read.
@@ -323,7 +326,7 @@ public class SSL {
      * @param rbuf
      * @param rlen
      */
-    public static native int readFromBIO(long bio, long rbuf, int rlen);
+    static native int readFromBIO(long bio, long rbuf, int rlen);
 
     /**
      * SSL_write.
@@ -331,7 +334,7 @@ public class SSL {
      * @param wbuf
      * @param wlen
      */
-    public static native int writeToSSL(long ssl, long wbuf, int wlen);
+    static native int writeToSSL(long ssl, long wbuf, int wlen);
 
     /**
      * SSL_read
@@ -339,19 +342,19 @@ public class SSL {
      * @param rbuf
      * @param rlen
      */
-    public static native int readFromSSL(long ssl, long rbuf, int rlen);
+    static native int readFromSSL(long ssl, long rbuf, int rlen);
 
     /**
      * SSL_get_shutdown
      * @param ssl the SSL instance (SSL *)
      */
-    public static native int getShutdown(long ssl);
+    static native int getShutdown(long ssl);
 
     /**
      * SSL_free
      * @param ssl the SSL instance (SSL *)
      */
-    public static native void freeSSL(long ssl);
+    static native void freeSSL(long ssl);
 
     /**
      * Wire up internal and network BIOs for the given SSL instance.
@@ -364,56 +367,56 @@ public class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return pointer to the Network BIO (BIO *)
      */
-    public static native long makeNetworkBIO(long ssl);
+    static native long makeNetworkBIO(long ssl);
 
     /**
      * BIO_free
      * @param bio
      */
-    public static native void freeBIO(long bio);
+    static native void freeBIO(long bio);
 
     /**
      * SSL_shutdown
      * @param ssl the SSL instance (SSL *)
      */
-    public static native int shutdownSSL(long ssl);
+    static native int shutdownSSL(long ssl);
 
     /**
      * Get the error number representing the last error OpenSSL encountered on
      * this thread.
      */
-    public static native int getLastErrorNumber();
+    static native int getLastErrorNumber();
 
     /**
      * SSL_get_cipher.
      * @param ssl the SSL instance (SSL *)
      */
-    public static native String getCipherForSSL(long ssl);
+    static native String getCipherForSSL(long ssl);
 
     /**
      * SSL_get_version
      * @param ssl the SSL instance (SSL *)
      */
-    public static native String getVersion(long ssl);
+    static native String getVersion(long ssl);
 
     /**
      * SSL_do_handshake
      * @param ssl the SSL instance (SSL *)
      */
-    public static native int doHandshake(long ssl);
+    static native int doHandshake(long ssl);
 
 
     /**
      * SSL_renegotiate
      * @param ssl the SSL instance (SSL *)
      */
-    public static native int renegotiate(long ssl);
+    static native int renegotiate(long ssl);
 
     /**
      * SSL_in_init.
      * @param SSL
      */
-    public static native int isInInit(long SSL);
+    static native int isInInit(long SSL);
 
     /*
      * End Twitter API Additions
@@ -423,28 +426,28 @@ public class SSL {
      * SSL_get0_alpn_selected
      * @param ssl the SSL instance (SSL *)
      */
-    public static native String getAlpnSelected(long ssl);
+    static native String getAlpnSelected(long ssl);
 
     /**
      * Get the peer certificate chain or {@code null} if non was send.
      */
-    public static native byte[][] getPeerCertChain(long ssl);
+    static native byte[][] getPeerCertChain(long ssl);
 
     /**
      * Get the peer certificate or {@code null} if non was send.
      */
-    public static native byte[] getPeerCertificate(long ssl);
+    static native byte[] getPeerCertificate(long ssl);
     /*
      * Get the error number representing for the given {@code errorNumber}.
      */
-    public static native String getErrorString(long errorNumber);
+    static native String getErrorString(long errorNumber);
 
     /**
      * SSL_get_time
      * @param ssl the SSL instance (SSL *)
      * @return returns the time at which the session ssl was established. The time is given in seconds since the Epoch
      */
-    public static native long getTime(long ssl);
+    static native long getTime(long ssl);
 
     /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
@@ -480,28 +483,28 @@ public class SSL {
      * @param depth Maximum depth of CA Certificates in Client Certificate
      *              verification.
      */
-    public static native void setVerify(long ssl, int level, int depth);
+    static native void setVerify(long ssl, int level, int depth);
 
     /**
      * Set OpenSSL Option.
      * @param ssl the SSL instance (SSL *)
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    public static native void setOptions(long ssl, int options);
+    static native void setOptions(long ssl, int options);
 
     /**
      * Get OpenSSL Option.
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
      */
-    public static native int getOptions(long ssl);
+    static native int getOptions(long ssl);
 
     /**
      * Returns all Returns the cipher suites that are available for negotiation in an SSL handshake.
      * @param ssl the SSL instance (SSL *)
      * @return ciphers
      */
-    public static native String[] getCiphers(long ssl);
+    static native String[] getCiphers(long ssl);
 
     /**
      * Returns the cipher suites available for negotiation in SSL handshake.
@@ -517,7 +520,7 @@ public class SSL {
      * @param ssl the SSL instance (SSL *)
      * @param ciphers an SSL cipher specification
      */
-    public static native boolean setCipherSuites(long ssl, String ciphers)
+    static native boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
 
     /**
@@ -526,9 +529,9 @@ public class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return the session as byte array representation obtained via SSL_SESSION_get_id.
      */
-    public static native byte[] getSessionId(long ssl);
+    static native byte[] getSessionId(long ssl);
 
-    public static native long bufferAddress(ByteBuffer buffer);
+    static native long bufferAddress(ByteBuffer buffer);
 
 
     /**
@@ -556,28 +559,28 @@ public class SSL {
      *
      * @throws Exception If the SSL Context could not be created
      */
-    public static native long makeSSLContext(int protocol, int mode) throws Exception;
+    static native long makeSSLContext(int protocol, int mode) throws Exception;
 
     /**
      * Free the resources used by the Context
      * @param ctx Server or Client context to free.
      * @return APR Status code.
      */
-    public static native int freeSSLContext(long ctx);
+    static native int freeSSLContext(long ctx);
 
     /**
      * Set OpenSSL Option.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    public static native void setSSLContextOptions(long ctx, int options);
+    static native void setSSLContextOptions(long ctx, int options);
 
     /**
      * Clears OpenSSL Options.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    public static native void clearSSLContextOptions(long ctx, int options);
+    static native void clearSSLContextOptions(long ctx, int options);
 
     /**
      * Cipher Suite available for negotiation in SSL handshake.
@@ -593,7 +596,7 @@ public class SSL {
      * @param ctx Server or Client context to use.
      * @param ciphers An SSL cipher specification.
      */
-    public static native boolean setCipherSuite(long ctx, String ciphers)
+    static native boolean setCipherSuite(long ctx, String ciphers)
             throws Exception;
 
     /**
@@ -615,7 +618,7 @@ public class SSL {
      * @param file File of concatenated PEM-encoded CA CRLs for Client Auth.
      * @param path Directory of PEM-encoded CA Certificates for Client Auth.
      */
-    public static native boolean setCARevocation(long ctx, String file,
+    static native boolean setCARevocation(long ctx, String file,
                                                  String path)
             throws Exception;
 
@@ -639,7 +642,7 @@ public class SSL {
      * @param key Private Key file to use if not in cert.
      * @param idx Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
      */
-    public static native boolean setCertificate(long ctx, byte[] cert,
+    static native boolean setCertificate(long ctx, byte[] cert,
                                                 byte[] key,
                                                 int idx)
             throws Exception;
@@ -648,57 +651,57 @@ public class SSL {
      * Set the size of the internal session cache.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_set_cache_size.html
      */
-    public static native long setSessionCacheSize(long ctx, long size);
+    static native long setSessionCacheSize(long ctx, long size);
 
     /**
      * Get the size of the internal session cache.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_get_cache_size.html
      */
-    public static native long getSessionCacheSize(long ctx);
+    static native long getSessionCacheSize(long ctx);
 
     /**
      * Set the timeout for the internal session cache in seconds.
      * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
      */
-    public static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
+    static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
 
     /**
      * Get the timeout for the internal session cache in seconds.
      * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
      */
-    public static native long getSessionCacheTimeout(long ctx);
+    static native long getSessionCacheTimeout(long ctx);
 
     /**
      * Set the mode of the internal session cache and return the previous used mode.
      */
-    public static native long setSessionCacheMode(long ctx, long mode);
+    static native long setSessionCacheMode(long ctx, long mode);
 
     /**
      * Get the mode of the current used internal session cache.
      */
-    public static native long getSessionCacheMode(long ctx);
+    static native long getSessionCacheMode(long ctx);
 
     /**
      * Session resumption statistics methods.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html
      */
-    public static native long sessionAccept(long ctx);
-    public static native long sessionAcceptGood(long ctx);
-    public static native long sessionAcceptRenegotiate(long ctx);
-    public static native long sessionCacheFull(long ctx);
-    public static native long sessionCbHits(long ctx);
-    public static native long sessionConnect(long ctx);
-    public static native long sessionConnectGood(long ctx);
-    public static native long sessionConnectRenegotiate(long ctx);
-    public static native long sessionHits(long ctx);
-    public static native long sessionMisses(long ctx);
-    public static native long sessionNumber(long ctx);
-    public static native long sessionTimeouts(long ctx);
+    static native long sessionAccept(long ctx);
+    static native long sessionAcceptGood(long ctx);
+    static native long sessionAcceptRenegotiate(long ctx);
+    static native long sessionCacheFull(long ctx);
+    static native long sessionCbHits(long ctx);
+    static native long sessionConnect(long ctx);
+    static native long sessionConnectGood(long ctx);
+    static native long sessionConnectRenegotiate(long ctx);
+    static native long sessionHits(long ctx);
+    static native long sessionMisses(long ctx);
+    static native long sessionNumber(long ctx);
+    static native long sessionTimeouts(long ctx);
 
     /**
      * Set TLS session keys. This allows us to share keys across TFEs.
      */
-    public static native void setSessionTicketKeys(long ctx, byte[] keys);
+    static native void setSessionTicketKeys(long ctx, byte[] keys);
 
     /**
      * Set File and Directory of concatenated PEM-encoded CA Certificates
@@ -721,7 +724,7 @@ public class SSL {
      *             Client Auth.
      * @param path Directory of PEM-encoded CA Certificates for Client Auth.
      */
-    public static native boolean setCACertificate(long ctx, String file,
+    static native boolean setCACertificate(long ctx, String file,
                                                   String path)
             throws Exception;
 
@@ -758,9 +761,9 @@ public class SSL {
      * @param depth Maximum depth of CA Certificates in Client Certificate
      *              verification.
      */
-    public static native void setSSLContextVerify(long ctx, int level, int depth);
+    static native void setSSLContextVerify(long ctx, int level, int depth);
 
-    public static native int setALPN(long ctx, byte[] proto, int len);
+    static native int setALPN(long ctx, byte[] proto, int len);
 
     /**
      * When tc-native encounters a SNI extension in the TLS handshake it will
@@ -776,7 +779,7 @@ public class SSL {
      *         to use for the given host or zero if no SSLContext could be
      *         identified
      */
-    public static long sniCallBack(long currentCtx, String sniHostName) {
+    static long sniCallBack(long currentCtx, String sniHostName) {
         SNICallBack sniCallBack = sniCallBacks.get(Long.valueOf(currentCtx));
         if (sniCallBack == null) {
             return 0;
@@ -807,7 +810,7 @@ public class SSL {
      *                    <code>defaultSSLContext</code> to the correct  OpenSSL
      *                    SSLContext
      */
-    public static void registerDefault(Long defaultSSLContext,
+    static void registerDefault(Long defaultSSLContext,
                                        SNICallBack sniCallBack) {
         sniCallBacks.put(defaultSSLContext, sniCallBack);
     }
@@ -819,21 +822,21 @@ public class SSL {
      * @param defaultSSLContext The Java representation of a pointer to the
      *                          OpenSSL SSLContext that will no longer be used
      */
-    public static void unregisterDefault(Long defaultSSLContext) {
+    static void unregisterDefault(Long defaultSSLContext) {
         sniCallBacks.remove(defaultSSLContext);
     }
 
     /**
      * invalidates the current SSL session
      */
-    public static native void invalidateSession(long ctx);
+    static native void invalidateSession(long ctx);
 
     /**
      * Interface implemented by components that will receive the call back to
      * select an OpenSSL SSLContext based on the host name requested by the
      * client.
      */
-    public interface SNICallBack {
+    interface SNICallBack {
 
         /**
          * This callback is made during the TLS handshake when the client uses
@@ -855,7 +858,7 @@ public class SSL {
      * @param ctx Server or Client context to use.
      * @param verifier the verifier to call during handshake.
      */
-    public static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
+    static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
 
     /**
      * Set application layer protocol for application layer protocol negotiation extension
@@ -864,7 +867,7 @@ public class SSL {
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
-    public static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
+    static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
 
     /**
      * Set the context within which session be reused (server side only)
@@ -875,5 +878,5 @@ public class SSL {
      *               of the application and/or the hostname and/or service name
      * @return {@code true} if success, {@code false} otherwise.
      */
-    public static native boolean setSessionIdContext(long ctx, byte[] sidCtx);
+    static native boolean setSessionIdContext(long ctx, byte[] sidCtx);
 }
