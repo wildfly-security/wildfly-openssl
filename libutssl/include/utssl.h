@@ -209,7 +209,6 @@ typedef struct {
     /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
     unsigned char   *alpn_proto_data;
     unsigned int    alpn_proto_len;
-    int             alpn_selector_failure_behavior;
     /* End add from netty-tcnative */
 } tcn_ssl_ctxt_t;
 

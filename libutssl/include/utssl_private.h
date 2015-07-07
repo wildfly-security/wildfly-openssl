@@ -130,4 +130,6 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
 /*thread setup function*/
 void ssl_thread_setup();
 
+void alpn_init(JNIEnv *e);
+
 #endif

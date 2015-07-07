@@ -346,7 +346,7 @@ public class OpenSSLContextSPI extends SSLContextSpi {
             initialized = true;
 
             //TODO: ALPN must be optional
-            SSL.enableAlpn(ctx, 0);
+            SSL.enableAlpn(ctx);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

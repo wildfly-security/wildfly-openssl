@@ -293,6 +293,8 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
     sClazz = (*e)->FindClass(e, "java/lang/String");
     stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
 
+    alpn_init(e);
+
     return (jint)0;
 }
 

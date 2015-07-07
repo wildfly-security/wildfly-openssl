@@ -136,6 +136,7 @@ public final class OpenSSLEngine extends SSLEngine {
      * accepted explicitly via beginHandshake() call
      */
     private int accepted;
+    private boolean alpnRegistered = false;
     private boolean handshakeFinished;
     private boolean receivedShutdown;
     private volatile int destroyed;
@@ -1116,6 +1117,22 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     private void handshake() throws SSLException {
+        if(!alpnRegistered) {
+            alpnRegistered = true;
+            final ALPN.Provider cb = ALPN.get(this);
+            if(cb != null) {
+                SSL.setServerALPNCallback(ssl, new ServerAlpnCallback() {
+                    @Override
+                    public String select(String[] data) {
+                        ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.get(OpenSSLEngine.this);
+                        if (provider != null) {
+                            return provider.select(Arrays.asList(data));
+                        }
+                        return null;
+                    }
+                });
+            }
+        }
         int code = SSL.doHandshake(ssl);
         if (code <= 0) {
             // Check for OpenSSL errors caused by the handshake
@@ -1317,5 +1334,10 @@ public final class OpenSSLEngine extends SSLEngine {
         super.finalize();
         // Call shutdown as the user may have created the OpenSslEngine and not used it at all.
         shutdown();
+    }
+
+    @Override
+    public SSLSession getHandshakeSession() {
+        return getSession();
     }
 }

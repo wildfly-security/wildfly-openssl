@@ -431,7 +431,7 @@ class SSL {
     /**
      * enables ALPN on the server side
      */
-    static native void enableAlpn(long ssl, int selectorFailBehaviour);
+    static native void enableAlpn(long ssl);
 
     /**
      * Get the peer certificate chain or {@code null} if non was send.

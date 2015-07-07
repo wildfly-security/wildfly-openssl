@@ -3,6 +3,16 @@
 
 #define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1
 
+static jclass stringClass;
+static jmethodID stringEquals;
+
+void alpn_init(JNIEnv *e) {
+    jclass sClazz = (*e)->FindClass(e, "java/lang/String");
+
+    stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
+    stringEquals = (*e)->GetMethodID(e, stringClass, "equals", "(Ljava/lang/Object;)Z");
+}
+
 /* Convert protos to wire format */
 static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **proto_data,
             unsigned int *proto_len, jobjectArray protos) {
@@ -146,9 +156,90 @@ int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
-    tcn_ssl_ctxt_t *ssl_ctxt = arg;
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl);
 
-    return select_next_proto(ssl, out, outlen, in, inlen, ssl_ctxt->alpn_proto_data, ssl_ctxt->alpn_proto_len, ssl_ctxt->alpn_selector_failure_behavior);
+    if(con->alpn_selection_callback == NULL) {
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
+    /* Get the JNI environment for this callback */
+    JavaVM *javavm = tcn_get_java_vm();
+    JNIEnv *e;
+    (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
+
+    const unsigned char *p;
+    const unsigned char *end;
+    const unsigned char *proto;
+    unsigned char proto_len;
+
+    p = in;
+    end = in + inlen;
+    //first we count them
+    int count = 0;
+    while (p < end) {
+        proto_len = *p;
+        proto = ++p;
+        if (proto + proto_len <= end) {
+            count++;
+        }
+        // Move on to the next protocol.
+        p += proto_len;
+    }
+    //now we allocate an array
+    jobjectArray array = (*e)->NewObjectArray(e, count, stringClass, NULL);
+    jobject nativeArray[count];
+    p = in;
+    end = in + inlen;
+    int c = 0;
+
+    while (p < end) {
+        proto_len = *p;
+        proto = ++p;
+        if (proto + proto_len <= end) {
+            jobject string = tcn_new_stringn(e, (const char*)proto, proto_len);
+            nativeArray[c] = string;
+            (*e)->SetObjectArrayElement(e, array, c++, string);
+        }
+        // Move on to the next protocol.
+        p += proto_len;
+    }
+
+    jclass clazz = (*e)->GetObjectClass(e, con->alpn_selection_callback);
+    jmethodID method = (*e)->GetMethodID(e, clazz, "select", "([Ljava/lang/String;)Ljava/lang/String;");
+    jobject result = (*e)->CallObjectMethod(e, con->alpn_selection_callback, method, array);
+
+    if(result == NULL) {
+        (*javavm)->DetachCurrentThread(javavm);
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
+    p = in;
+    end = in + inlen;
+    c = 0;
+    while (p < end) {
+        proto_len = *p;
+        proto = ++p;
+        if (proto + proto_len <= end) {
+            jobject string = nativeArray[c++];
+            printf("now proto %s \n",(char *)proto);
+            if((*e)->CallBooleanMethod(e, string, stringEquals, result)) {
+                printf("m");
+
+                //we have a match
+                *out = proto;
+                *outlen = proto_len;
+                (*javavm)->DetachCurrentThread(javavm);
+                return SSL_TLSEXT_ERR_OK;
+            }
+        }
+        // Move on to the next protocol.
+        p += proto_len;
+    }
+
+    //it did not return a valid response
+    (*javavm)->DetachCurrentThread(javavm);
+    return SSL_TLSEXT_ERR_NOACK;
+
 }
 
 UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray alpn_protos,
@@ -160,20 +251,18 @@ UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray al
     UNREFERENCED(o);
 
     if (initProtocols(e, c, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
-        c->alpn_selector_failure_behavior = selectorFailureBehavior;
         SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
     }
 }
 
 
-UT_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx, jint selectorFailureBehavior)
+UT_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_ASSERT(ctx != 0);
     UNREFERENCED(o);
 
-    c->alpn_selector_failure_behavior = selectorFailureBehavior;
     SSL_CTX_set_alpn_select_cb(c->ctx, SSL_callback_alpn_select_proto, (void *) c);
 
 }
@@ -202,8 +291,7 @@ UT_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject
         throwIllegalStateException(e, "ssl is null");
         return;
     }
-
     tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl_);
-    (*e)->NewGlobalRef(e, callback);
-    con->alpn_selection_callback = callback;
+
+    con->alpn_selection_callback = (*e)->NewGlobalRef(e, callback);
 }
