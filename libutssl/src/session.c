@@ -189,3 +189,17 @@ UT_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ssl /* SSL * */)
     session = SSL_get_session(ssl_);
     SSL_SESSION_free(session);
 }
+
+
+UT_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl)
+{
+  UNREFERENCED(o);
+  SSL_SESSION *session;
+  SSL *ssl_ = J2P(ssl, SSL *);
+  if (ssl_ == NULL) {
+      throwIllegalStateException(e, "ssl is null");
+      return 0;
+  }
+  session = SSL_get_session(ssl_);
+  return SSL_get_time(session);
+}
