@@ -1331,7 +1331,7 @@ UT_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "ssl is null");
         return 0;
     } else {
-        return SSL_in_init(ssl_);
+        return SSL_in_init(ssl_) || SSL_renegotiate_pending(ssl_);
     }
 }
 

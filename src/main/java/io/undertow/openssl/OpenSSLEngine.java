@@ -1098,7 +1098,6 @@ public final class OpenSSLEngine extends SSLEngine {
                 renegotiate();
             }
             accepted = 2;
-            handshake();
         }
     }
 
