@@ -25,7 +25,6 @@ import org.jboss.logging.annotations.MessageLogger;
 
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import java.nio.ByteBuffer;
 
 import static org.jboss.logging.Logger.Level.WARN;
 

@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 
+ * Class that contains all native methods to interact with OpenSSL
  */
 class SSL {
 
