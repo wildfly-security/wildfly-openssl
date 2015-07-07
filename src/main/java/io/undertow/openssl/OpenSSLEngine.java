@@ -16,6 +16,8 @@
  */
 package io.undertow.openssl;
 
+import org.eclipse.jetty.alpn.ALPN;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -1129,6 +1131,16 @@ public final class OpenSSLEngine extends SSLEngine {
             // if SSL_do_handshake returns > 0 it means the handshake was finished. This means we can update
             // handshakeFinished directly and so eliminate uncessary calls to SSL.isInInit(...)
             handshakeFinished = true;
+            handleAlpn();
+        }
+    }
+
+    private void handleAlpn() {
+        if(clientMode) {
+        } else {
+            String selected = SSL.getAlpnSelected(ssl);
+            ALPN.ServerProvider provider = (ALPN.ServerProvider)ALPN.get(this);
+            System.out.println("ALPN SELECTED " + selected);
         }
     }
 
@@ -1174,6 +1186,7 @@ public final class OpenSSLEngine extends SSLEngine {
             // Check to see if we have finished handshaking
             if (SSL.isInInit(ssl) == 0) {
                 handshakeFinished = true;
+                handleAlpn();
                 return SSLEngineResult.HandshakeStatus.FINISHED;
             }
 

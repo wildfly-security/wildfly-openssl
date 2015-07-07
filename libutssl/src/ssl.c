@@ -255,7 +255,7 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 
 UT_OPENSSL(jint, initialize) (JNIEnv *e) {
     int version = SSLeay();
-    printf("OpenSSL version %d \n", version);
+    printf("OpenSSL version %lx \n", OPENSSL_VERSION_NUMBER);
     jclass clazz;
     jclass sClazz;
 
@@ -1177,6 +1177,12 @@ UT_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     if (handshakeCount != NULL) {
         free(handshakeCount);
     }
+
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl_);
+    if(con->alpn_selection_callback != NULL) {
+        (*e)->DeleteGlobalRef(e, con->alpn_selection_callback);
+    }
+    free(con);
     SSL_free(ssl_);
 }
 

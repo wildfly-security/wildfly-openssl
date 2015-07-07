@@ -125,6 +125,7 @@ jint tcn_get_java_env(JNIEnv **env);
 JavaVM * tcn_get_java_vm();
 
 jstring tcn_new_string(JNIEnv *env, const char *str);
+jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
 
 /*thread setup function*/
 void ssl_thread_setup();

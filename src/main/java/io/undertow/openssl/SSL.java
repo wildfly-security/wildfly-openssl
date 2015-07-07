@@ -429,6 +429,11 @@ class SSL {
     static native String getAlpnSelected(long ssl);
 
     /**
+     * enables ALPN on the server side
+     */
+    static native void enableAlpn(long ssl, int selectorFailBehaviour);
+
+    /**
      * Get the peer certificate chain or {@code null} if non was send.
      */
     static native byte[][] getPeerCertChain(long ssl);
@@ -763,8 +768,6 @@ class SSL {
      */
     static native void setSSLContextVerify(long ctx, int level, int depth);
 
-    static native int setALPN(long ctx, byte[] proto, int len);
-
     /**
      * When tc-native encounters a SNI extension in the TLS handshake it will
      * call this method to determine which OpenSSL SSLContext to use for the
@@ -861,13 +864,22 @@ class SSL {
     static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
 
     /**
-     * Set application layer protocol for application layer protocol negotiation extension
+     * Set application layer protocol for application layer protocol negotiation extension.
+     *
+     * This should only be called by the client.
      * @param ctx Server context to use.
      * @param alpnProtos protocols in priority order
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
     static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
+
+    /**
+     * Sets the server ALPN callback for a spcific engine
+     * @param ssl The SSL engine
+     * @param callback the callbackto use
+     */
+    static native void setServerALPNCallback(long ssl, ServerAlpnCallback callback);
 
     /**
      * Set the context within which session be reused (server side only)

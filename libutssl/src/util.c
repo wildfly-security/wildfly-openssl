@@ -116,3 +116,23 @@ jstring tcn_new_string(JNIEnv *env, const char *str)
     else
         return (*env)->NewStringUTF(env, str);
 }
+
+jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
+{
+    jstring result;
+    jbyteArray bytes = 0;
+
+    if (!str)
+        return NULL;
+    if ((*env)->EnsureLocalCapacity(env, 2) < 0) {
+        return NULL; /* out of memory error */
+    }
+    bytes = (*env)->NewByteArray(env, l);
+    if (bytes != NULL) {
+        (*env)->SetByteArrayRegion(env, bytes, 0, l, (jbyte *)str);
+        result = (*env)->NewObject(env, jString_class, jString_init, bytes);
+        (*env)->DeleteLocalRef(env, bytes);
+        return result;
+    } /* else fall through */
+    return NULL;
+}
