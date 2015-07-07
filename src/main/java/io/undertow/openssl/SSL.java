@@ -402,6 +402,13 @@ public class SSL {
      */
     public static native int doHandshake(long ssl);
 
+
+    /**
+     * SSL_renegotiate
+     * @param ssl the SSL instance (SSL *)
+     */
+    public static native int renegotiate(long ssl);
+
     /**
      * SSL_in_init.
      * @param SSL

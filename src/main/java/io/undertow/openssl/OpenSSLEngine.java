@@ -62,7 +62,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 SSL.setCipherSuite(sslCtx, "ALL");
                 final long ssl = SSL.newSSL(sslCtx, true);
                 try {
-                    for (String c: SSL.getCiphers(ssl)) {
+                    for (String c : SSL.getCiphers(ssl)) {
                         // Filter out bad input.
                         if (c == null || c.length() == 0 || availableCipherSuites.contains(c)) {
                             continue;
@@ -161,12 +161,12 @@ public final class OpenSSLEngine extends SSLEngine {
     /**
      * Creates a new instance
      *
-     * @param sslCtx an OpenSSL {@code SSL_CTX} object
-     * engine
-     * @param clientMode {@code true} if this is used for clients, {@code false}
-     * otherwise
+     * @param sslCtx         an OpenSSL {@code SSL_CTX} object
+     *                       engine
+     * @param clientMode     {@code true} if this is used for clients, {@code false}
+     *                       otherwise
      * @param sessionContext the {@link OpenSSLSessionContext} this
-     * {@link SSLEngine} belongs to.
+     *                       {@link SSLEngine} belongs to.
      */
     OpenSSLEngine(long sslCtx, String fallbackApplicationProtocol,
                   boolean clientMode, OpenSSLSessionContext sessionContext) {
@@ -196,7 +196,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     /**
      * Write plaintext data to the OpenSSL internal BIO
-     *
+     * <p/>
      * Calling this function with src.remaining == 0 is undefined.
      */
     private int writePlaintextData(final ByteBuffer src) {
@@ -522,23 +522,22 @@ public final class OpenSSLEngine extends SSLEngine {
         } catch (Exception e) {
             throw new SSLException(e);
         }
-        if (bytesConsumed >= 0) {
-            int lastPrimingReadResult = SSL.readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
-            // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
-            // fatal.
-            if (lastPrimingReadResult <= 0) {
-                // Check for OpenSSL errors caused by the priming read
-                long error = SSL.getLastErrorNumber();
-                if (error != SSL.SSL_ERROR_NONE) {
-                    String err = SSL.getErrorString(error);
-                    ROOT_LOGGER.debugf("Read from SSL failed error: (%s) read result:(%s) error string: %s", error, lastPrimingReadResult, err);
-                    // There was an internal error -- shutdown
-                    shutdown();
-                    throw new SSLException(err);
-                }
+        int lastPrimingReadResult = SSL.readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
+        // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
+        // fatal.
+        if (lastPrimingReadResult <= 0) {
+            // Check for OpenSSL errors caused by the priming read
+            long error = SSL.getLastErrorNumber();
+            if (error != SSL.SSL_ERROR_NONE) {
+                String err = SSL.getErrorString(error);
+                ROOT_LOGGER.debugf("Read from SSL failed error: (%s) read result:(%s) error string: %s", error, lastPrimingReadResult, err);
+                // There was an internal error -- shutdown
+                shutdown();
+                throw new SSLException(err);
             }
-        } else {
-            // Reset to 0 as -1 is used to signal that nothing was written and no priming read needs to be done
+        }
+
+        if (bytesConsumed < 0) {
             bytesConsumed = 0;
         }
 
@@ -1074,24 +1073,32 @@ public final class OpenSSLEngine extends SSLEngine {
         if (engineClosed || destroyed != 0) {
             throw ENGINE_CLOSED;
         }
-        switch (accepted) {
-            case 0:
-                handshake();
-                accepted = 2;
-                break;
-            case 1:
-                // A user did not start handshake by calling this method by him/herself,
-                // but handshake has been started already by wrap() or unwrap() implicitly.
-                // Because it's the user's first time to call this method, it is unfair to
-                // raise an exception.  From the user's standpoint, he or she never asked
-                // for renegotiation.
+        if (clientMode) {
+            switch (accepted) {
+                case 0:
+                    handshake();
+                    accepted = 2;
+                    break;
+                case 1:
+                    // A user did not start handshake by calling this method by him/herself,
+                    // but handshake has been started already by wrap() or unwrap() implicitly.
+                    // Because it's the user's first time to call this method, it is unfair to
+                    // raise an exception.  From the user's standpoint, he or she never asked
+                    // for renegotiation.
 
-                accepted = 2; // Next time this method is invoked by the user, we should raise an exception.
-                break;
-            case 2:
-                throw RENEGOTIATION_UNSUPPORTED;
-            default:
-                throw new Error();
+                    accepted = 2; // Next time this method is invoked by the user, we should raise an exception.
+                    break;
+                case 2:
+                    throw RENEGOTIATION_UNSUPPORTED;
+                default:
+                    throw new Error();
+            }
+        } else {
+            if(accepted > 0) {
+                renegotiate();
+            }
+            accepted = 2;
+            handshake();
         }
     }
 
@@ -1122,6 +1129,23 @@ public final class OpenSSLEngine extends SSLEngine {
             // if SSL_do_handshake returns > 0 it means the handshake was finished. This means we can update
             // handshakeFinished directly and so eliminate uncessary calls to SSL.isInInit(...)
             handshakeFinished = true;
+        }
+    }
+
+
+    private void renegotiate() throws SSLException {
+        handshakeFinished = false;
+        int code = SSL.renegotiate(ssl);
+        if (code <= 0) {
+            // Check for OpenSSL errors caused by the handshake
+            long error = SSL.getLastErrorNumber();
+            if (error != SSL.SSL_ERROR_NONE) {
+                String err = SSL.getErrorString(error);
+                ROOT_LOGGER.debugf("Renegotiation failure %s", err);
+                // There was an internal error -- shutdown
+                shutdown();
+                throw new SSLException(err);
+            }
         }
     }
 
