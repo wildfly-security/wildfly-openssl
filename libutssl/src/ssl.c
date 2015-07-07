@@ -1757,38 +1757,3 @@ UT_OPENSSL(jint, version)(JNIEnv *e)
 {
     return OPENSSL_VERSION_NUMBER;
 }
-
-
-UT_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
-{
-    SSL *ssl_ = J2P(ssl, SSL *);
-
-    UNREFERENCED_STDARGS;
-
-    if (ssl_ == NULL) {
-        throwIllegalStateException(e, "ssl is null");
-        return 0;
-    }
-
-    return SSL_get_options(ssl_);
-}
-
-UT_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
-{
-    SSL *ssl_ = J2P(ssl, SSL *);
-
-    UNREFERENCED_STDARGS;
-
-    if (ssl_ == NULL) {
-        throwIllegalStateException(e, "ssl is null");
-        return;
-    }
-
-#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
-    /* Clear the flag if not supported */
-    if (opt & 0x00040000) {
-        opt &= ~0x00040000;
-    }
-#endif
-    SSL_set_options(ssl_, opt);
-}
