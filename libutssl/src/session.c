@@ -176,3 +176,16 @@ UT_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl)
     (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
     return bArray;
 }
+
+
+
+UT_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+    SSL_SESSION *session;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return;
+    }
+    session = SSL_get_session(ssl_);
+    SSL_SESSION_free(session);
+}

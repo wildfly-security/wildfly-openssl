@@ -823,13 +823,17 @@ public class SSL {
         sniCallBacks.remove(defaultSSLContext);
     }
 
+    /**
+     * invalidates the current SSL session
+     */
+    public static native void invalidateSession(long ctx);
 
     /**
      * Interface implemented by components that will receive the call back to
      * select an OpenSSL SSLContext based on the host name requested by the
      * client.
      */
-    public static interface SNICallBack {
+    public interface SNICallBack {
 
         /**
          * This callback is made during the TLS handshake when the client uses
@@ -841,7 +845,7 @@ public class SSL {
          *         SSLContext to use for the given host or zero if no SSLContext
          *         could be identified
          */
-        public long getSslContext(String sniHostName);
+        long getSslContext(String sniHostName);
     }
 
     /**

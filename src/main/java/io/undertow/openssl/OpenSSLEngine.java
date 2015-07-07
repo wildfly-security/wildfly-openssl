@@ -477,7 +477,7 @@ public final class OpenSSLEngine extends SSLEngine {
         for (int i = offset; i < endOffset; i++) {
             ByteBuffer dst = dsts[i];
             if (dst == null) {
-                ROOT_LOGGER.nullBuffer();
+                throw ROOT_LOGGER.nullBuffer();
             }
             if (dst.isReadOnly()) {
                 throw new ReadOnlyBufferException();
@@ -872,7 +872,8 @@ public final class OpenSSLEngine extends SSLEngine {
 
                 @Override
                 public void invalidate() {
-                    // NOOP
+                    SSL.invalidateSession(ssl);
+                    SESSION_UPDATER.set(OpenSSLEngine.this, null);
                 }
 
                 @Override
