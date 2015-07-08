@@ -1,5 +1,5 @@
 
-#include "utssl_private.h"
+#include "utssl.h"
 
 static jclass stringClass;
 static jmethodID stringEquals;

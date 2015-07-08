@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#include "utssl_private.h"
+#include "utssl.h"
 
 /* This file contains all thread related functions */
 

@@ -869,8 +869,6 @@ class SSL {
      * This should only be called by the client.
      * @param ctx Server context to use.
      * @param alpnProtos protocols in priority order
-     * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
-     *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
     static native void setAlpnProtos(long ctx, String[] alpnProtos);
 
@@ -879,7 +877,7 @@ class SSL {
      * @param ssl The SSL engine
      * @param callback the callbackto use
      */
-    static native void setServerALPNCallback(long ssl, ServerAlpnCallback callback);
+    static native void setServerALPNCallback(long ssl, ServerALPNCallback callback);
 
     /**
      * Set the context within which session be reused (server side only)

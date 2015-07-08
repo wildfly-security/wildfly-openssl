@@ -3,7 +3,7 @@ package io.undertow.openssl;
 /**
  * @author Stuart Douglas
  */
-public interface ServerAlpnCallback {
+interface ServerALPNCallback {
 
     java.lang.String select(String[] protocols);
 }

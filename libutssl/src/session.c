@@ -1,5 +1,5 @@
 
-#include "utssl_private.h"
+#include "utssl.h"
 
 /*functions related to openssl session management */
 

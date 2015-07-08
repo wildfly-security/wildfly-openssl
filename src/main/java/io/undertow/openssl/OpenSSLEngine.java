@@ -1121,7 +1121,7 @@ public final class OpenSSLEngine extends SSLEngine {
             alpnRegistered = true;
             final ALPN.Provider cb = ALPN.get(this);
             if(cb != null) {
-                SSL.setServerALPNCallback(ssl, new ServerAlpnCallback() {
+                SSL.setServerALPNCallback(ssl, new ServerALPNCallback() {
                     @Override
                     public String select(String[] data) {
                         ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.get(OpenSSLEngine.this);

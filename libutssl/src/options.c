@@ -1,5 +1,5 @@
 
-#include "utssl_private.h"
+#include "utssl.h"
 /*
  * supported_ssl_opts is a bitmask that contains all supported SSL_OP_*
  * options at compile-time. This is used in hasOp to determine which
