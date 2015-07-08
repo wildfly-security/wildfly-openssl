@@ -96,7 +96,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <forkMode>once</forkMode>
-                    <!-- <argLine>-XX:-FailOverToOldVerifier -Xverify:all</argLine>  -->
+                    <argLine>-Djava.library.path=${project.basedir}/libutssl/mac</argLine>
                 </configuration>
             </plugin>
         </plugins>

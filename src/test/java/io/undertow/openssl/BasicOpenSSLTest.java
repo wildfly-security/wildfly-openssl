@@ -89,7 +89,7 @@ public class BasicOpenSSLTest {
 
 
     @org.junit.Test
-    public void testSomeSuff() throws IOException {
+    public void basicOpenSSLTest() throws IOException {
 
         final SSLContext sslContext = createSSLContext();
 

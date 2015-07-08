@@ -120,7 +120,6 @@ void SSL_init_app_data2_3_idx(void)
             SSL_get_ex_new_index(0,
                                  "Third Application Data for SSL",
                                   NULL, NULL, NULL);
-
 }
 
 void *SSL_get_app_data2(SSL *ssl)
@@ -477,23 +476,6 @@ UT_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl,
     return rv;
 }
 
-UT_OPENSSL(jint, getHandshakeCount)(JNIEnv *e, jobject o, jlong ssl)
-{
-    int *handshakeCount = NULL;
-    SSL *ssl_ = J2P(ssl, SSL *);
-    if (ssl_ == NULL) {
-        throwIllegalStateException(e, "ssl is null");
-        return -1;
-    }
-
-    handshakeCount = SSL_get_app_data3(ssl_);
-    if (handshakeCount != NULL) {
-        return *handshakeCount;
-    }
-    return 0;
-}
-
-
 UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -565,16 +547,6 @@ UT_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
         opt &= ~0x00040000;
 #endif
     SSL_CTX_set_options(c->ctx, opt);
-}
-
-UT_OPENSSL(jint, getSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-
-    UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
-
-    return SSL_CTX_get_options(c->ctx);
 }
 
 UT_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
@@ -1211,16 +1183,6 @@ UT_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o,
 
     return SSL_get_shutdown(J2P(ssl, SSL *));
 }
-
-/* Called when the peer closes the connection */
-UT_OPENSSL(void, setShutdown)(JNIEnv *e, jobject o,
-                                           jlong ssl /* SSL * */,
-                                           jint mode) {
-    UNREFERENCED_STDARGS;
-
-    SSL_set_shutdown(J2P(ssl, SSL *), mode);
-}
-
 
 UT_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
                                         jlong ssl /* SSL * */) {
