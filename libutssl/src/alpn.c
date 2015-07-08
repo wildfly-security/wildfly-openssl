@@ -1,14 +1,11 @@
 
 #include "utssl_private.h"
 
-#define SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL            1
-
 static jclass stringClass;
 static jmethodID stringEquals;
 
 void alpn_init(JNIEnv *e) {
     jclass sClazz = (*e)->FindClass(e, "java/lang/String");
-
     stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
     stringEquals = (*e)->GetMethodID(e, stringClass, "equals", "(Ljava/lang/Object;)Z");
 }
@@ -93,65 +90,6 @@ static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **pro
         *proto_len = p_data_len;
         return 0;
     }
-}
-
-
-/* The code here is inspired by nghttp2
- *
- * See https://github.com/tatsuhiro-t/nghttp2/blob/ae0100a9abfcf3149b8d9e62aae216e946b517fb/src/shrpx_ssl.cc#L244 */
-int select_next_proto(SSL *ssl, const unsigned char **out, unsigned char *outlen,
-        const unsigned char *in, unsigned int inlen, unsigned char *supported_protos,
-        unsigned int supported_protos_len, int failure_behavior) {
-
-    unsigned int i = 0;
-    unsigned char target_proto_len;
-    const unsigned char *p;
-    const unsigned char *end;
-    const unsigned char *proto;
-    unsigned char proto_len;
-
-    while (i < supported_protos_len) {
-        target_proto_len = *supported_protos;
-        ++supported_protos;
-
-        p = in;
-        end = in + inlen;
-
-        while (p < end) {
-            proto_len = *p;
-            proto = ++p;
-
-            if (proto + proto_len <= end && target_proto_len == proto_len &&
-                    memcmp(supported_protos, proto, proto_len) == 0) {
-
-                // We found a match, so set the output and return with OK!
-                *out = proto;
-                *outlen = proto_len;
-
-                return SSL_TLSEXT_ERR_OK;
-            }
-            // Move on to the next protocol.
-            p += proto_len;
-        }
-
-        // increment len and pointers.
-        i += target_proto_len;
-        supported_protos += target_proto_len;
-    }
-
-    if (failure_behavior == SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL) {
-         // There were no match but we just select our last protocol and hope the other peer support it.
-         //
-         // decrement the pointer again so the pointer points to the start of the protocol.
-         p -= proto_len;
-         *out = p;
-         *outlen = proto_len;
-         return SSL_TLSEXT_ERR_OK;
-    }
-    // TODO: OpenSSL currently not support to fail with fatal error. Once this changes we can also support it here.
-    //       Issue https://github.com/openssl/openssl/issues/188 has been created for this.
-    // Nothing matched so not select anything and just accept.
-    return SSL_TLSEXT_ERR_NOACK;
 }
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
@@ -242,8 +180,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
 }
 
-UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray alpn_protos,
-        jint selectorFailureBehavior)
+UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray alpn_protos)
 {
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 

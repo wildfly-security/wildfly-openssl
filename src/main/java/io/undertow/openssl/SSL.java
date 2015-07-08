@@ -872,7 +872,7 @@ class SSL {
      * @param selectorFailureBehavior see {@link SSL#SSL_SELECTOR_FAILURE_NO_ADVERTISE}
      *                                and {@link SSL#SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL}
      */
-    static native void setAlpnProtos(long ctx, String[] alpnProtos, int selectorFailureBehavior);
+    static native void setAlpnProtos(long ctx, String[] alpnProtos);
 
     /**
      * Sets the server ALPN callback for a spcific engine

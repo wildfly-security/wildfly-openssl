@@ -87,80 +87,6 @@ DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
 }
 
 
-/* Simple echo password prompting */
-int SSL_password_prompt(tcn_pass_cb_t *data)
-{
-    int rv = 0;
-    data->password[0] = '\0';
-    if (data->cb.obj) {
-        JNIEnv *e;
-        jobject  o;
-        jstring  prompt;
-        tcn_get_java_env(&e);
-        prompt = AJP_TO_JSTRING(data->prompt);
-        if ((o = (*e)->CallObjectMethod(e, data->cb.obj,
-                            data->cb.mid[0], prompt))) {
-            TCN_ALLOC_CSTRING(o);
-            if (J2S(o)) {
-                strncpy(data->password, J2S(o), SSL_MAX_PASSWORD_LEN);
-                data->password[SSL_MAX_PASSWORD_LEN-1] = '\0';
-                rv = (int)strlen(data->password);
-            }
-            TCN_FREE_CSTRING(o);
-        }
-    }
-    else {
-#ifdef WIN32
-        rv = WIN32_SSL_password_prompt(data);
-#else
-        EVP_read_pw_string(data->password, SSL_MAX_PASSWORD_LEN,
-                           data->prompt, 0);
-#endif
-        rv = (int)strlen(data->password);
-    }
-    if (rv > 0) {
-        /* Remove LF char if present */
-        char *r = strchr(data->password, '\n');
-        if (r) {
-            *r = '\0';
-            rv--;
-        }
-#ifdef WIN32
-        if ((r = strchr(data->password, '\r'))) {
-            *r = '\0';
-            rv--;
-        }
-#endif
-    }
-    return rv;
-}
-
-int SSL_password_callback(char *buf, int bufsiz, int verify,
-                          void *cb)
-{
-    tcn_pass_cb_t *cb_data = (tcn_pass_cb_t *)cb;
-
-    if (buf == NULL)
-        return 0;
-    *buf = '\0';
-    if (cb_data == NULL)
-        cb_data = &tcn_password_callback;
-    if (!cb_data->prompt)
-        cb_data->prompt = SSL_DEFAULT_PASS_PROMPT;
-    if (cb_data->password[0]) {
-        /* Return already obtained password */
-        strncpy(buf, cb_data->password, bufsiz);
-        buf[bufsiz - 1] = '\0';
-        return (int)strlen(buf);
-    }
-    else {
-        if (SSL_password_prompt(cb_data) > 0)
-            strncpy(buf, cb_data->password, bufsiz);
-    }
-    buf[bufsiz - 1] = '\0';
-    return (int)strlen(buf);
-}
-
 void SSL_BIO_close(BIO *bi)
 {
     if (bi == NULL)
@@ -1681,6 +1607,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
 
     len = sk_X509_num(sk);
     if (len <= 0) {
+
         /* No peer certificate chain as no auth took place yet, or the auth was not successful. */
         return NULL;
     }
@@ -1715,7 +1642,6 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
 
 /* Send CLOSE_NOTIFY to peer */
 UT_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl) {
-
     return SSL_shutdown(J2P(ssl, SSL *));
 }
 

@@ -26,6 +26,7 @@ import org.jboss.logging.annotations.MessageLogger;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
+import static org.jboss.logging.Logger.Level.DEBUG;
 import static org.jboss.logging.Logger.Level.WARN;
 
 /**
@@ -110,15 +111,15 @@ public interface OpenSSLLogger extends BasicLogger {
     @Message(id = 24, value = "Trust manager is missing")
     IllegalStateException keyManagerMissing();
 
-    @LogMessage(level = WARN)
+    @LogMessage(level = DEBUG)
     @Message(id = 25, value = "The version of SSL in use does not support cipher ordering")
     void noHonorCipherOrder();
 
-    @LogMessage(level = WARN)
+    @LogMessage(level = DEBUG)
     @Message(id = 26, value = "The version of SSL in use does not support disabling compression")
     void noDisableCompression();
 
-    @LogMessage(level = WARN)
+    @LogMessage(level = DEBUG)
     @Message(id = 27, value = "The version of SSL in use does not support disabling session tickets")
     void noDisableSessionTickets();
 

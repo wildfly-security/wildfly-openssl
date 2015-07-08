@@ -343,6 +343,7 @@ public class OpenSSLContextSPI extends SSLContextSpi {
             String[] protos = new OpenSSLProtocols(enabledProtocol).getProtocols();
 
             sessionContext = new OpenSSLServerSessionContext(ctx);
+            sessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
             initialized = true;
 
             //TODO: ALPN must be optional
