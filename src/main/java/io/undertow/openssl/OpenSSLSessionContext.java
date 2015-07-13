@@ -19,13 +19,19 @@ package io.undertow.openssl;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * OpenSSL specific {@link SSLSessionContext} implementation.
  */
 public abstract class OpenSSLSessionContext implements SSLSessionContext {
     private static final Enumeration<byte[]> EMPTY = new EmptyEnumeration();
+
+    private final Map<byte[], OpenSSlSession> sessions = new ConcurrentHashMap<>();
 
     private final OpenSSLSessionStats stats;
     final long context;
@@ -42,7 +48,22 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     @Override
     public Enumeration<byte[]> getIds() {
-        return EMPTY;
+        final Iterator<byte[]> keys = new HashSet<>(sessions.keySet()).iterator();
+        return new Enumeration<byte[]>() {
+            @Override
+            public boolean hasMoreElements() {
+                return keys.hasNext();
+            }
+
+            @Override
+            public byte[] nextElement() {
+                return keys.next();
+            }
+
+            public Iterator<byte[]> asIterator() {
+                return keys;
+            }
+        };
     }
 
     /**
