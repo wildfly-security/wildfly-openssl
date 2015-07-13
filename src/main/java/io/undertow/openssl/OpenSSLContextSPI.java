@@ -478,4 +478,8 @@ public class OpenSSLContextSPI extends SSLContextSpi {
     protected SSLSessionContext engineGetClientSessionContext() {
         return sessionContext;
     }
+
+    public void sessionRemoved(byte[] session) {
+        sessionContext.remove(session);
+    }
 }

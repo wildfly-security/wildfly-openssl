@@ -22,14 +22,12 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * OpenSSL specific {@link SSLSessionContext} implementation.
  */
 public abstract class OpenSSLSessionContext implements SSLSessionContext {
-    private static final Enumeration<byte[]> EMPTY = new EmptyEnumeration();
 
     private final Map<byte[], OpenSSlSession> sessions = new ConcurrentHashMap<>();
 
@@ -43,7 +41,7 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     @Override
     public SSLSession getSession(byte[] bytes) {
-        return null;
+        return sessions.get(bytes);
     }
 
     @Override
@@ -93,15 +91,8 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
         return stats;
     }
 
-    private static final class EmptyEnumeration implements Enumeration<byte[]> {
-        @Override
-        public boolean hasMoreElements() {
-            return false;
-        }
-
-        @Override
-        public byte[] nextElement() {
-            throw new NoSuchElementException();
-        }
+    void remove(byte[] session) {
+        this.sessions.remove(session);
     }
+
 }

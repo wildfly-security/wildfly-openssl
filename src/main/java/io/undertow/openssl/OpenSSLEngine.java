@@ -861,7 +861,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 SSL.setServerALPNCallback(ssl, new ServerALPNCallback() {
                     @Override
                     public String select(String[] data) {
-                        ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.get(OpenSSLEngine.this);
+                        ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.remove(OpenSSLEngine.this);
                         if (provider != null) {
                             return provider.select(Arrays.asList(data));
                         }
@@ -885,19 +885,8 @@ public final class OpenSSLEngine extends SSLEngine {
             // if SSL_do_handshake returns > 0 it means the handshake was finished. This means we can update
             // handshakeFinished directly and so eliminate uncessary calls to SSL.isInInit(...)
             handshakeFinished = true;
-            handleAlpn();
         }
     }
-
-    private void handleAlpn() {
-        if(clientMode) {
-        } else {
-            String selected = SSL.getAlpnSelected(ssl);
-            ALPN.ServerProvider provider = (ALPN.ServerProvider)ALPN.get(this);
-            System.out.println("ALPN SELECTED " + selected);
-        }
-    }
-
 
     private void renegotiate() throws SSLException {
         handshakeFinished = false;
@@ -940,7 +929,6 @@ public final class OpenSSLEngine extends SSLEngine {
             // Check to see if we have finished handshaking
             if (SSL.isInInit(ssl) == 0) {
                 handshakeFinished = true;
-                handleAlpn();
                 return SSLEngineResult.HandshakeStatus.FINISHED;
             }
 

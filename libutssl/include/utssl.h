@@ -33,11 +33,31 @@
 #include <openssl/err.h>
 #include <openssl/conf.h>
 
-#ifdef WIN32
-todo
+/* Debugging code */
+#if defined(_DEBUG) || defined(DEBUG)
+#include <assert.h>
+#define TCN_ASSERT(x)  assert((x))
 #else
-#include <pthread.h>
+#define TCN_ASSERT(x) (void)0
 #endif
+
+/* platform dependent code */
+#ifdef WIN32
+
+todo: windows threads
+#define LLT(X) (X)
+
+#else
+
+#include <pthread.h>
+#define LLT(X) ((long)(X))
+
+#endif
+
+
+#define P2J(P)          ((jlong)LLT(P))
+#define J2P(P, T)       ((T)LLT((jlong)P))
+#define J2S(V)  c##V
 
 #define TCN_BEGIN_MACRO     if (1) {
 #define TCN_END_MACRO       } else (void)(0)
@@ -88,21 +108,6 @@ todo
     || (errnum == X509_V_ERR_CERT_UNTRUSTED) \
     || (errnum == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE))
 
-#if defined(_DEBUG) || defined(DEBUG)
-#include <assert.h>
-#define TCN_ASSERT(x)  assert((x))
-#else
-#define TCN_ASSERT(x) (void)0
-#endif
-
-#ifdef WIN32
-#define LLT(X) (X)
-#else
-#define LLT(X) ((long)(X))
-#endif
-#define P2J(P)          ((jlong)LLT(P))
-#define J2P(P, T)       ((T)LLT((jlong)P))
-#define J2S(V)  c##V
 
 /*
  * Adapted from OpenSSL:
@@ -138,20 +143,6 @@ todo
 
 /* OpenSSL end */
 
-void tcn_Throw(JNIEnv *env, char *fmt, ...);
-jint throwIllegalStateException( JNIEnv *env, char *message);
-jint throwIllegalArgumentException( JNIEnv *env, char *message);
-jint tcn_get_java_env(JNIEnv **env);
-JavaVM * tcn_get_java_vm();
-
-jstring tcn_new_string(JNIEnv *env, const char *str);
-jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
-void *SSL_get_app_data2(SSL *ssl);
-
-/*thread setup function*/
-void ssl_thread_setup();
-
-void alpn_init(JNIEnv *e);
 
 #define SSL_AIDX_RSA     (0)
 #define SSL_AIDX_DSA     (1)
@@ -254,12 +245,6 @@ void alpn_init(JNIEnv *e);
 #define SSL_INFO_SERVER_CERT                (0x0207)
 #define SSL_INFO_CLIENT_CERT_CHAIN          (0x0400)
 
-
-#define SSL_DEFAULT_PASS_PROMPT "Some of your private key files are encrypted for security reasons.\n"  \
-                                "In order to read them you have to provide the pass phrases.\n"         \
-                                "Enter password :"
-
-
 // Use "weak" to redeclare optional features
 #define weak __attribute__((weak))
 
@@ -271,14 +256,6 @@ typedef struct {
     jmethodID   mid[TCN_MAX_METHODS];
     void        *opaque;
 } tcn_callback_t;
-
-#define SSL_MAX_PASSWORD_LEN    (256)
-typedef struct {
-    char            password[SSL_MAX_PASSWORD_LEN];
-    const char     *prompt;
-    tcn_callback_t cb;
-} tcn_pass_cb_t;
-
 
 typedef struct {
     SSL_CTX         *ctx;
@@ -306,7 +283,6 @@ typedef struct {
     /* for client or downstream server authentication */
     int             verify_depth;
     int             verify_mode;
-    tcn_pass_cb_t   *cb_data;
 
     /* for client: List of protocols to request via ALPN.
      * for server: List of protocols to accept via ALPN.
@@ -357,5 +333,21 @@ typedef struct {
                          */
     } reneg_state;
 } tcn_ssl_conn_t;
+
+
+void tcn_Throw(JNIEnv *env, char *fmt, ...);
+jint throwIllegalStateException( JNIEnv *env, char *message);
+jint throwIllegalArgumentException( JNIEnv *env, char *message);
+jint tcn_get_java_env(JNIEnv **env);
+JavaVM * tcn_get_java_vm();
+
+jstring tcn_new_string(JNIEnv *env, const char *str);
+jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
+tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl);
+
+/*thread setup function*/
+void ssl_thread_setup();
+
+void alpn_init(JNIEnv *e);
 
 #endif

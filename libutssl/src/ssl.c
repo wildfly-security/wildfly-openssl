@@ -24,8 +24,7 @@ static jclass byteArrayClass, stringClass;
 static jclass    ssl_context_class;
 static jmethodID sni_java_callback;
 
-tcn_pass_cb_t tcn_password_callback;
-
+/* indexes for customer SSL data */
 static int SSL_app_data2_idx = -1;
 static int SSL_app_data3_idx = -1;
 
@@ -121,10 +120,10 @@ void SSL_init_app_data2_3_idx(void)
                                  "Third Application Data for SSL",
                                   NULL, NULL, NULL);
 }
-
-void *SSL_get_app_data2(SSL *ssl)
+/*the the SSL context structure associated with the context*/
+tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl)
 {
-    return (void *)SSL_get_ex_data(ssl, SSL_app_data2_idx);
+    return (tcn_ssl_ctxt_t *)SSL_get_ex_data(ssl, SSL_app_data2_idx);
 }
 
 void SSL_set_app_data2(SSL *ssl, void *arg)
