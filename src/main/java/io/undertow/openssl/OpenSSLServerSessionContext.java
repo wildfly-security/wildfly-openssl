@@ -23,6 +23,7 @@ package io.undertow.openssl;
 public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
     OpenSSLServerSessionContext(long context) {
         super(context);
+        SSL.registerSessionContext(context, this);
     }
 
     @Override

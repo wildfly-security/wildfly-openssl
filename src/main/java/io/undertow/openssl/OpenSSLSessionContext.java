@@ -18,6 +18,7 @@ package io.undertow.openssl;
 
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,9 +28,15 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * OpenSSL specific {@link SSLSessionContext} implementation.
  */
-public abstract class OpenSSLSessionContext implements SSLSessionContext {
+abstract class OpenSSLSessionContext implements SSLSessionContext {
 
-    private final Map<byte[], OpenSSlSession> sessions = new ConcurrentHashMap<>();
+    private final Map<Key, OpenSSlSession> sessions = new ConcurrentHashMap<>();
+
+    /**
+     * sessions that are in the process of handshaking. When the session is complete it is moved to the
+     * sessions map. The sessions make is managed by the session callbacks
+     */
+    private final Map<Long, OpenSSlSession> handshakeSessions = new ConcurrentHashMap<>();
 
     private final OpenSSLSessionStats stats;
     final long context;
@@ -41,12 +48,30 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     @Override
     public SSLSession getSession(byte[] bytes) {
-        return sessions.get(bytes);
+        return sessions.get(new Key(bytes));
+    }
+
+    synchronized SSLSession getHandshakeSession(OpenSSLEngine ssl, byte[] id) {
+        OpenSSlSession ret = sessions.get(new Key(id));
+        if(ret != null) {
+            return ret;
+        }
+        ret = handshakeSessions.get(ssl.getSsl());
+        if(ret != null) {
+            return ret;
+        }
+        ret = new OpenSSlSession(true, this);
+        handshakeSessions.put(ssl.getSsl(), ret);
+        return ret;
+    }
+
+    void removeHandshakeSession(long ssl) {
+        handshakeSessions.remove(ssl);
     }
 
     @Override
     public Enumeration<byte[]> getIds() {
-        final Iterator<byte[]> keys = new HashSet<>(sessions.keySet()).iterator();
+        final Iterator<Key> keys = new HashSet<>(sessions.keySet()).iterator();
         return new Enumeration<byte[]>() {
             @Override
             public boolean hasMoreElements() {
@@ -55,11 +80,7 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
 
             @Override
             public byte[] nextElement() {
-                return keys.next();
-            }
-
-            public Iterator<byte[]> asIterator() {
-                return keys;
+                return keys.next().data;
             }
         };
     }
@@ -92,7 +113,50 @@ public abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     void remove(byte[] session) {
-        this.sessions.remove(session);
+        this.sessions.remove(new Key(session));
     }
 
+    synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
+        OpenSSlSession existing = handshakeSessions.remove(ssl);
+        if(existing != null) {
+            existing.initialised(session, ssl, sessionId);
+            sessions.put(new Key(sessionId), existing);
+        } else {
+            final OpenSSlSession openSSlSession = new OpenSSlSession(true, this);
+            openSSlSession.initialised(session, ssl, sessionId);
+            sessions.put(new Key(sessionId), openSSlSession);
+        }
+    }
+
+    synchronized void sessionRemovedCallback(byte[] sessionId) {
+        sessions.remove(new Key(sessionId));
+    }
+
+    private static class Key {
+        private final  byte[] data;
+
+        private Key(byte[] data) {
+            this.data = data;
+        }
+
+        public byte[] getData() {
+            return data;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Key key = (Key) o;
+
+            return Arrays.equals(data, key.data);
+
+        }
+
+        @Override
+        public int hashCode() {
+            return data != null ? Arrays.hashCode(data) : 0;
+        }
+    }
 }

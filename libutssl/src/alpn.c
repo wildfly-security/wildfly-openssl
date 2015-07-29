@@ -159,7 +159,6 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
         proto = ++p;
         if (proto + proto_len <= end) {
             jobject string = nativeArray[c++];
-            printf("now proto %s \n",(char *)proto);
             if((*e)->CallBooleanMethod(e, string, stringEquals, result)) {
                 printf("m");
 

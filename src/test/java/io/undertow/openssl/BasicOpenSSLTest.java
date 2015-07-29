@@ -1,6 +1,7 @@
 package io.undertow.openssl;
 
 import org.junit.Assert;
+import org.junit.Test;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -26,6 +27,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Stuart Douglas
@@ -88,9 +90,9 @@ public class BasicOpenSSLTest {
     }
 
 
-    @org.junit.Test
+    @Test
     public void basicOpenSSLTest() throws IOException {
-
+        final AtomicReference<byte[]> sessionID = new AtomicReference<>();
         final SSLContext sslContext = createSSLContext();
 
         Thread acceptThread = new Thread(new Runnable() {
@@ -142,6 +144,7 @@ public class BasicOpenSSLTest {
                                             throw new RuntimeException(result.toString());
                                         }
                                     }
+                                    sessionID.set(engine.getSession().getId());
                                     while (true) {
                                         in.clear();
                                         out.clear();
@@ -192,7 +195,9 @@ public class BasicOpenSSLTest {
         socket.getOutputStream().write("hello".getBytes(StandardCharsets.US_ASCII));
         byte[] data = new byte[100];
         int read = socket.getInputStream().read(data);
+
         Assert.assertEquals("hello world", new String(data, 0, read));
+        Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
 
     }
 }

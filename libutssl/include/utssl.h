@@ -307,6 +307,7 @@ typedef struct {
     unsigned char   *alpn_proto_data;
     unsigned int    alpn_proto_len;
     /* End add from netty-tcnative */
+    jobject session_context;
 } tcn_ssl_ctxt_t;
 
 
@@ -315,7 +316,7 @@ typedef struct {
     SSL            *ssl;
     X509           *peer;
     int             shutdown_type;
-    jobject           alpn_selection_callback;
+    jobject         alpn_selection_callback;
     /* Track the handshake/renegotiation state for the connection so
      * that all client-initiated renegotiations can be rejected, as a
      * partial fix for CVE-2009-3555.
@@ -344,10 +345,11 @@ JavaVM * tcn_get_java_vm();
 jstring tcn_new_string(JNIEnv *env, const char *str);
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
 tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl);
-
+void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c);
 /*thread setup function*/
 void ssl_thread_setup();
 
 void alpn_init(JNIEnv *e);
+void session_init(JNIEnv *e);
 
 #endif

@@ -219,6 +219,7 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
     stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
 
     alpn_init(e);
+    session_init(e);
 
     return (jint)0;
 }
@@ -367,13 +368,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     /* Release idle buffers to the SSL_CTX free list */
     SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
-    /* Default session context id and cache size */
-    SSL_CTX_sess_set_cache_size(c->ctx, SSL_DEFAULT_CACHE_SIZE);
-    /* Session cache is disabled by default */
-    SSL_CTX_set_session_cache_mode(c->ctx, SSL_SESS_CACHE_OFF);
-    /* Longer session timeout */
-    SSL_CTX_set_timeout(c->ctx, 14400);
-
+    setup_session_context(e, c);
     EVP_Digest((const unsigned char *)SSL_DEFAULT_VHOST_NAME,
                (unsigned long)((sizeof SSL_DEFAULT_VHOST_NAME) - 1),
                &(c->context_id[0]), NULL, EVP_sha1(), NULL);

@@ -834,6 +834,8 @@ class SSL {
      */
     static native void invalidateSession(long ctx);
 
+    static native void registerSessionContext(long context, OpenSSLServerSessionContext openSSLServerSessionContext);
+
     /**
      * Interface implemented by components that will receive the call back to
      * select an OpenSSL SSLContext based on the host name requested by the

@@ -19,49 +19,46 @@ import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
  */
 class OpenSSlSession implements SSLSession {
 
+    private final boolean server;
+    private final OpenSSLSessionContext sessionContext;
+
     private static final Certificate[] EMPTY_CERTIFICATES = new Certificate[0];
 
-    private OpenSSLEngine engine;
-    // SSLSession implementation seems to not need to be thread-safe so no need for volatile etc.
-    private X509Certificate[] x509PeerCerts;
+    private volatile X509Certificate[] x509PeerCerts;
 
     private volatile Certificate[] peerCerts;
 
     // lazy init for memory reasons
     private Map<String, Object> values;
 
-    public OpenSSlSession(OpenSSLEngine engine) {
-        this.engine = engine;
+    private volatile long creationTime = System.currentTimeMillis();
+
+    private volatile byte[] sessionId;
+    private volatile long sessionPointer;
+    private boolean valid = true;
+    private String cipherSuite = OpenSSLEngine.INVALID_CIPHER;
+    private String protocol = "TLS";
+
+    OpenSSlSession(boolean server, OpenSSLSessionContext sessionContext) {
+        this.server = server;
+        this.sessionContext = sessionContext;
     }
 
-    /**
-     * Callen when resuming a session
-     * @param engine The engine
-     */
-    void setOpenSSLEngine(OpenSSLEngine engine) {
-        this.engine = engine;
-    }
 
     @Override
     public byte[] getId() {
-        // We don't cache that to keep memory usage to a minimum.
-        byte[] id = SSL.getSessionId(engine.getSsl());
-        if (id == null) {
-            // The id should never be null, if it was null then the SESSION itself was not valid.
-            throw ROOT_LOGGER.noSession();
-        }
-        return id;
+        return sessionId;
     }
 
     @Override
     public SSLSessionContext getSessionContext() {
-        return engine.getSessionContext();
+        return sessionContext;
     }
 
     @Override
     public long getCreationTime() {
         // We need ot multiple by 1000 as openssl uses seconds and we need milli-seconds.
-        return SSL.getTime(engine.getSsl()) * 1000L;
+        return creationTime;
     }
 
     @Override
@@ -72,17 +69,19 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public void invalidate() {
-        SSL.invalidateSession(engine.getSsl());
-        engine.clearSession();
+        if (valid) {
+            SSL.invalidateSession(sessionPointer);
+            valid = false;
+        }
     }
 
     @Override
     public boolean isValid() {
-        return false;
+        return valid;
     }
 
     @Override
-    public void putValue(String name, Object value) {
+    public synchronized void putValue(String name, Object value) {
         if (name == null) {
             throw ROOT_LOGGER.nullName();
         }
@@ -102,7 +101,7 @@ class OpenSSlSession implements SSLSession {
     }
 
     @Override
-    public Object getValue(String name) {
+    public synchronized Object getValue(String name) {
         if (name == null) {
             throw ROOT_LOGGER.nullName();
         }
@@ -113,7 +112,7 @@ class OpenSSlSession implements SSLSession {
     }
 
     @Override
-    public void removeValue(String name) {
+    public synchronized void removeValue(String name) {
         if (name == null) {
             throw ROOT_LOGGER.nullName();
         }
@@ -126,7 +125,7 @@ class OpenSSlSession implements SSLSession {
     }
 
     @Override
-    public String[] getValueNames() {
+    public synchronized String[] getValueNames() {
         Map<String, Object> values = this.values;
         if (values == null || values.isEmpty()) {
             return new String[0];
@@ -142,15 +141,10 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        // these are lazy created to reduce memory overhead
-        Certificate[] c = peerCerts;
-        if (c == null) {
-            if (SSL.isInInit(engine.getSsl()) != 0) {
-                throw ROOT_LOGGER.unverifiedPeer();
-            }
-            c = peerCerts = initPeerCertChain();
+        if (peerCerts == null) {
+            throw ROOT_LOGGER.unverifiedPeer();
         }
-        return c;
+        return peerCerts;
     }
 
     @Override
@@ -161,27 +155,10 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
-        //we need to get these eagerly, as they are not availble if a session is resumed
-        X509Certificate[] c = x509PeerCerts;
-        if (c == null) {
-            if (SSL.isInInit(engine.getSsl()) != 0) {
-                throw ROOT_LOGGER.unverifiedPeer();
-            }
-            byte[][] chain = SSL.getPeerCertChain(engine.getSsl());
-            if (chain == null) {
-                throw ROOT_LOGGER.unverifiedPeer();
-            }
-            X509Certificate[] peerCerts = new X509Certificate[chain.length];
-            for (int i = 0; i < peerCerts.length; i++) {
-                try {
-                    peerCerts[i] = X509Certificate.getInstance(chain[i]);
-                } catch (CertificateException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-            c = x509PeerCerts = peerCerts;
+        if (x509PeerCerts == null) {
+            throw ROOT_LOGGER.unverifiedPeer();
         }
-        return c;
+        return x509PeerCerts;
     }
 
     @Override
@@ -208,35 +185,12 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public String getCipherSuite() {
-        if (!engine.isHandshakeFinished()) {
-            return OpenSSLEngine.INVALID_CIPHER;
-        }
-        if (engine.getCipher() == null) {
-            String c = engine.toJavaCipherSuite(SSL.getCipherForSSL(engine.getSsl()));
-            if (c != null) {
-                engine.setCipher(c);
-            }
-        }
-        return engine.getCipher();
+        return cipherSuite;
     }
 
     @Override
     public String getProtocol() {
-        String applicationProtocol = engine.getApplicationProtocol();
-        if (applicationProtocol == null) {
-            applicationProtocol = engine.getFallbackApplicationProtocol();
-            if (applicationProtocol != null) {
-                engine.setApplicationProtocol(applicationProtocol.replace(':', '_'));
-            } else {
-                engine.setApplicationProtocol(applicationProtocol = "");
-            }
-        }
-        String version = SSL.getVersion(engine.getSsl());
-        if (applicationProtocol.isEmpty()) {
-            return version;
-        } else {
-            return version + ':' + applicationProtocol;
-        }
+        return protocol;
     }
 
     @Override
@@ -260,22 +214,22 @@ class OpenSSlSession implements SSLSession {
     }
 
 
-    private Certificate[] initPeerCertChain() throws SSLPeerUnverifiedException {
-        byte[][] chain = SSL.getPeerCertChain(engine.getSsl());
+    private void initPeerCertChain(long ssl) {
+        byte[][] chain = SSL.getPeerCertChain(ssl);
         byte[] clientCert;
-        if (!engine.isClientMode()) {
+        if (server) {
             // if used on the server side SSL_get_peer_cert_chain(...) will not include the remote peer certificate.
             // We use SSL_get_peer_certificate to get it in this case and add it to our array later.
             //
             // See https://www.openssl.org/docs/ssl/SSL_get_peer_cert_chain.html
-            clientCert = SSL.getPeerCertificate(engine.getSsl());
+            clientCert = SSL.getPeerCertificate(ssl);
         } else {
             clientCert = null;
         }
 
         if (chain == null && clientCert == null) {
-
-            throw ROOT_LOGGER.unverifiedPeer();
+            peerCerts = null;
+            return;
         }
         int len = 0;
         if (chain != null) {
@@ -297,6 +251,52 @@ class OpenSSlSession implements SSLSession {
                 peerCerts[i] = new OpenSslX509Certificate(chain[a++]);
             }
         }
-        return peerCerts;
+        this.peerCerts = peerCerts;
     }
+
+    public void initx509PeerCertChain(long ssl) {
+        if (SSL.isInInit(ssl) != 0) {
+            this.x509PeerCerts = null;
+            return;
+        }
+        byte[][] chain = SSL.getPeerCertChain(ssl);
+        if (chain == null) {
+            this.x509PeerCerts = null;
+            return;
+        }
+        X509Certificate[] peerCerts = new X509Certificate[chain.length];
+        for (int i = 0; i < peerCerts.length; i++) {
+            try {
+                peerCerts[i] = X509Certificate.getInstance(chain[i]);
+            } catch (CertificateException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        x509PeerCerts = peerCerts;
+    }
+
+    void initialised(long pointer, long ssl, byte[] sessionId) {
+        this.creationTime = System.currentTimeMillis();
+        this.sessionPointer = pointer;
+        this.sessionId = sessionId;
+        initPeerCertChain(ssl);
+        initx509PeerCertChain(ssl);
+        initCipherSuite(ssl);
+        initProtcol(ssl);
+    }
+
+    private void initProtcol(long ssl) {
+        //TODO: fix this
+        String version = SSL.getVersion(ssl);
+        protocol = "TLS:" + version;
+    }
+
+    private void initCipherSuite(long ssl) {
+        String c = OpenSSLEngine.toJavaCipherSuite(SSL.getCipherForSSL(ssl), ssl);
+        if (c != null) {
+            cipherSuite = c;
+        }
+    }
+
+
 }

@@ -32,7 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
 
@@ -77,7 +76,6 @@ public final class OpenSSLEngine extends SSLEngine {
         RENEGOTIATION_UNSUPPORTED.setStackTrace(new StackTraceElement[0]);
         ENCRYPTED_PACKET_OVERSIZED.setStackTrace(new StackTraceElement[0]);
         DESTROYED_UPDATER = AtomicIntegerFieldUpdater.newUpdater(OpenSSLEngine.class, "destroyed");
-        SESSION_UPDATER = AtomicReferenceFieldUpdater.newUpdater(OpenSSLEngine.class, SSLSession.class, "session");
     }
 
     static final int MAX_PLAINTEXT_LENGTH = 16 * 1024; // 2^14
@@ -101,12 +99,6 @@ public final class OpenSSLEngine extends SSLEngine {
     // Header (5) + Data (2^14) + Compression (1024) + Encryption (1024) + MAC (20) + Padding (256)
     static final int MAX_ENCRYPTED_PACKET_LENGTH = MAX_CIPHERTEXT_LENGTH + 5 + 20 + 256;
 
-    static final int MAX_ENCRYPTION_OVERHEAD_LENGTH = MAX_ENCRYPTED_PACKET_LENGTH - MAX_PLAINTEXT_LENGTH;
-
-    public void clearSession() {
-        SESSION_UPDATER.set(this, null);
-    }
-
     public OpenSSLSessionContext getSessionContext() {
         return sessionContext;
     }
@@ -122,7 +114,6 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     private static final AtomicIntegerFieldUpdater<OpenSSLEngine> DESTROYED_UPDATER;
-    private static final AtomicReferenceFieldUpdater<OpenSSLEngine, SSLSession> SESSION_UPDATER;
 
     static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";
 
@@ -142,10 +133,6 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean receivedShutdown;
     private volatile int destroyed;
 
-    // Use an invalid cipherSuite until the handshake is completed
-    // See http://docs.oracle.com/javase/7/docs/api/javax/net/ssl/SSLEngine.html#getSession()
-    private volatile String cipher;
-    private volatile String applicationProtocol;
 
     private volatile ClientAuthMode clientAuth = ClientAuthMode.NONE;
 
@@ -155,10 +142,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean engineClosed;
 
     private final boolean clientMode;
-    private final String fallbackApplicationProtocol;
     private final OpenSSLSessionContext sessionContext;
-
-    private volatile SSLSession session;
 
     /**
      * Creates a new instance
@@ -177,7 +161,6 @@ public final class OpenSSLEngine extends SSLEngine {
         }
         ssl = SSL.newSSL(sslCtx, !clientMode);
         networkBIO = SSL.makeNetworkBIO(ssl);
-        this.fallbackApplicationProtocol = fallbackApplicationProtocol;
         this.clientMode = clientMode;
         this.sessionContext = sessionContext;
     }
@@ -189,6 +172,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (DESTROYED_UPDATER.compareAndSet(this, 0, 1)) {
             SSL.freeSSL(ssl);
             SSL.freeBIO(networkBIO);
+            sessionContext.removeHandshakeSession(getSsl());
             ssl = networkBIO = 0;
 
             // internal errors can cause shutdown without marking the engine closed
@@ -667,7 +651,7 @@ public final class OpenSSLEngine extends SSLEngine {
             return new String[0];
         } else {
             for (int i = 0; i < enabled.length; i++) {
-                String mapped = toJavaCipherSuite(enabled[i]);
+                String mapped = toJavaCipherSuite(enabled[i], ssl);
                 if (mapped != null) {
                     enabled[i] = mapped;
                 }
@@ -795,18 +779,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public SSLSession getSession() {
-        // A other methods on SSLEngine are thread-safe we also need to make this thread-safe...
-        SSLSession session = this.session;
-        if (session == null) {
-            session = new OpenSSlSession(this);
-
-            if (!SESSION_UPDATER.compareAndSet(this, null, session)) {
-                // Was lazy created in the meantime so get the current reference.
-                session = this.session;
-            }
-        }
-
-        return session;
+        return sessionContext.getSession(SSL.getSessionId(getSsl()));
     }
 
     @Override
@@ -835,7 +808,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     throw new Error();
             }
         } else {
-            if(accepted > 0) {
+            if (accepted > 0) {
                 renegotiate();
             }
             accepted = 2;
@@ -854,10 +827,10 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     private void handshake() throws SSLException {
-        if(!alpnRegistered) {
+        if (!alpnRegistered) {
             alpnRegistered = true;
             final ALPN.Provider cb = ALPN.get(this);
-            if(cb != null) {
+            if (cb != null) {
                 SSL.setServerALPNCallback(ssl, new ServerALPNCallback() {
                     @Override
                     public String select(String[] data) {
@@ -954,7 +927,7 @@ public final class OpenSSLEngine extends SSLEngine {
     /**
      * Converts the specified OpenSSL cipher suite to the Java cipher suite.
      */
-    String toJavaCipherSuite(String openSslCipherSuite) {
+    static String toJavaCipherSuite(String openSslCipherSuite, long ssl) {
         if (openSslCipherSuite == null) {
             return null;
         }
@@ -1063,33 +1036,12 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public SSLSession getHandshakeSession() {
-        return getSession();
+        return sessionContext.getHandshakeSession(this, SSL.getSessionId(getSsl()));
     }
 
     long getSsl() {
         return ssl;
     }
-
-    String getApplicationProtocol() {
-        return applicationProtocol;
-    }
-
-    String getCipher() {
-        return cipher;
-    }
-
-    void setCipher(String cipher) {
-        this.cipher = cipher;
-    }
-
-    void setApplicationProtocol(String applicationProtocol) {
-        this.applicationProtocol = applicationProtocol;
-    }
-
-    String getFallbackApplicationProtocol() {
-        return fallbackApplicationProtocol;
-    }
-
 
     boolean isHandshakeFinished() {
         return handshakeFinished;
