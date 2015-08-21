@@ -1,5 +1,9 @@
 
 #include "utssl.h"
+
+
+extern dynamic_methods ssl_methods;
+
 /*
  * supported_ssl_opts is a bitmask that contains all supported SSL_OP_*
  * options at compile-time. This is used in hasOp to determine which
@@ -15,6 +19,8 @@
  * reported by versions that actually support that specific workaround.
  */
 static const jint supported_ssl_opts = 0
+
+
 /*
   Specifically skip SSL_OP_ALL
 #ifdef SSL_OP_ALL
@@ -159,7 +165,7 @@ UT_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
         return 0;
     }
 
-    return SSL_get_options(ssl_);
+    return ssl_methods.SSL_get_options(ssl_);
 }
 
 UT_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
@@ -179,7 +185,7 @@ UT_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
         opt &= ~0x00040000;
     }
 #endif
-    SSL_set_options(ssl_, opt);
+    ssl_methods.SSL_set_options(ssl_, opt);
 }
 
 

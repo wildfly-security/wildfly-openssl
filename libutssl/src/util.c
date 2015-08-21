@@ -13,6 +13,8 @@ static jmethodID jString_getBytes;
 
 int tcn_parent_pid = 0;
 
+extern dynamic_methods ssl_methods;
+
 /* Called by the JVM when APR_JAVA is loaded */
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {

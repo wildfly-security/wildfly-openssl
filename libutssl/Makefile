@@ -34,7 +34,7 @@ linux-x86_64/%.o: src/%.c
 
 linux-x86_64/libutssl.so: $(LINUX_x86_64_OFILES)
 	@echo '     link ' $@
-	@$(CC)  -L/usr/local/opt/openssl/lib -m64 -lcrypto -lssl -shared $(LINUX_x86_64_OFILES) -o $@
+	@$(CC)  -L/usr/local/opt/openssl/lib -m64 -lcrypto  -shared $(LINUX_x86_64_OFILES) -o $@
 
 mac/%.o: src/%.c
 	@echo '  compile ' $@
@@ -42,4 +42,4 @@ mac/%.o: src/%.c
 
 mac/libutssl.dylib: $(MAC_OFILES)
 	@echo '     link ' $@
-	@$(CC) -L/usr/local/opt/openssl/lib -m64  -lcrypto -lssl -dynamiclib $(MAC_OFILES) -o $@
+	@$(CC) -L/usr/local/opt/openssl/lib -m64  -lcrypto -dynamiclib $(MAC_OFILES) -o $@

@@ -335,6 +335,94 @@ typedef struct {
     } reneg_state;
 } tcn_ssl_conn_t;
 
+typedef struct {
+    long(*SSLeay)(void) ;
+    const char *	(*SSL_CIPHER_get_name)(const SSL_CIPHER *c);
+    int (*SSL_CTX_check_private_key)(const SSL_CTX *ctx);
+    void	(*SSL_CTX_free)(SSL_CTX *);
+    X509_STORE *(*SSL_CTX_get_cert_store)(const SSL_CTX *);
+    STACK_OF(X509_NAME) *(*SSL_CTX_get_client_CA_list)(const SSL_CTX *s);
+    long (*SSL_CTX_get_timeout)(const SSL_CTX *ctx);
+    int (*SSL_CTX_load_verify_locations)(SSL_CTX *ctx, const char *CAfile, const char *CApath);
+    SSL_CTX *(*SSL_CTX_new)(const SSL_METHOD *meth);
+    void (*SSL_CTX_sess_set_new_cb)(SSL_CTX *ctx, int (*new_session_cb)(struct ssl_st *ssl,SSL_SESSION *sess));
+    long (*SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
+    long (*SSL_CTX_ctrl)(SSL_CTX *ctx, int cmd, long larg, void *parg);
+    void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
+    void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
+    int (*SSL_CTX_set_alpn_protos)(SSL_CTX *ctx, const unsigned char *protos, unsigned protos_len);
+    void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl,
+                                                                                              const unsigned char **out,
+                                                                                              unsigned char *outlen,
+                                                                                              const unsigned char *in,
+                                                                                              unsigned int inlen,
+                                                                                              void *arg), void *arg);
+    void (*SSL_CTX_set_cert_verify_callback)(SSL_CTX *ctx, int (*cb) (X509_STORE_CTX *, void *), void *arg);
+    int (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *str);
+    int (*SSL_CTX_set_default_verify_paths)(SSL_CTX *ctx);
+    int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);
+    void (*SSL_CTX_set_info_callback)(SSL_CTX *ctx, void (*cb)(const SSL *ssl,int type,int val));
+    int (*SSL_CTX_set_session_id_context)(SSL_CTX *ctx, const unsigned char *sid_ctx, unsigned int sid_ctx_len);
+    long (*SSL_CTX_set_timeout)(SSL_CTX *ctx, long t);
+    void (*SSL_CTX_set_verify)(SSL_CTX *ctx, int mode, int (*callback)(int, X509_STORE_CTX *));
+    int (*SSL_CTX_use_PrivateKey)(SSL_CTX *ctx, EVP_PKEY *pkey);
+    int (*SSL_CTX_use_certificate)(SSL_CTX *ctx, X509 *x);
+    void (*SSL_SESSION_free)(SSL_SESSION *ses);
+    const unsigned char *(*SSL_SESSION_get_id)(const SSL_SESSION *s, unsigned int *len);
+    long (*SSL_SESSION_get_time)(const SSL_SESSION *s);
+    int	(*SSL_add_file_cert_subjects_to_stack)(STACK_OF(X509_NAME) *stackCAs, const char *file);
+    long (*SSL_ctrl)(SSL *ssl, int cmd, long larg, void *parg);
+    int (*SSL_do_handshake)(SSL *s);
+    void (*SSL_free)(SSL *ssl);
+    void (*SSL_get0_alpn_selected)(const SSL *ssl, const unsigned char **data, unsigned *len);
+    STACK_OF(SSL_CIPHER) *(*SSL_get_ciphers)(const SSL *s);
+    const SSL_CIPHER *(*SSL_get_current_cipher)(const SSL *s);
+    void *(*SSL_get_ex_data)(const SSL *ssl, int idx);
+    int (*SSL_get_ex_data_X509_STORE_CTX_idx)(void);
+    int (*SSL_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
+    STACK_OF(X509) *(*SSL_get_peer_cert_chain)(const SSL *s);
+    X509 *(*SSL_get_peer_certificate)(const SSL *s);
+    SSL_SESSION *(*SSL_get_session)(const SSL *ssl);
+    int (*SSL_get_shutdown)(const SSL *ssl);
+    const char *(*SSL_get_version)(const SSL *s);
+    int (*SSL_library_init)(void);
+    STACK_OF(X509_NAME) *(*SSL_load_client_CA_file)(const char *file);
+    void (*SSL_load_error_strings)(void);
+    SSL *(*SSL_new)(SSL_CTX *ctx);
+    int (*SSL_pending)(const SSL *s);
+    int (*SSL_read)(SSL *ssl, void *buf, int num);
+    int (*SSL_renegotiate)(SSL *s);
+    int (*SSL_renegotiate_pending)(SSL *s);
+    SSL_CTX *(*SSL_set_SSL_CTX)(SSL *ssl, SSL_CTX *ctx);
+    void (*SSL_set_accept_state)(SSL *s);
+    void (*SSL_set_bio)(SSL *s, BIO *rbio, BIO *wbio);
+    int (*SSL_set_cipher_list)(SSL *s, const char *str);
+    void (*SSL_set_connect_state)(SSL *s);
+    int (*SSL_set_ex_data)(SSL *ssl, int idx, void *data);
+    void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
+    void (*SSL_set_verify_result)(SSL *ssl, long v);
+    int (*SSL_shutdown)(SSL *s);
+    int (*SSL_state)(const SSL *ssl);
+    int (*SSL_write)(SSL *ssl, const void *buf, int num);
+    const SSL_METHOD *(*SSLv23_client_method)(void);
+    const SSL_METHOD *(*SSLv23_method)(void);
+    const SSL_METHOD *(*SSLv23_server_method)(void);
+    const SSL_METHOD *(*SSLv3_client_method)(void);
+    const SSL_METHOD *(*SSLv3_method)(void);
+    const SSL_METHOD *(*SSLv3_server_method)(void);
+    const SSL_METHOD *(*TLSv1_1_client_method)(void);
+    const SSL_METHOD *(*TLSv1_1_method)(void);
+    const SSL_METHOD *(*TLSv1_1_server_method)(void);
+    const SSL_METHOD *(*TLSv1_2_client_method)(void);
+    const SSL_METHOD *(*TLSv1_2_method)(void);
+    const SSL_METHOD *(*TLSv1_2_server_method)(void);
+    const SSL_METHOD *(*TLSv1_client_method)(void);
+    const SSL_METHOD *(*TLSv1_method)(void);
+    const SSL_METHOD *(*TLSv1_server_method)(void);
+    struct evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
+    const char *(*SSL_get_servername)(const SSL *s, const int type);
+} dynamic_methods;
+
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);

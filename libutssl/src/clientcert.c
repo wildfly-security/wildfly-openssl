@@ -1,5 +1,6 @@
 #include "utssl.h"
 
+extern dynamic_methods ssl_methods;
 
 static int ssl_X509_STORE_lookup(X509_STORE *store, int yype,
                                  X509_NAME *name, X509_OBJECT *obj)
@@ -158,8 +159,8 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
 {
    /* Get Apache context back through OpenSSL context */
     SSL *ssl = X509_STORE_CTX_get_ex_data(ctx,
-                                          SSL_get_ex_data_X509_STORE_CTX_idx());
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl);
+                                          ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, 0);
     /* Get verify ingredients */
     int errnum   = X509_STORE_CTX_get_error(ctx);
     int errdepth = X509_STORE_CTX_get_error_depth(ctx);
@@ -174,7 +175,7 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     if (SSL_VERIFY_ERROR_IS_OPTIONAL(errnum) &&
         (verify == SSL_CVERIFY_OPTIONAL_NO_CA)) {
         ok = 1;
-        SSL_set_verify_result(ssl, X509_V_OK);
+        ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);
     }
 
 #ifdef HAVE_OCSP_STAPLING
@@ -259,8 +260,8 @@ UT_OPENSSL(void, setSSLContextVerify)(JNIEnv *e, jobject o, jlong ctx,
         (c->verify_mode == SSL_CVERIFY_OPTIONAL_NO_CA))
         verify |= SSL_VERIFY_PEER;
     if (!c->store) {
-        if (SSL_CTX_set_default_verify_paths(c->ctx)) {
-            c->store = SSL_CTX_get_cert_store(c->ctx);
+        if (ssl_methods.SSL_CTX_set_default_verify_paths(c->ctx)) {
+            c->store = ssl_methods.SSL_CTX_get_cert_store(c->ctx);
             X509_STORE_set_flags(c->store, 0);
         }
         else {
@@ -268,7 +269,7 @@ UT_OPENSSL(void, setSSLContextVerify)(JNIEnv *e, jobject o, jlong ctx,
         }
     }
     //TODO: fix this
-    SSL_CTX_set_verify(c->ctx, verify, SSL_callback_SSL_verify);
+    ssl_methods.SSL_CTX_set_verify(c->ctx, verify, SSL_callback_SSL_verify);
 }
 
 
@@ -305,8 +306,8 @@ UT_OPENSSL(void, setVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint de
         (c->verify_mode == SSL_CVERIFY_OPTIONAL_NO_CA))
         verify |= SSL_VERIFY_PEER;
     if (!c->store) {
-        if (SSL_CTX_set_default_verify_paths(c->ctx)) {
-            c->store = SSL_CTX_get_cert_store(c->ctx);
+        if (ssl_methods.SSL_CTX_set_default_verify_paths(c->ctx)) {
+            c->store = ssl_methods.SSL_CTX_get_cert_store(c->ctx);
             X509_STORE_set_flags(c->store, 0);
         }
         else {
@@ -314,5 +315,5 @@ UT_OPENSSL(void, setVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint de
         }
     }
 
-    SSL_set_verify(ssl_, verify, SSL_callback_SSL_verify);
+    ssl_methods.SSL_set_verify(ssl_, verify, SSL_callback_SSL_verify);
 }

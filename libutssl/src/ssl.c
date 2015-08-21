@@ -1,5 +1,8 @@
 
 #include "utssl.h"
+
+#include <dlfcn.h>
+
 /* openssl is deprecated on OSX
    this pragma directive is requires to build it
    otherwise -Wall -Werror fail the build
@@ -17,6 +20,8 @@
 
 static int ssl_initialized = 0;
 static jclass byteArrayClass, stringClass;
+
+dynamic_methods ssl_methods;
 
 /**
  * The cached SSL context class
@@ -65,7 +70,7 @@ DH *SSL_get_dh_params(unsigned keylen)
  */
 DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
 {
-    EVP_PKEY *pkey = SSL_get_privatekey(ssl);
+    EVP_PKEY *pkey = ssl_methods.SSL_get_privatekey(ssl);
     int type = pkey ? EVP_PKEY_type(pkey->type) : EVP_PKEY_NONE;
 
     /*
@@ -106,7 +111,7 @@ void SSL_init_app_data2_3_idx(void)
     /* we _do_ need to call this twice */
     for (i = 0; i <= 1; i++) {
         SSL_app_data2_idx =
-            SSL_get_ex_new_index(0,
+            ssl_methods.SSL_get_ex_new_index(0,
                                  "Second Application Data for SSL",
                                  NULL, NULL, NULL);
     }
@@ -116,31 +121,31 @@ void SSL_init_app_data2_3_idx(void)
     }
 
     SSL_app_data3_idx =
-            SSL_get_ex_new_index(0,
+            ssl_methods.SSL_get_ex_new_index(0,
                                  "Third Application Data for SSL",
                                   NULL, NULL, NULL);
 }
 /*the the SSL context structure associated with the context*/
 tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl)
 {
-    return (tcn_ssl_ctxt_t *)SSL_get_ex_data(ssl, SSL_app_data2_idx);
+    return (tcn_ssl_ctxt_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data2_idx);
 }
 
 void SSL_set_app_data2(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
+    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
     return;
 }
 
 
 void *SSL_get_app_data3(const SSL *ssl)
 {
-    return SSL_get_ex_data(ssl, SSL_app_data3_idx);
+    return ssl_methods.SSL_get_ex_data(ssl, SSL_app_data3_idx);
 }
 
 void SSL_set_app_data3(SSL *ssl, void *arg)
 {
-    SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
+    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
 }
 /* Callback used when OpenSSL receives a client hello with a Server Name
  * Indication extension.
@@ -158,7 +163,7 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
     (*javavm)->AttachCurrentThread(javavm, (void **)&env, NULL);
 
     // Get the host name presented by the client
-    servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+    servername = ssl_methods.SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
 
     // Convert parameters ready for the method call
     hostname = (*env)->NewStringUTF(env, servername);
@@ -172,14 +177,112 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
                                                             hostname);
 
     if (original_ssl_context != new_ssl_context) {
-        SSL_set_SSL_CTX(ssl, J2P(new_ssl_context, SSL_CTX *));
+        ssl_methods.SSL_set_SSL_CTX(ssl, J2P(new_ssl_context, SSL_CTX *));
     }
 
     return SSL_TLSEXT_ERR_OK;
 }
 
+#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+
+int load_openssl_dynamic_methods(JNIEnv *e) {
+    void * ssl = dlopen("libssl.dylib", RTLD_LAZY);
+    REQUIRE_SSL_SYMBOL(SSLeay);
+    REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_check_private_key);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_free);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_cert_store);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_client_CA_list);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_timeout);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_load_verify_locations);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_new);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_new_cb);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_remove_cb);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_alpn_protos);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_alpn_select_cb);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_cert_verify_callback);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_cipher_list);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_default_verify_paths);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_info_callback);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_session_id_context);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_timeout);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_verify);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_use_PrivateKey);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_use_certificate);
+    REQUIRE_SSL_SYMBOL(SSL_SESSION_free);
+    REQUIRE_SSL_SYMBOL(SSL_SESSION_get_id);
+    REQUIRE_SSL_SYMBOL(SSL_SESSION_get_time);
+    REQUIRE_SSL_SYMBOL(SSL_add_file_cert_subjects_to_stack);
+    REQUIRE_SSL_SYMBOL(SSL_ctrl);
+    REQUIRE_SSL_SYMBOL(SSL_do_handshake);
+    REQUIRE_SSL_SYMBOL(SSL_free);
+    REQUIRE_SSL_SYMBOL(SSL_get0_alpn_selected);
+    REQUIRE_SSL_SYMBOL(SSL_get_ciphers);
+    REQUIRE_SSL_SYMBOL(SSL_get_current_cipher);
+    REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
+    REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
+    REQUIRE_SSL_SYMBOL(SSL_get_peer_cert_chain);
+    REQUIRE_SSL_SYMBOL(SSL_get_peer_certificate);
+    REQUIRE_SSL_SYMBOL(SSL_get_privatekey);
+    REQUIRE_SSL_SYMBOL(SSL_get_servername);
+    REQUIRE_SSL_SYMBOL(SSL_get_session);
+    REQUIRE_SSL_SYMBOL(SSL_get_shutdown);
+    REQUIRE_SSL_SYMBOL(SSL_get_version);
+    REQUIRE_SSL_SYMBOL(SSL_library_init);
+    REQUIRE_SSL_SYMBOL(SSL_load_client_CA_file);
+    REQUIRE_SSL_SYMBOL(SSL_load_error_strings);
+    REQUIRE_SSL_SYMBOL(SSL_new);
+    REQUIRE_SSL_SYMBOL(SSL_pending);
+    REQUIRE_SSL_SYMBOL(SSL_read);
+    REQUIRE_SSL_SYMBOL(SSL_renegotiate);
+    REQUIRE_SSL_SYMBOL(SSL_renegotiate_pending);
+    REQUIRE_SSL_SYMBOL(SSL_set_SSL_CTX);
+    REQUIRE_SSL_SYMBOL(SSL_set_accept_state);
+    REQUIRE_SSL_SYMBOL(SSL_set_bio);
+    REQUIRE_SSL_SYMBOL(SSL_set_cipher_list);
+    REQUIRE_SSL_SYMBOL(SSL_set_connect_state);
+    REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_set_verify);
+    REQUIRE_SSL_SYMBOL(SSL_set_verify_result);
+    REQUIRE_SSL_SYMBOL(SSL_shutdown);
+    REQUIRE_SSL_SYMBOL(SSL_state);
+    REQUIRE_SSL_SYMBOL(SSL_write);
+    REQUIRE_SSL_SYMBOL(SSLv23_client_method);
+    REQUIRE_SSL_SYMBOL(SSLv23_method);
+    REQUIRE_SSL_SYMBOL(SSLv23_server_method);
+    REQUIRE_SSL_SYMBOL(SSLv3_client_method);
+    REQUIRE_SSL_SYMBOL(SSLv3_method);
+    REQUIRE_SSL_SYMBOL(SSLv3_server_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_1_client_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_1_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_1_server_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_2_client_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_2_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_2_server_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_client_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_method);
+    REQUIRE_SSL_SYMBOL(TLSv1_server_method);
+
+    return 0;
+}
+
+
 UT_OPENSSL(jint, initialize) (JNIEnv *e) {
-    int version = SSLeay();
+    if(load_openssl_dynamic_methods(e) != 0) {
+        return 1;
+    }
+
+    int version = ssl_methods.SSLeay();
     printf("OpenSSL version %lx \n", OPENSSL_VERSION_NUMBER);
     jclass clazz;
     jclass sClazz;
@@ -197,8 +300,8 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
      */
     CRYPTO_malloc_init();
     ERR_load_crypto_strings();
-    SSL_load_error_strings();
-    SSL_library_init();
+    ssl_methods.SSL_load_error_strings();
+    ssl_methods.SSL_library_init();
     SSL_init_app_data2_3_idx();
     OpenSSL_add_all_algorithms();
 #if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
@@ -240,11 +343,11 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     if (protocol == SSL_PROTOCOL_TLSV1_2) {
 #ifdef HAVE_TLSV1_2
         if (mode == SSL_MODE_CLIENT)
-            ctx = SSL_CTX_new(TLSv1_2_client_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_client_method());
         else if (mode == SSL_MODE_SERVER)
-            ctx = SSL_CTX_new(TLSv1_2_server_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_server_method());
         else
-            ctx = SSL_CTX_new(TLSv1_2_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_method());
 #else
         throwIllegalStateException(e, "TLSV1_2 not supported");
         goto init_failed;
@@ -252,29 +355,29 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     } else if (protocol == SSL_PROTOCOL_TLSV1_1) {
 #ifdef HAVE_TLSV1_1
         if (mode == SSL_MODE_CLIENT)
-            ctx = SSL_CTX_new(TLSv1_1_client_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_client_method());
         else if (mode == SSL_MODE_SERVER)
-            ctx = SSL_CTX_new(TLSv1_1_server_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_server_method());
         else
-            ctx = SSL_CTX_new(TLSv1_1_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_method());
 #else
         throwIllegalStateException(e, "TLSV1_1 not supported");
         goto init_failed;
 #endif
     } else if (protocol == SSL_PROTOCOL_TLSV1) {
         if (mode == SSL_MODE_CLIENT)
-            ctx = SSL_CTX_new(TLSv1_client_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_client_method());
         else if (mode == SSL_MODE_SERVER)
-            ctx = SSL_CTX_new(TLSv1_server_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_server_method());
         else
-            ctx = SSL_CTX_new(TLSv1_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_method());
     } else if (protocol == SSL_PROTOCOL_SSLV3) {
         if (mode == SSL_MODE_CLIENT)
-            ctx = SSL_CTX_new(SSLv3_client_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_client_method());
         else if (mode == SSL_MODE_SERVER)
-            ctx = SSL_CTX_new(SSLv3_server_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_server_method());
         else
-            ctx = SSL_CTX_new(SSLv3_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_method());
     } else if (protocol == SSL_PROTOCOL_SSLV2) {
         /* requested but not supported */
         throwIllegalStateException(e, "SSLV2 not supported");
@@ -294,18 +397,18 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     } else {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
         if (mode == SSL_MODE_CLIENT)
-                ctx = SSL_CTX_new(SSLv23_client_method());
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_client_method());
         else if (mode == SSL_MODE_SERVER)
-                ctx = SSL_CTX_new(SSLv23_server_method());
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_server_method());
         else
-                ctx = SSL_CTX_new(SSLv23_method());
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
 #else
         if (mode == SSL_MODE_CLIENT)
-                ctx = SSL_CTX_new(TLS_client_method());
+                ctx = ssl_methods.SSL_CTX_new(TLS_client_method());
         else if (mode == SSL_MODE_SERVER)
-                ctx = SSL_CTX_new(TLS_server_method());
+                ctx = ssl_methods.SSL_CTX_new(TLS_server_method());
         else
-                ctx = SSL_CTX_new(TLS_method());
+                ctx = ssl_methods.SSL_CTX_new(TLS_method());
 #endif
     }
     if (!ctx) {
@@ -326,47 +429,47 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     c->bio_os   = BIO_new(BIO_s_file());
     if (c->bio_os != NULL)
         BIO_set_fp(c->bio_os, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
-    SSL_CTX_set_options(c->ctx, SSL_OP_ALL);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_ALL),NULL);
     /* always disable SSLv2, as per RFC 6176 */
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv2),NULL);
     if (!(protocol & SSL_PROTOCOL_SSLV3))
-        SSL_CTX_set_options(c->ctx, SSL_OP_NO_SSLv3);
+        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv3),NULL);
     if (!(protocol & SSL_PROTOCOL_TLSV1))
-        SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1);
+        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1),NULL);
 #ifdef HAVE_TLSV1_1
     if (!(protocol & SSL_PROTOCOL_TLSV1_1))
-        SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1_1);
+        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_1),NULL);
 #endif
 #ifdef HAVE_TLSV1_2
     if (!(protocol & SSL_PROTOCOL_TLSV1_2))
-        SSL_CTX_set_options(c->ctx, SSL_OP_NO_TLSv1_2);
+        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_2),NULL);
 #endif
     /*
      * Configure additional context ingredients
      */
-    SSL_CTX_set_options(c->ctx, SSL_OP_SINGLE_DH_USE);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_DH_USE),NULL);
 #ifdef HAVE_ECC
-    SSL_CTX_set_options(c->ctx, SSL_OP_SINGLE_ECDH_USE);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_ECDH_USE),NULL);
 #endif
 #ifdef SSL_OP_NO_COMPRESSION
     /* Disable SSL compression to be safe */
-    SSL_CTX_set_options(c->ctx, SSL_OP_NO_COMPRESSION);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_COMPRESSION),NULL);
 #endif
 
 
     /** To get back the tomcat wrapper from CTX */
-    SSL_CTX_set_app_data(c->ctx, (char *)c);
+    ssl_methods.SSL_CTX_set_ex_data(c->ctx,0,(char *)c);
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
     /*
      * Disallow a session from being resumed during a renegotiation,
      * so that an acceptable cipher suite can be negotiated.
      */
-    SSL_CTX_set_options(c->ctx, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION),NULL);
 #endif
 #ifdef SSL_MODE_RELEASE_BUFFERS
     /* Release idle buffers to the SSL_CTX free list */
-    SSL_CTX_set_mode(c->ctx, SSL_MODE_RELEASE_BUFFERS);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_MODE,(SSL_MODE_RELEASE_BUFFERS),NULL);
 #endif
     setup_session_context(e, c);
     EVP_Digest((const unsigned char *)SSL_DEFAULT_VHOST_NAME,
@@ -384,7 +487,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     //TODO: fixme, do we need to support these callbacks?
     //SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
     //SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *)(&tcn_password_callback));
-    //SSL_CTX_set_info_callback(c->ctx, SSL_callback_handshake);
+    //ssl_methods.SSL_CTX_set_info_callback(c->ctx, SSL_callback_handshake);
 
     /* Cache Java side SNI callback if not already cached */
     if (ssl_context_class == NULL) {
@@ -394,8 +497,8 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     }
 
     /* Set up OpenSSL call back if SNI is provided by the client */
-    SSL_CTX_set_tlsext_servername_callback(c->ctx, ssl_callback_ServerNameIndication);
-    SSL_CTX_set_tlsext_servername_arg(c->ctx, c);
+    ssl_methods.SSL_CTX_callback_ctrl(c->ctx,SSL_CTRL_SET_TLSEXT_SERVERNAME_CB,(void (*)(void))ssl_callback_ServerNameIndication);
+    ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SET_TLSEXT_SERVERNAME_ARG,0, (void *)c);
 
     /* Cache the byte[].class for performance reasons */
     clazz = (*e)->FindClass(e, "[B");
@@ -423,7 +526,7 @@ UT_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl)
         return NULL;
     }
 
-    sk = SSL_get_ciphers(ssl_);
+    sk = ssl_methods.SSL_get_ciphers(ssl_);
     len = sk_SSL_CIPHER_num(sk);
 
     if (len <= 0) {
@@ -436,7 +539,7 @@ UT_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl)
 
     for (i = 0; i < len; i++) {
         cipher = (SSL_CIPHER*) sk_SSL_CIPHER_value(sk, i);
-        name = SSL_CIPHER_get_name(cipher);
+        name = ssl_methods.SSL_CIPHER_get_name(cipher);
 
         c_name = (*e)->NewStringUTF(e, name);
         (*e)->SetObjectArrayElement(e, array, i, c_name);
@@ -460,7 +563,7 @@ UT_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl,
     if (!J2S(ciphers)) {
         return JNI_FALSE;
     }
-    if (!SSL_set_cipher_list(ssl_, J2S(ciphers))) {
+    if (!ssl_methods.SSL_set_cipher_list(ssl_, J2S(ciphers))) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
         throwIllegalStateException(e, err);
@@ -482,7 +585,7 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
         }
         c->crl = NULL;
         if (c->ctx) {
-            SSL_CTX_free(c->ctx);
+            ssl_methods.SSL_CTX_free(c->ctx);
         }
         c->ctx = NULL;
         for (i = 0; i < SSL_AIDX_MAX; i++) {
@@ -540,7 +643,7 @@ UT_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
     if (opt & 0x00040000)
         opt &= ~0x00040000;
 #endif
-    SSL_CTX_set_options(c->ctx, opt);
+	ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(opt),NULL);
 }
 
 UT_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
@@ -550,7 +653,7 @@ UT_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-    SSL_CTX_clear_options(c->ctx, opt);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
 }
 
 UT_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx,
@@ -581,9 +684,9 @@ UT_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx,
     memcpy(buf, SSL_CIPHERS_ALWAYS_DISABLED, strlen(SSL_CIPHERS_ALWAYS_DISABLED));
     memcpy(buf + strlen(SSL_CIPHERS_ALWAYS_DISABLED), J2S(ciphers), strlen(J2S(ciphers)));
     buf[len - 1] = '\0';
-    if (!SSL_CTX_set_cipher_list(c->ctx, buf)) {
+    if (!ssl_methods.SSL_CTX_set_cipher_list(c->ctx, buf)) {
 #else
-    if (!SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers))) {
+    if (!ssl_methods.SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers))) {
 #endif
         char err[256];
         ERR_error_string(ERR_get_error(), err);
@@ -664,7 +767,7 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
    /*
      * Configure Client Authentication details
      */
-    if (!SSL_CTX_load_verify_locations(c->ctx,
+    if (!ssl_methods.SSL_CTX_load_verify_locations(c->ctx,
                                        J2S(file), J2S(path))) {
         char err[256];
         ERR_error_string(ERR_get_error(), err);
@@ -673,18 +776,18 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
         rv = JNI_FALSE;
         goto cleanup;
     }
-    c->store = SSL_CTX_get_cert_store(c->ctx);
+    c->store = ssl_methods.SSL_CTX_get_cert_store(c->ctx);
     if (c->mode) {
         STACK_OF(X509_NAME) *ca_certs;
         c->ca_certs++;
-        ca_certs = SSL_CTX_get_client_CA_list(c->ctx);
+        ca_certs = ssl_methods.SSL_CTX_get_client_CA_list(c->ctx);
         if (ca_certs == NULL) {
-            SSL_load_client_CA_file(J2S(file));
+            ssl_methods.SSL_load_client_CA_file(J2S(file));
             if (ca_certs != NULL)
                 SSL_CTX_set_client_CA_list(c->ctx, ca_certs);
         }
         else {
-            if (!SSL_add_file_cert_subjects_to_stack(ca_certs, J2S(file)))
+            if (!ssl_methods.SSL_add_file_cert_subjects_to_stack(ca_certs, J2S(file)))
                 ca_certs = NULL;
         }
         if (ca_certs == NULL && c->verify_mode == SSL_CVERIFY_REQUIRE) {
@@ -769,19 +872,19 @@ UT_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
         goto cleanup;
     }
 
-    if (SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
+    if (ssl_methods.SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if (SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
+    if (ssl_methods.SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
-    if (SSL_CTX_check_private_key(c->ctx) <= 0) {
+    if (ssl_methods.SSL_CTX_check_private_key(c->ctx) <= 0) {
         ERR_error_string(ERR_get_error(), err);
         tcn_Throw(e, "Private key does not match the certificate public key (%s)",
                   err);
@@ -859,7 +962,7 @@ static const char* SSL_authentication_method(const SSL* ssl) {
 
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
-    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
 
 
@@ -928,7 +1031,7 @@ UT_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject
     TCN_ASSERT(ctx != 0);
 
     if (verifier == NULL) {
-        SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
+        ssl_methods.SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
         jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)Z");
@@ -943,7 +1046,7 @@ UT_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject
         c->verifier = (*e)->NewGlobalRef(e, verifier);
         c->verifier_method = method;
 
-        SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
+        ssl_methods.SSL_CTX_set_cert_verify_callback(c->ctx, SSL_cert_verify, NULL);
     }
 }
 
@@ -961,7 +1064,7 @@ UT_OPENSSL(jboolean, setSessionIdContext)(JNIEnv *e, jobject o, jlong ctx, jbyte
 
     (*e)->GetByteArrayRegion(e, sidCtx, 0, len, (jbyte*) buf);
 
-    res = SSL_CTX_set_session_id_context(c->ctx, buf, len);
+    res = ssl_methods.SSL_CTX_set_session_id_context(c->ctx, buf, len);
     free(buf);
 
     if (res == 1) {
@@ -991,7 +1094,7 @@ UT_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     UNREFERENCED_STDARGS;
 
     TCN_ASSERT(ctx != 0);
-    ssl = SSL_new(c->ctx);
+    ssl = ssl_methods.SSL_new(c->ctx);
     if (ssl == NULL) {
         throwIllegalStateException(e, "cannot create new ssl");
         return 0;
@@ -1010,22 +1113,22 @@ UT_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     SSL_set_app_data3(ssl, handshakeCount);
 
     /* Add callback to keep track of handshakes. */
-    SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
+    ssl_methods.SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
 
     if (server) {
-        SSL_set_accept_state(ssl);
+        ssl_methods.SSL_set_accept_state(ssl);
     } else {
-        SSL_set_connect_state(ssl);
+        ssl_methods.SSL_set_connect_state(ssl);
     }
 
     /* Setup verify and seed */
-    SSL_set_verify_result(ssl, X509_V_OK);
+    ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);
     //TODO: do we need our seed? It seems the default seed should be more secure
     //SSL_rand_seed(c->rand_file);
 
     /* Store for later usage in SSL_callback_SSL_verify */
     SSL_set_app_data2(ssl, c);
-    SSL_set_app_data(ssl, con);
+    ssl_methods.SSL_set_ex_data(ssl,0,(char *)con);
     return P2J(ssl);
 }
 
@@ -1039,12 +1142,12 @@ UT_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
         free(handshakeCount);
     }
 
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl_);
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
     if(con->alpn_selection_callback != NULL) {
         (*e)->DeleteGlobalRef(e, con->alpn_selection_callback);
     }
     free(con);
-    SSL_free(ssl_);
+    ssl_methods.SSL_free(ssl_);
 }
 
 
@@ -1076,7 +1179,7 @@ UT_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
         goto fail;
     }
 
-    SSL_set_bio(ssl_, internal_bio, internal_bio);
+    ssl_methods.SSL_set_bio(ssl_, internal_bio, internal_bio);
 
     return P2J(network_bio);
  fail:
@@ -1093,7 +1196,7 @@ UT_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
 
     UNREFERENCED(o);
 
-    return SSL_do_handshake(ssl_);
+    return ssl_methods.SSL_do_handshake(ssl_);
 }
 
 UT_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
@@ -1105,7 +1208,7 @@ UT_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
 
     UNREFERENCED(o);
 
-    return SSL_renegotiate(ssl_);
+    return ssl_methods.SSL_renegotiate(ssl_);
 }
 
 
@@ -1126,7 +1229,7 @@ UT_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o,
 UT_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     UNREFERENCED_STDARGS;
 
-    return SSL_pending(J2P(ssl, SSL *));
+    return ssl_methods.SSL_pending(J2P(ssl, SSL *));
 }
 
 /* Write wlen bytes from wbuf into bio */
@@ -1157,7 +1260,7 @@ UT_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o,
                                                        jint wlen /* sizeof(wbuf) */) {
     UNREFERENCED_STDARGS;
 
-    return SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+    return ssl_methods.SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
 }
 
 /* Read up to rlen bytes of application data from the given SSL BIO (decrypt) */
@@ -1167,7 +1270,7 @@ UT_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o,
                                                         jint rlen /* sizeof(rbuf) - 1 */) {
     UNREFERENCED_STDARGS;
 
-    return SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+    return ssl_methods.SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
 }
 
 /* Get the shutdown status of the engine */
@@ -1175,7 +1278,7 @@ UT_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o,
                                                         jlong ssl /* SSL * */) {
     UNREFERENCED_STDARGS;
 
-    return SSL_get_shutdown(J2P(ssl, SSL *));
+    return ssl_methods.SSL_get_shutdown(J2P(ssl, SSL *));
 }
 
 UT_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
@@ -1188,7 +1291,7 @@ UT_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "ssl is null");
         return 0;
     } else {
-        return SSL_in_init(ssl_) || SSL_renegotiate_pending(ssl_);
+        return (ssl_methods.SSL_state(ssl_) & SSL_ST_INIT) || ssl_methods.SSL_renegotiate_pending(ssl_);
     }
 }
 
@@ -1214,14 +1317,14 @@ UT_OPENSSL(jstring, getErrorString)(JNIEnv *e, jobject o, jlong number)
 /* Read which cipher was negotiated for the given SSL *. */
 UT_OPENSSL(jstring, getCipherForSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */)
 {
-    return AJP_TO_JSTRING(SSL_get_cipher(J2P(ssl, SSL*)));
+    return AJP_TO_JSTRING(ssl_methods.SSL_CIPHER_get_name(ssl_methods.SSL_get_current_cipher(J2P(ssl, SSL*))));
 }
 
 
 /* Read which protocol was negotiated for the given SSL *. */
 UT_OPENSSL(jstring, getVersion)(JNIEnv *e, jobject o, jlong ssl /* SSL * */)
 {
-    return AJP_TO_JSTRING(SSL_get_version(J2P(ssl, SSL*)));
+    return AJP_TO_JSTRING(ssl_methods.SSL_get_version(J2P(ssl, SSL*)));
 }
 
 
@@ -1247,7 +1350,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
     UNREFERENCED(o);
 
     // Get a stack of all certs in the chain.
-    sk = SSL_get_peer_cert_chain(ssl_);
+    sk = ssl_methods.SSL_get_peer_cert_chain(ssl_);
 
     len = sk_X509_num(sk);
     if (len <= 0) {
@@ -1286,7 +1389,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
 
 /* Send CLOSE_NOTIFY to peer */
 UT_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl) {
-    return SSL_shutdown(J2P(ssl, SSL *));
+    return ssl_methods.SSL_shutdown(J2P(ssl, SSL *));
 }
 
 
@@ -1308,7 +1411,7 @@ UT_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
     UNREFERENCED(o);
 
     /* Get a stack of all certs in the chain */
-    cert = SSL_get_peer_certificate(ssl_);
+    cert = ssl_methods.SSL_get_peer_certificate(ssl_);
     if (cert == NULL) {
         return NULL;
     }

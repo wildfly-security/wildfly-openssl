@@ -3,6 +3,7 @@
 
 static jclass stringClass;
 static jmethodID stringEquals;
+extern dynamic_methods ssl_methods;
 
 void alpn_init(JNIEnv *e) {
     jclass sClazz = (*e)->FindClass(e, "java/lang/String");
@@ -94,7 +95,7 @@ static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **pro
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl);
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, 0);
 
     if(con->alpn_selection_callback == NULL) {
         return SSL_TLSEXT_ERR_NOACK;
@@ -187,7 +188,7 @@ UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray al
     UNREFERENCED(o);
 
     if (initProtocols(e, c, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
-        SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
+        ssl_methods.SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
     }
 }
 
@@ -199,7 +200,7 @@ UT_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
     TCN_ASSERT(ctx != 0);
     UNREFERENCED(o);
 
-    SSL_CTX_set_alpn_select_cb(c->ctx, SSL_callback_alpn_select_proto, (void *) c);
+    ssl_methods.SSL_CTX_set_alpn_select_cb(c->ctx, SSL_callback_alpn_select_proto, (void *) c);
 
 }
 
@@ -216,7 +217,7 @@ UT_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 
     UNREFERENCED(o);
 
-    SSL_get0_alpn_selected(ssl_, &proto, &proto_len);
+    ssl_methods.SSL_get0_alpn_selected(ssl_, &proto, &proto_len);
     return tcn_new_stringn(e, (const char *) proto, (size_t) proto_len);
 }
 
@@ -227,7 +228,7 @@ UT_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject
         throwIllegalStateException(e, "ssl is null");
         return;
     }
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)SSL_get_app_data(ssl_);
+    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
 
     con->alpn_selection_callback = (*e)->NewGlobalRef(e, callback);
 }
