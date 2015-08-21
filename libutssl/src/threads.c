@@ -16,6 +16,8 @@
  */
 #include "utssl.h"
 
+extern crypto_dynamic_methods crypto_methods;
+
 /* This file contains all thread related functions */
 
 /*define our lock structure for dynamic locks*/
@@ -141,7 +143,7 @@ static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
 void ssl_thread_setup()
 {
     int i;
-    ssl_lock_num_locks = CRYPTO_num_locks();
+    ssl_lock_num_locks = crypto_methods.CRYPTO_num_locks();
     ssl_lock_cs = malloc(ssl_lock_num_locks * sizeof(ssl_lock_type));
 
     for (i = 0; i < ssl_lock_num_locks; i++) {
@@ -153,14 +155,14 @@ void ssl_thread_setup()
     }
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
-    CRYPTO_set_id_callback(ssl_thread_id);
+    crypto_methods.CRYPTO_set_id_callback(ssl_thread_id);
 #endif
-    CRYPTO_set_locking_callback(ssl_thread_lock);
+    crypto_methods.CRYPTO_set_locking_callback(ssl_thread_lock);
 
     /* Set up dynamic locking scaffolding for OpenSSL to use at its
      * convenience.
      */
-    CRYPTO_set_dynlock_create_callback(ssl_dyn_create_function);
-    CRYPTO_set_dynlock_lock_callback(ssl_dyn_lock_function);
-    CRYPTO_set_dynlock_destroy_callback(ssl_dyn_destroy_function);
+    crypto_methods.CRYPTO_set_dynlock_create_callback(ssl_dyn_create_function);
+    crypto_methods.CRYPTO_set_dynlock_lock_callback(ssl_dyn_lock_function);
+    crypto_methods.CRYPTO_set_dynlock_destroy_callback(ssl_dyn_destroy_function);
 }

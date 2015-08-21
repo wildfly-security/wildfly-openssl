@@ -2,7 +2,7 @@
 #include "utssl.h"
 
 
-extern dynamic_methods ssl_methods;
+extern ssl_dynamic_methods ssl_methods;
 
 /*
  * supported_ssl_opts is a bitmask that contains all supported SSL_OP_*

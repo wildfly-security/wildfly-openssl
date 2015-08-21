@@ -3,7 +3,7 @@
 
 static jclass stringClass;
 static jmethodID stringEquals;
-extern dynamic_methods ssl_methods;
+extern ssl_dynamic_methods ssl_methods;
 
 void alpn_init(JNIEnv *e) {
     jclass sClazz = (*e)->FindClass(e, "java/lang/String");

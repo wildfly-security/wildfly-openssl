@@ -351,12 +351,7 @@ typedef struct {
     void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
     void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
     int (*SSL_CTX_set_alpn_protos)(SSL_CTX *ctx, const unsigned char *protos, unsigned protos_len);
-    void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl,
-                                                                                              const unsigned char **out,
-                                                                                              unsigned char *outlen,
-                                                                                              const unsigned char *in,
-                                                                                              unsigned int inlen,
-                                                                                              void *arg), void *arg);
+    void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg), void *arg);
     void (*SSL_CTX_set_cert_verify_callback)(SSL_CTX *ctx, int (*cb) (X509_STORE_CTX *, void *), void *arg);
     int (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *str);
     int (*SSL_CTX_set_default_verify_paths)(SSL_CTX *ctx);
@@ -421,8 +416,74 @@ typedef struct {
     const SSL_METHOD *(*TLSv1_server_method)(void);
     struct evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
-} dynamic_methods;
+} ssl_dynamic_methods;
 
+typedef struct {
+    int (*ASN1_INTEGER_cmp)(const ASN1_INTEGER *x, const ASN1_INTEGER *y);
+    long (*BIO_ctrl)(BIO *bp, int cmd, long larg, void *parg);
+    size_t (*BIO_ctrl_pending)(BIO *b);
+    int (*BIO_free)(BIO *a);
+    BIO *(*BIO_new)(BIO_METHOD *type);
+    int (*BIO_new_bio_pair)(BIO **bio1, size_t writebuf1, BIO **bio2, size_t writebuf2);
+    int (*BIO_printf)(BIO *bio, const char *format, ...);
+    int (*BIO_read)(BIO *b, void *data, int len);
+    BIO_METHOD *(*BIO_s_file)(void);
+    BIO_METHOD *(*BIO_s_mem)(void);
+    int (*BIO_write)(BIO *b, const void *data, int len);
+    void (*CRYPTO_free)(void *ptr);
+    int (*CRYPTO_num_locks)(void);
+    void (*CRYPTO_set_dynlock_create_callback)(struct CRYPTO_dynlock_value *(*dyn_create_function)(const char *file, int line));
+    void (*CRYPTO_set_dynlock_destroy_callback)(void (*dyn_destroy_function)(struct CRYPTO_dynlock_value *l, const char *file, int line));
+    void (*CRYPTO_set_dynlock_lock_callback)(void (*dyn_lock_function)(int mode, struct CRYPTO_dynlock_value *l, const char *file, int line));
+    void (*CRYPTO_set_id_callback)(unsigned long (*func) (void));
+    void (*CRYPTO_set_locking_callback)(void (*func) (int mode, int type,const char *file,int line));
+    int (*CRYPTO_set_mem_functions)(void *(*m)(size_t),void *(*r)(void *,size_t), void (*f)(void *));
+    char *(*ERR_error_string)(unsigned long e, char *buf);
+
+    unsigned long (*ERR_get_error)(void);
+    void (*ERR_load_crypto_strings)(void);
+    int (*EVP_Digest)(const void *data, size_t count, unsigned char *md, unsigned int *size, const EVP_MD *type, ENGINE *impl);
+    int (*EVP_PKEY_bits)(EVP_PKEY *pkey);
+    void (*EVP_PKEY_free)(EVP_PKEY *pkey);
+    int (*EVP_PKEY_type)(int type);
+    const EVP_MD *(*EVP_sha1)(void);
+    void (*OPENSSL_add_all_algorithms_noconf)(void);
+    void (*OPENSSL_load_builtin_modules)(void);
+    EVP_PKEY *(*PEM_read_bio_PrivateKey)(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u);
+    int (*X509_CRL_verify)(X509_CRL *a, EVP_PKEY *r);
+    int (*X509_LOOKUP_ctrl)(X509_LOOKUP *ctx, int cmd, const char *argc, long argl, char **ret);
+    X509_LOOKUP_METHOD *(*X509_LOOKUP_file)(void);
+    X509_LOOKUP_METHOD *(*X509_LOOKUP_hash_dir)(void);
+    void (*X509_OBJECT_free_contents)(X509_OBJECT *a);
+    void (*X509_STORE_CTX_cleanup)(X509_STORE_CTX *ctx);
+    X509 *(*X509_STORE_CTX_get_current_cert)(X509_STORE_CTX *ctx);
+    int (*X509_STORE_CTX_get_error)(X509_STORE_CTX *ctx);
+    int (*X509_STORE_CTX_get_error_depth)(X509_STORE_CTX *ctx);
+    void *(*X509_STORE_CTX_get_ex_data)(X509_STORE_CTX *ctx, int idx);
+    int (*X509_STORE_CTX_init)(X509_STORE_CTX *ctx, X509_STORE *store, X509 *x509, STACK_OF(X509) *chain);
+    void (*X509_STORE_CTX_set_error)(X509_STORE_CTX *ctx, int s);
+    X509_LOOKUP *(*X509_STORE_add_lookup)(X509_STORE *v, X509_LOOKUP_METHOD *m);
+    void (*X509_STORE_free)(X509_STORE *v);
+    int (*X509_STORE_get_by_subject)(X509_STORE_CTX *vs, int type, X509_NAME *name, X509_OBJECT *ret);
+    X509_STORE *(*X509_STORE_new)(void);
+    int (*X509_STORE_set_flags)(X509_STORE *ctx, unsigned long flags);
+    int (*X509_cmp_current_time)(const ASN1_TIME *s);
+    X509_NAME *(*X509_get_issuer_name)(X509 *a);
+    EVP_PKEY *(*X509_get_pubkey)(X509 *x);
+    ASN1_INTEGER *(*X509_get_serialNumber)(X509 *x);
+    X509_NAME *(*X509_get_subject_name)(X509 *a);
+    BIGNUM *(*get_rfc2409_prime_1024)(BIGNUM *bn);
+    BIGNUM *(*get_rfc3526_prime_2048)(BIGNUM *bn);
+    BIGNUM *(*get_rfc3526_prime_3072)(BIGNUM *bn);
+    BIGNUM *(*get_rfc3526_prime_4096)(BIGNUM *bn);
+    BIGNUM *(*get_rfc3526_prime_6144)(BIGNUM *bn);
+    BIGNUM *(*get_rfc3526_prime_8192)(BIGNUM *bn);
+    int (*sk_num)(const _STACK *);
+    void *(*sk_value)(const _STACK *, int);
+    void (*X509_free)(X509 *a);
+    X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
+    int (*i2d_X509)(X509 *a, unsigned char **out);
+} crypto_dynamic_methods;
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);

@@ -8,7 +8,8 @@ static jclass sessionContextClass;
 static jmethodID sessionInit;
 static jmethodID sessionRemove;
 
-extern dynamic_methods ssl_methods;
+extern ssl_dynamic_methods ssl_methods;
+extern crypto_dynamic_methods crypto_methods;
 
 void session_init(JNIEnv *e) {
     jclass sClazz = (*e)->FindClass(e, "io/undertow/openssl/OpenSSLSessionContext");
@@ -155,7 +156,7 @@ UT_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArr
 
     if ((*e)->GetArrayLength(e, keys) != TICKET_KEYS_SIZE) {
         if (c->bio_os) {
-            BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
+            crypto_methods.BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
         }
         else {
             fprintf(stderr, "[ERROR] Session ticket keys provided were wrong size.");

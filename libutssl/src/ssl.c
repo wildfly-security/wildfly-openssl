@@ -21,7 +21,8 @@
 static int ssl_initialized = 0;
 static jclass byteArrayClass, stringClass;
 
-dynamic_methods ssl_methods;
+ssl_dynamic_methods ssl_methods;
+crypto_dynamic_methods crypto_methods;
 
 /**
  * The cached SSL context class
@@ -71,7 +72,7 @@ DH *SSL_get_dh_params(unsigned keylen)
 DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
 {
     EVP_PKEY *pkey = ssl_methods.SSL_get_privatekey(ssl);
-    int type = pkey ? EVP_PKEY_type(pkey->type) : EVP_PKEY_NONE;
+    int type = pkey ? crypto_methods.EVP_PKEY_type(pkey->type) : EVP_PKEY_NONE;
 
     /*
      * OpenSSL will call us with either keylen == 512 or keylen == 1024
@@ -86,7 +87,7 @@ DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
      * callback).
      */
     if ((type == EVP_PKEY_RSA) || (type == EVP_PKEY_DSA)) {
-        keylen = EVP_PKEY_bits(pkey);
+        keylen = crypto_methods.EVP_PKEY_bits(pkey);
     }
     return SSL_get_dh_params(keylen);
 }
@@ -97,7 +98,7 @@ void SSL_BIO_close(BIO *bi)
     if (bi == NULL)
         return;
     else
-        BIO_free(bi);
+        crypto_methods.BIO_free(bi);
 }
 
 void SSL_init_app_data2_3_idx(void)
@@ -184,6 +185,7 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 }
 
 #define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 
 int load_openssl_dynamic_methods(JNIEnv *e) {
     void * ssl = dlopen("libssl.dylib", RTLD_LAZY);
@@ -273,6 +275,73 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_SSL_SYMBOL(TLSv1_method);
     REQUIRE_SSL_SYMBOL(TLSv1_server_method);
 
+
+    void * crypto = dlopen("libcrypto.dylib", RTLD_LAZY);
+    REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
+    REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
+    REQUIRE_CRYPTO_SYMBOL(BIO_ctrl_pending);
+    REQUIRE_CRYPTO_SYMBOL(BIO_free);
+    REQUIRE_CRYPTO_SYMBOL(BIO_new);
+    REQUIRE_CRYPTO_SYMBOL(BIO_new_bio_pair);
+    REQUIRE_CRYPTO_SYMBOL(BIO_printf);
+    REQUIRE_CRYPTO_SYMBOL(BIO_read);
+    REQUIRE_CRYPTO_SYMBOL(BIO_s_file);
+    REQUIRE_CRYPTO_SYMBOL(BIO_s_mem);
+    REQUIRE_CRYPTO_SYMBOL(BIO_write);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_free);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_num_locks);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_create_callback);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_destroy_callback);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_lock_callback);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_id_callback);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_locking_callback);
+    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_mem_functions);
+    REQUIRE_CRYPTO_SYMBOL(ERR_error_string);
+    REQUIRE_CRYPTO_SYMBOL(ERR_get_error);
+    REQUIRE_CRYPTO_SYMBOL(ERR_load_crypto_strings);
+    REQUIRE_CRYPTO_SYMBOL(EVP_Digest);
+    REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_bits);
+    REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_free);
+    REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_type);
+    REQUIRE_CRYPTO_SYMBOL(EVP_sha1);
+    REQUIRE_CRYPTO_SYMBOL(OPENSSL_add_all_algorithms_noconf);
+    REQUIRE_CRYPTO_SYMBOL(OPENSSL_load_builtin_modules);
+    REQUIRE_CRYPTO_SYMBOL(PEM_read_bio_PrivateKey);
+    REQUIRE_CRYPTO_SYMBOL(X509_CRL_verify);
+    REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_ctrl);
+    REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_file);
+    REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_hash_dir);
+    REQUIRE_CRYPTO_SYMBOL(X509_OBJECT_free_contents);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_cleanup);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_current_cert);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_error);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_error_depth);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_ex_data);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_init);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_set_error);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_add_lookup);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_free);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_get_by_subject);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_new);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_set_flags);
+    REQUIRE_CRYPTO_SYMBOL(X509_cmp_current_time);
+    REQUIRE_CRYPTO_SYMBOL(X509_free);
+    REQUIRE_CRYPTO_SYMBOL(X509_get_issuer_name);
+    REQUIRE_CRYPTO_SYMBOL(X509_get_pubkey);
+    REQUIRE_CRYPTO_SYMBOL(X509_get_serialNumber);
+    REQUIRE_CRYPTO_SYMBOL(X509_get_subject_name);
+    REQUIRE_CRYPTO_SYMBOL(d2i_X509);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc2409_prime_1024);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_2048);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_3072);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_4096);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_6144);
+    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_8192);
+    REQUIRE_CRYPTO_SYMBOL(i2d_X509);
+    REQUIRE_CRYPTO_SYMBOL(sk_num);
+    REQUIRE_CRYPTO_SYMBOL(sk_value);
+    REQUIRE_CRYPTO_SYMBOL(X509_free);
+
     return 0;
 }
 
@@ -299,7 +368,7 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
      * code can successfully test the SSL environment.
      */
     CRYPTO_malloc_init();
-    ERR_load_crypto_strings();
+    crypto_methods.ERR_load_crypto_strings();
     ssl_methods.SSL_load_error_strings();
     ssl_methods.SSL_library_init();
     SSL_init_app_data2_3_idx();
@@ -307,7 +376,7 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
 #if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
     ENGINE_load_builtin_engines();
 #endif
-    OPENSSL_load_builtin_modules();
+    crypto_methods.OPENSSL_load_builtin_modules();
 
     ssl_thread_setup();
 
@@ -413,7 +482,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     }
     if (!ctx) {
         char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
         goto init_failed;
     }
@@ -426,7 +495,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->bio_os   = BIO_new(BIO_s_file());
+    c->bio_os   = crypto_methods.BIO_new(crypto_methods.BIO_s_file());
     if (c->bio_os != NULL)
         BIO_set_fp(c->bio_os, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_ALL),NULL);
@@ -472,9 +541,9 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_MODE,(SSL_MODE_RELEASE_BUFFERS),NULL);
 #endif
     setup_session_context(e, c);
-    EVP_Digest((const unsigned char *)SSL_DEFAULT_VHOST_NAME,
+    crypto_methods.EVP_Digest((const unsigned char *)SSL_DEFAULT_VHOST_NAME,
                (unsigned long)((sizeof SSL_DEFAULT_VHOST_NAME) - 1),
-               &(c->context_id[0]), NULL, EVP_sha1(), NULL);
+               &(c->context_id[0]), NULL, crypto_methods.EVP_sha1(), NULL);
 
     /* Set default Certificate verification level
      * and depth for the Client Authentication
@@ -565,7 +634,7 @@ UT_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl,
     }
     if (!ssl_methods.SSL_set_cipher_list(ssl_, J2S(ciphers))) {
         char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
     }
@@ -581,7 +650,7 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
     if (c) {
         int i;
         if (c->crl) {
-            X509_STORE_free(c->crl);
+            crypto_methods.X509_STORE_free(c->crl);
         }
         c->crl = NULL;
         if (c->ctx) {
@@ -590,12 +659,12 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
         c->ctx = NULL;
         for (i = 0; i < SSL_AIDX_MAX; i++) {
             if (c->certs[i]) {
-                X509_free(c->certs[i]);
+                crypto_methods.X509_free(c->certs[i]);
                 c->certs[i] = NULL;
             }
             if (c->keys[i]) {
                 printf("b %d", i);
-                EVP_PKEY_free(c->keys[i]);
+                crypto_methods.EVP_PKEY_free(c->keys[i]);
                 c->keys[i] = NULL;
             }
         }
@@ -689,7 +758,7 @@ UT_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx,
     if (!ssl_methods.SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers))) {
 #endif
         char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
         rv = JNI_FALSE;
     }
@@ -717,14 +786,14 @@ UT_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx,
         return JNI_FALSE;
 
     if (!c->crl) {
-        if ((c->crl = X509_STORE_new()) == NULL)
+        if ((c->crl = crypto_methods.X509_STORE_new()) == NULL)
             goto cleanup;
     }
     if (J2S(file)) {
-        lookup = X509_STORE_add_lookup(c->crl, X509_LOOKUP_file());
+        lookup = crypto_methods.X509_STORE_add_lookup(c->crl, crypto_methods.X509_LOOKUP_file());
         if (lookup == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            X509_STORE_free(c->crl);
+            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            crypto_methods.X509_STORE_free(c->crl);
             c->crl = NULL;
             tcn_Throw(e, "Lookup failed for file %s (%s)", J2S(file), err);
             goto cleanup;
@@ -732,10 +801,10 @@ UT_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx,
         X509_LOOKUP_load_file(lookup, J2S(file), X509_FILETYPE_PEM);
     }
     if (J2S(path)) {
-        lookup = X509_STORE_add_lookup(c->crl, X509_LOOKUP_hash_dir());
+        lookup = crypto_methods.X509_STORE_add_lookup(c->crl, crypto_methods.X509_LOOKUP_hash_dir());
         if (lookup == NULL) {
-            ERR_error_string(ERR_get_error(), err);
-            X509_STORE_free(c->crl);
+            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            crypto_methods.X509_STORE_free(c->crl);
             c->crl = NULL;
             tcn_Throw(e, "Lookup failed for path %s (%s)", J2S(file), err);
             goto cleanup;
@@ -770,7 +839,7 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
     if (!ssl_methods.SSL_CTX_load_verify_locations(c->ctx,
                                        J2S(file), J2S(path))) {
         char err[256];
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Unable to configure locations "
                   "for client authentication (%s)", err);
         rv = JNI_FALSE;
@@ -796,7 +865,7 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
              * should take place. This cannot work.
              */
             if (c->bio_os) {
-                BIO_printf(c->bio_os,
+                crypto_methods.BIO_printf(c->bio_os,
                             "[WARN] Oops, you want to request client "
                             "authentication, but no CAs are known for "
                             "verification!?");
@@ -846,8 +915,8 @@ UT_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
         goto cleanup;
     }
     const unsigned char *tmp = (const unsigned char *)cert;
-    if ((c->certs[idx] = d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
-        ERR_error_string(ERR_get_error(), err);
+    if ((c->certs[idx] = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
         goto cleanup;
@@ -860,32 +929,32 @@ UT_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
     }
     c->keys[idx] = evp;
 
-    BIO * bio = BIO_new(BIO_s_mem());
-    BIO_write(bio, key, lengthOfKey);
+    BIO * bio = crypto_methods.BIO_new(crypto_methods.BIO_s_mem());
+    crypto_methods.BIO_write(bio, key, lengthOfKey);
 
-    c->keys[idx] = PEM_read_bio_PrivateKey(bio, NULL, 0, NULL);
-    BIO_free(bio);
+    c->keys[idx] = crypto_methods.PEM_read_bio_PrivateKey(bio, NULL, 0, NULL);
+    crypto_methods.BIO_free(bio);
     if (c->keys[idx] == NULL) {
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
         goto cleanup;
     }
 
     if (ssl_methods.SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (ssl_methods.SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (ssl_methods.SSL_CTX_check_private_key(c->ctx) <= 0) {
-        ERR_error_string(ERR_get_error(), err);
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Private key does not match the certificate public key (%s)",
                   err);
         rv = JNI_FALSE;
@@ -962,7 +1031,7 @@ static const char* SSL_authentication_method(const SSL* ssl) {
 
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
-    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
+    SSL *ssl = crypto_methods.X509_STORE_CTX_get_ex_data(ctx, ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
 
 
@@ -990,7 +1059,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         cert = (X509*) sk_X509_value(sk, i);
 
         buf = NULL;
-        length = i2d_X509(cert, &buf);
+        length = crypto_methods.i2d_X509(cert, &buf);
         if (length < 0) {
             // In case of error just return an empty byte[][]
             array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
@@ -1174,7 +1243,7 @@ UT_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
         goto fail;
     }
 
-    if (BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
+    if (crypto_methods.BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
         throwIllegalStateException(e, "BIO_new_bio_pair failed");
         goto fail;
     }
@@ -1213,7 +1282,7 @@ UT_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
 
 
 UT_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o) {
-    return ERR_get_error();
+    return crypto_methods.ERR_get_error();
 }
 
 
@@ -1222,7 +1291,7 @@ UT_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o,
                                                                      jlong bio /* BIO * */) {
     UNREFERENCED_STDARGS;
 
-    return BIO_ctrl_pending(J2P(bio, BIO *));
+    return crypto_methods.BIO_ctrl_pending(J2P(bio, BIO *));
 }
 
 /* How much is available for reading in the given SSL struct? */
@@ -1239,7 +1308,7 @@ UT_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o,
                                                        jint wlen /* sizeof(wbuf) */) {
     UNREFERENCED_STDARGS;
 
-    return BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
+    return crypto_methods.BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
 
 }
 
@@ -1250,7 +1319,7 @@ UT_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o,
                                                         jint rlen /* sizeof(rbuf) - 1 */) {
     UNREFERENCED_STDARGS;
 
-    return BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+    return crypto_methods.BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
 }
 
 /* Write up to wlen bytes of application data to the ssl BIO (encrypt) */
@@ -1302,7 +1371,7 @@ UT_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o,
     UNREFERENCED_STDARGS;
 
     bio_ = J2P(bio, BIO *);
-    BIO_free(bio_);
+    crypto_methods.BIO_free(bio_);
 }
 
 
@@ -1310,7 +1379,7 @@ UT_OPENSSL(jstring, getErrorString)(JNIEnv *e, jobject o, jlong number)
 {
     char buf[256];
     UNREFERENCED(o);
-    ERR_error_string(number, buf);
+    crypto_methods.ERR_error_string(number, buf);
     return tcn_new_string(e, buf);
 }
 
@@ -1365,7 +1434,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
         cert = (X509*) sk_X509_value(sk, i);
 
         buf = NULL;
-        length = i2d_X509(cert, &buf);
+        length = crypto_methods.i2d_X509(cert, &buf);
         if (length < 0) {
             OPENSSL_free(buf);
             /* In case of error just return an empty byte[][] */
@@ -1416,7 +1485,7 @@ UT_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
         return NULL;
     }
 
-    length = i2d_X509(cert, &buf);
+    length = crypto_methods.i2d_X509(cert, &buf);
 
     bArray = (*e)->NewByteArray(e, length);
     (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
@@ -1426,7 +1495,7 @@ UT_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
      * session is freed.
      * See https://www.openssl.org/docs/ssl/SSL_get_peer_certificate.html
      */
-    X509_free(cert);
+    crypto_methods.X509_free(cert);
 
     OPENSSL_free(buf);
 
