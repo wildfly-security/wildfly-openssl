@@ -130,11 +130,11 @@ static int ssl_verify_CRL(int ok, X509_STORE_CTX *ctx, tcn_ssl_conn_t *con)
         /*
          * Check if the current certificate is revoked by this CRL
          */
-        n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
+        n = crypto_methods.sk_num(X509_CRL_get_REVOKED(crl));
 
         for (i = 0; i < n; i++) {
             X509_REVOKED *revoked =
-                sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
+                crypto_methods.sk_value(X509_CRL_get_REVOKED(crl), i);
 
             ASN1_INTEGER *sn = revoked->serialNumber;
 

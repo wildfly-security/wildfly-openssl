@@ -478,8 +478,8 @@ typedef struct {
     BIGNUM *(*get_rfc3526_prime_4096)(BIGNUM *bn);
     BIGNUM *(*get_rfc3526_prime_6144)(BIGNUM *bn);
     BIGNUM *(*get_rfc3526_prime_8192)(BIGNUM *bn);
-    int (*sk_num)(const _STACK *);
-    void *(*sk_value)(const _STACK *, int);
+    int (*sk_num)(const void *);
+    void *(*sk_value)(const void *, int);
     void (*X509_free)(X509 *a);
     X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
     int (*i2d_X509)(X509 *a, unsigned char **out);

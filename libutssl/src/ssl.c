@@ -36,16 +36,16 @@ static int SSL_app_data3_idx = -1;
 
 /* Storage and initialization for DH parameters. */
 static struct dhparam {
-    BIGNUM *(*const prime)(BIGNUM *); /* function to generate... */
+    BIGNUM *(* prime)(BIGNUM *); /* function to generate... */
     DH *dh;                           /* ...this, used for keys.... */
     const unsigned int min;           /* ...of length >= this. */
 } dhparams[] = {
-    { get_rfc3526_prime_8192, NULL, 6145 },
-    { get_rfc3526_prime_6144, NULL, 4097 },
-    { get_rfc3526_prime_4096, NULL, 3073 },
-    { get_rfc3526_prime_3072, NULL, 2049 },
-    { get_rfc3526_prime_2048, NULL, 1025 },
-    { get_rfc2409_prime_1024, NULL, 0 }
+    { 0, NULL, 6145 },
+    { 0, NULL, 4097 },
+    { 0, NULL, 3073 },
+    { 0, NULL, 2049 },
+    { 0, NULL, 1025 },
+    { 0, NULL, 0 }
 };
 
 /* Hand out the same DH structure though once generated as we leak
@@ -342,6 +342,15 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_CRYPTO_SYMBOL(sk_value);
     REQUIRE_CRYPTO_SYMBOL(X509_free);
 
+
+    dhparams[0].prime = crypto_methods.get_rfc3526_prime_8192;
+
+    dhparams[1].prime = crypto_methods.get_rfc3526_prime_6144;
+    dhparams[2].prime = crypto_methods.get_rfc3526_prime_4096;
+    dhparams[3].prime = crypto_methods.get_rfc3526_prime_3072;
+    dhparams[4].prime = crypto_methods.get_rfc3526_prime_2048;
+    dhparams[5].prime = crypto_methods.get_rfc2409_prime_1024;
+
     return 0;
 }
 
@@ -367,12 +376,12 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e) {
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
      */
-    CRYPTO_malloc_init();
+    crypto_methods.CRYPTO_set_mem_functions(malloc, realloc, free);
     crypto_methods.ERR_load_crypto_strings();
     ssl_methods.SSL_load_error_strings();
     ssl_methods.SSL_library_init();
     SSL_init_app_data2_3_idx();
-    OpenSSL_add_all_algorithms();
+    crypto_methods.OPENSSL_add_all_algorithms_noconf();
 #if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
     ENGINE_load_builtin_engines();
 #endif
@@ -497,7 +506,7 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     c->ctx      = ctx;
     c->bio_os   = crypto_methods.BIO_new(crypto_methods.BIO_s_file());
     if (c->bio_os != NULL)
-        BIO_set_fp(c->bio_os, stderr, BIO_NOCLOSE | BIO_FP_TEXT);
+        crypto_methods.BIO_ctrl(c->bio_os,BIO_C_SET_FILE_PTR,BIO_NOCLOSE | BIO_FP_TEXT,(char *)stderr);
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_ALL),NULL);
     /* always disable SSLv2, as per RFC 6176 */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv2),NULL);
@@ -596,7 +605,8 @@ UT_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl)
     }
 
     sk = ssl_methods.SSL_get_ciphers(ssl_);
-    len = sk_SSL_CIPHER_num(sk);
+
+    len = crypto_methods.sk_num(sk);
 
     if (len <= 0) {
         /* No peer certificate chain as no auth took place yet, or the auth was not successful. */
@@ -607,7 +617,7 @@ UT_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl)
     array = (*e)->NewObjectArray(e, len, stringClass, NULL);
 
     for (i = 0; i < len; i++) {
-        cipher = (SSL_CIPHER*) sk_SSL_CIPHER_value(sk, i);
+        cipher = (SSL_CIPHER*) crypto_methods.sk_value(sk, i);
         name = ssl_methods.SSL_CIPHER_get_name(cipher);
 
         c_name = (*e)->NewStringUTF(e, name);
@@ -798,7 +808,7 @@ UT_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx,
             tcn_Throw(e, "Lookup failed for file %s (%s)", J2S(file), err);
             goto cleanup;
         }
-        X509_LOOKUP_load_file(lookup, J2S(file), X509_FILETYPE_PEM);
+        crypto_methods.X509_LOOKUP_ctrl((lookup),X509_L_FILE_LOAD,(J2S(file)),(long)(X509_FILETYPE_PEM),NULL);
     }
     if (J2S(path)) {
         lookup = crypto_methods.X509_STORE_add_lookup(c->crl, crypto_methods.X509_LOOKUP_hash_dir());
@@ -809,7 +819,7 @@ UT_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx,
             tcn_Throw(e, "Lookup failed for path %s (%s)", J2S(file), err);
             goto cleanup;
         }
-        X509_LOOKUP_add_dir(lookup, J2S(path), X509_FILETYPE_PEM);
+        crypto_methods.X509_LOOKUP_ctrl((lookup),X509_L_ADD_DIR,(J2S(path)),(long)(X509_FILETYPE_PEM),NULL);
     }
     rv = JNI_TRUE;
 cleanup:
@@ -1038,7 +1048,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     // Get a stack of all certs in the chain
     STACK_OF(X509) *sk = ctx->untrusted;
 
-    int len = sk_X509_num(sk);
+    int len = crypto_methods.sk_num(sk);;
     unsigned i;
     X509 *cert;
     int length;
@@ -1056,7 +1066,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_X509_value(sk, i);
+        cert = (X509*) crypto_methods.sk_value(sk, i);
 
         buf = NULL;
         length = crypto_methods.i2d_X509(cert, &buf);
@@ -1064,7 +1074,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
             // In case of error just return an empty byte[][]
             array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
             // We need to delete the local references so we not leak memory as this method is called via callback.
-            OPENSSL_free(buf);
+            crypto_methods.CRYPTO_free(buf);
             break;
         }
         bArray = (*e)->NewByteArray(e, length);
@@ -1074,7 +1084,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         // Delete the local reference as we not know how long the chain is and local references are otherwise
         // only freed once jni method returns.
         (*e)->DeleteLocalRef(e, bArray);
-        OPENSSL_free(buf);
+        crypto_methods.CRYPTO_free(buf);
     }
 
     authMethod = SSL_authentication_method(ssl);
@@ -1421,7 +1431,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
     // Get a stack of all certs in the chain.
     sk = ssl_methods.SSL_get_peer_cert_chain(ssl_);
 
-    len = sk_X509_num(sk);
+    len = crypto_methods.sk_num(sk);
     if (len <= 0) {
 
         /* No peer certificate chain as no auth took place yet, or the auth was not successful. */
@@ -1431,12 +1441,12 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
-        cert = (X509*) sk_X509_value(sk, i);
+        cert = (X509*) crypto_methods.sk_value(sk, i);
 
         buf = NULL;
         length = crypto_methods.i2d_X509(cert, &buf);
         if (length < 0) {
-            OPENSSL_free(buf);
+            crypto_methods.CRYPTO_free(buf);
             /* In case of error just return an empty byte[][] */
             return (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
         }
@@ -1450,7 +1460,7 @@ UT_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
          */
         (*e)->DeleteLocalRef(e, bArray);
 
-        OPENSSL_free(buf);
+        crypto_methods.CRYPTO_free(buf);
     }
     return array;
 }
@@ -1497,7 +1507,7 @@ UT_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
      */
     crypto_methods.X509_free(cert);
 
-    OPENSSL_free(buf);
+    crypto_methods.CRYPTO_free(buf);
 
     return bArray;
 }
