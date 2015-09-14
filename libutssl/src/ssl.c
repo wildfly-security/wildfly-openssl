@@ -3,11 +3,6 @@
 
 #include <dlfcn.h>
 
-/* openssl is deprecated on OSX
-   this pragma directive is requires to build it
-   otherwise -Wall -Werror fail the build
- */
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #if defined(SSL_OP_NO_TLSv1_1)
 #define HAVE_TLSV1_1
@@ -274,6 +269,7 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_SSL_SYMBOL(TLSv1_client_method);
     REQUIRE_SSL_SYMBOL(TLSv1_method);
     REQUIRE_SSL_SYMBOL(TLSv1_server_method);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
 
     void * crypto = dlopen("libcrypto.dylib", RTLD_LAZY);
@@ -863,7 +859,7 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
         if (ca_certs == NULL) {
             ssl_methods.SSL_load_client_CA_file(J2S(file));
             if (ca_certs != NULL)
-                SSL_CTX_set_client_CA_list(c->ctx, ca_certs);
+                ssl_methods.SSL_CTX_set_client_CA_list(c->ctx, ca_certs);
         }
         else {
             if (!ssl_methods.SSL_add_file_cert_subjects_to_stack(ca_certs, J2S(file)))

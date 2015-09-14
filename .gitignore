@@ -15,3 +15,8 @@ hotspot.log
 *.o
 *.so
 *.dylib
+*.a
+*.cmake
+Makefile
+CMakeCache.txt
+CMakeFiles

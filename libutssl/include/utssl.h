@@ -25,6 +25,13 @@
 
 #define _GNU_SOURCE
 
+
+/* openssl is deprecated on OSX
+   this pragma directive is requires to build it
+   otherwise -Wall -Werror fail the build
+ */
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <jni.h>
 #include <openssl/crypto.h>
 #include <openssl/pkcs12.h>
@@ -342,6 +349,7 @@ typedef struct {
     void	(*SSL_CTX_free)(SSL_CTX *);
     X509_STORE *(*SSL_CTX_get_cert_store)(const SSL_CTX *);
     STACK_OF(X509_NAME) *(*SSL_CTX_get_client_CA_list)(const SSL_CTX *s);
+    void (*SSL_CTX_set_client_CA_list)(SSL_CTX *ctx, STACK_OF(X509_NAME) *list);
     long (*SSL_CTX_get_timeout)(const SSL_CTX *ctx);
     int (*SSL_CTX_load_verify_locations)(SSL_CTX *ctx, const char *CAfile, const char *CApath);
     SSL_CTX *(*SSL_CTX_new)(const SSL_METHOD *meth);
