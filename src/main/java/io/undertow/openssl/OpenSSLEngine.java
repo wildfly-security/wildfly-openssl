@@ -858,6 +858,11 @@ public final class OpenSSLEngine extends SSLEngine {
             // if SSL_do_handshake returns > 0 it means the handshake was finished. This means we can update
             // handshakeFinished directly and so eliminate uncessary calls to SSL.isInInit(...)
             handshakeFinished = true;
+
+            ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.remove(OpenSSLEngine.this);
+            if(provider != null) {
+                provider.unsupported();
+            }
         }
     }
 

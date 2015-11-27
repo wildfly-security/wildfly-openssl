@@ -27,10 +27,14 @@ class SSL {
 
     static {
         System.loadLibrary("utssl");
-        initialize();
+        String path = System.getProperty("io.undertow.openssl.path");
+        if(!path.endsWith("/")) {
+            path = path + "/";
+        }
+        initialize(path);
     }
 
-    private static native void initialize();
+    private static native void initialize(String openSSLPath);
 
     /**
      * JSSE and OpenSSL protocol names

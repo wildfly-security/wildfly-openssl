@@ -286,8 +286,6 @@ public class OpenSSLContextSPI extends SSLContextSpi {
                     StringBuilder sb = new StringBuilder(BEGIN_CERT);
                     sb.append(Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(key.getEncoded()));
                     sb.append(END_CERT);
-                    System.out.println(sb.toString());
-
                     SSL.setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                 }
             }

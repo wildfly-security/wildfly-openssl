@@ -94,12 +94,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.17</version>
+
                 <configuration>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <forkMode>once</forkMode>
-                    <environmentVariables>
-                        <LD_LIBRARY_PATH>/usr/local/opt/openssl/lib</LD_LIBRARY_PATH>
-                    </environmentVariables>
+                    <systemProperties>
+                        <io.undertow.openssl.path>/usr/local/opt/openssl/lib</io.undertow.openssl.path>
+                    </systemProperties>
                     <argLine>-Djava.library.path=${project.basedir}/libutssl</argLine>
                 </configuration>
             </plugin>

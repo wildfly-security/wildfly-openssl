@@ -182,6 +182,9 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
 UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray alpn_protos)
 {
+    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+        return;
+    }
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_ASSERT(ctx != 0);
@@ -195,6 +198,10 @@ UT_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray al
 
 UT_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 {
+
+    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+        return;
+    }
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_ASSERT(ctx != 0);
@@ -222,6 +229,9 @@ UT_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 }
 
 UT_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
+    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+        return;
+    }
     SSL *ssl_ = J2P(ssl, SSL *);
 
     if (ssl_ == NULL) {

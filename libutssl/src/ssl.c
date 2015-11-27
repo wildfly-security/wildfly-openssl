@@ -194,8 +194,19 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
 #define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 
-int load_openssl_dynamic_methods(JNIEnv *e) {
-    void * ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
+int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
+
+    void * ssl;
+    if(path == NULL) {
+        ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
+    } else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
+        ssl = dlopen(full, RTLD_LAZY);
+    }
     REQUIRE_SSL_SYMBOL(SSLeay);
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
     REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
@@ -283,8 +294,19 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     GET_SSL_SYMBOL(TLSv1_server_method);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
-
     void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
+    if(path == NULL) {
+        crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
+    } else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
+        crypto = dlopen(full, RTLD_LAZY);
+    }
+
+
     REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl_pending);
@@ -363,10 +385,20 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
 }
 
 
-UT_OPENSSL(jint, initialize) (JNIEnv *e) {
-    if(load_openssl_dynamic_methods(e) != 0) {
+UT_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
+    const char * path = NULL;
+    TCN_ALLOC_CSTRING(openSSLPath);
+    if(openSSLPath != NULL) {
+        path = J2S(openSSLPath);
+    } else {
+
+    }
+
+    if(load_openssl_dynamic_methods(e, path) != 0) {
+        TCN_FREE_CSTRING(openSSLPath);
         return 0;
     }
+    TCN_FREE_CSTRING(openSSLPath);
 
     int version = ssl_methods.SSLeay();
     printf("OpenSSL version %lx \n", OPENSSL_VERSION_NUMBER);
