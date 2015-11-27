@@ -95,11 +95,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <forkMode>once</forkMode>
                     <environmentVariables>
                         <LD_LIBRARY_PATH>/usr/local/opt/openssl/lib</LD_LIBRARY_PATH>
                     </environmentVariables>
-                    <argLine>-Djava.library.path=${project.basedir}/libutssl/mac:${project.basedir}/libutssl/linux</argLine>
+                    <argLine>-Djava.library.path=${project.basedir}/libutssl</argLine>
                 </configuration>
             </plugin>
         </plugins>

@@ -12,6 +12,17 @@
 #define HAVE_TLSV1_2
 #endif
 
+#ifdef __APPLE__
+#define LIBCRYPTO_NAME "libcrypto.dylib"
+#else
+#define LIBCRYPTO_NAME "libcrypto"
+#endif
+
+#ifdef __APPLE__
+#define LIBSSL_NAME "libssl.dylib"
+#else
+#define LIBSSL_NAME "libssl"
+#endif
 
 static int ssl_initialized = 0;
 static jclass byteArrayClass, stringClass;
@@ -179,11 +190,12 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
     return SSL_TLSEXT_ERR_OK;
 }
 
-#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
-#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
+#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 
 int load_openssl_dynamic_methods(JNIEnv *e) {
-    void * ssl = dlopen("libssl.dylib", RTLD_LAZY);
+    void * ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
     REQUIRE_SSL_SYMBOL(SSLeay);
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
     REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
@@ -203,8 +215,9 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_remove_cb);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_set_alpn_protos);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_set_alpn_select_cb);
+    GET_SSL_SYMBOL(SSL_CTX_set_alpn_protos);
+    GET_SSL_SYMBOL(SSL_CTX_set_alpn_select_cb);
+    GET_SSL_SYMBOL(SSL_get0_alpn_selected);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cert_verify_callback);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cipher_list);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_default_verify_paths);
@@ -222,7 +235,6 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_SSL_SYMBOL(SSL_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_do_handshake);
     REQUIRE_SSL_SYMBOL(SSL_free);
-    REQUIRE_SSL_SYMBOL(SSL_get0_alpn_selected);
     REQUIRE_SSL_SYMBOL(SSL_get_ciphers);
     REQUIRE_SSL_SYMBOL(SSL_get_current_cipher);
     REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
@@ -260,19 +272,19 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
     REQUIRE_SSL_SYMBOL(SSLv3_client_method);
     REQUIRE_SSL_SYMBOL(SSLv3_method);
     REQUIRE_SSL_SYMBOL(SSLv3_server_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_1_client_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_1_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_1_server_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_2_client_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_2_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_2_server_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_client_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_method);
-    REQUIRE_SSL_SYMBOL(TLSv1_server_method);
+    GET_SSL_SYMBOL(TLSv1_1_client_method);
+    GET_SSL_SYMBOL(TLSv1_1_method);
+    GET_SSL_SYMBOL(TLSv1_1_server_method);
+    GET_SSL_SYMBOL(TLSv1_2_client_method);
+    GET_SSL_SYMBOL(TLSv1_2_method);
+    GET_SSL_SYMBOL(TLSv1_2_server_method);
+    GET_SSL_SYMBOL(TLSv1_client_method);
+    GET_SSL_SYMBOL(TLSv1_method);
+    GET_SSL_SYMBOL(TLSv1_server_method);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
 
-    void * crypto = dlopen("libcrypto.dylib", RTLD_LAZY);
+    void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
     REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl_pending);
@@ -353,7 +365,7 @@ int load_openssl_dynamic_methods(JNIEnv *e) {
 
 UT_OPENSSL(jint, initialize) (JNIEnv *e) {
     if(load_openssl_dynamic_methods(e) != 0) {
-        return 1;
+        return 0;
     }
 
     int version = ssl_methods.SSLeay();

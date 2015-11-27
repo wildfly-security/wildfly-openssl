@@ -42,11 +42,11 @@ public class BasicOpenSSLTest {
 
             return loadedKeystore;
         } catch (KeyStoreException e) {
-            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+            throw new RuntimeException(String.format("Unable to load KeyStore %s", name), e);
         } catch (NoSuchAlgorithmException e) {
-            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+            throw new RuntimeException(String.format("Unable to load KeyStore %s", name), e);
         } catch (CertificateException e) {
-            throw new IOException(String.format("Unable to load KeyStore %s", name), e);
+            throw new RuntimeException(String.format("Unable to load KeyStore %s", name), e);
         } finally {
             stream.close();
         }
@@ -59,11 +59,11 @@ public class BasicOpenSSLTest {
             keyManagerFactory.init(loadKeyStore("server.keystore"), "password".toCharArray());
             keyManagers = keyManagerFactory.getKeyManagers();
         } catch (NoSuchAlgorithmException e) {
-            throw new IOException("Unable to initialise KeyManager[]", e);
+            throw new RuntimeException("Unable to initialise KeyManager[]", e);
         } catch (UnrecoverableKeyException e) {
-            throw new IOException("Unable to initialise KeyManager[]", e);
+            throw new RuntimeException("Unable to initialise KeyManager[]", e);
         } catch (KeyStoreException e) {
-            throw new IOException("Unable to initialise KeyManager[]", e);
+            throw new RuntimeException("Unable to initialise KeyManager[]", e);
         }
 
         TrustManager[] trustManagers = null;
@@ -72,9 +72,9 @@ public class BasicOpenSSLTest {
             trustManagerFactory.init(loadKeyStore("server.truststore"));
             trustManagers = trustManagerFactory.getTrustManagers();
         } catch (NoSuchAlgorithmException e) {
-            throw new IOException("Unable to initialise TrustManager[]", e);
+            throw new RuntimeException("Unable to initialise TrustManager[]", e);
         } catch (KeyStoreException e) {
-            throw new IOException("Unable to initialise TrustManager[]", e);
+            throw new RuntimeException("Unable to initialise TrustManager[]", e);
         }
 
         try {
@@ -85,7 +85,7 @@ public class BasicOpenSSLTest {
             context.init(keyManagers, trustManagers, new SecureRandom());
             return context;
         } catch (Exception e) {
-            throw new IOException("Unable to create and initialise the SSLContext", e);
+            throw new RuntimeException("Unable to create and initialise the SSLContext", e);
         }
     }
 
