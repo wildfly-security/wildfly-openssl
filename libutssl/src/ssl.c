@@ -107,7 +107,7 @@ void SSL_BIO_close(BIO *bi)
         crypto_methods.BIO_free(bi);
 }
 
-void SSL_init_app_data2_3_idx(void)
+void init_app_data2_3_idx(void)
 {
     int i;
 
@@ -193,6 +193,7 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 #define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
 #define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define GET_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb);
 
 int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 
@@ -292,6 +293,9 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     GET_SSL_SYMBOL(TLSv1_client_method);
     GET_SSL_SYMBOL(TLSv1_method);
     GET_SSL_SYMBOL(TLSv1_server_method);
+    GET_SSL_SYMBOL(TLS_client_method);
+    GET_SSL_SYMBOL(TLS_server_method);
+    GET_SSL_SYMBOL(TLS_method);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
     void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
@@ -371,6 +375,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(sk_num);
     REQUIRE_CRYPTO_SYMBOL(sk_value);
     REQUIRE_CRYPTO_SYMBOL(X509_free);
+    GET_CRYPTO_SYMBOL(ENGINE_load_builtin_engines);
+    
 
 
     dhparams[0].prime = crypto_methods.get_rfc3526_prime_8192;
@@ -420,11 +426,11 @@ UT_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
     crypto_methods.ERR_load_crypto_strings();
     ssl_methods.SSL_load_error_strings();
     ssl_methods.SSL_library_init();
-    SSL_init_app_data2_3_idx();
+    init_app_data2_3_idx();
     crypto_methods.OPENSSL_add_all_algorithms_noconf();
-#if HAVE_ENGINE_LOAD_BUILTIN_ENGINES
-    ENGINE_load_builtin_engines();
-#endif
+    if(crypto_methods.ENGINE_load_builtin_engines != NULL) {
+        crypto_methods.ENGINE_load_builtin_engines();
+    }
     crypto_methods.OPENSSL_load_builtin_modules();
 
     ssl_thread_setup();
@@ -459,29 +465,29 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     }
 
     if (protocol == SSL_PROTOCOL_TLSV1_2) {
-#ifdef HAVE_TLSV1_2
-        if (mode == SSL_MODE_CLIENT)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_client_method());
-        else if (mode == SSL_MODE_SERVER)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_server_method());
-        else
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_method());
-#else
-        throwIllegalStateException(e, "TLSV1_2 not supported");
-        goto init_failed;
-#endif
+        if(ssl_methods.TLSv1_2_server_method != NULL) {
+            if (mode == SSL_MODE_CLIENT)
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_client_method());
+            else if (mode == SSL_MODE_SERVER)
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_server_method());
+            else
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_method());
+        } else {
+            throwIllegalStateException(e, "TLSV1_2 not supported");
+            goto init_failed;
+        }
     } else if (protocol == SSL_PROTOCOL_TLSV1_1) {
-#ifdef HAVE_TLSV1_1
-        if (mode == SSL_MODE_CLIENT)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_client_method());
-        else if (mode == SSL_MODE_SERVER)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_server_method());
-        else
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_method());
-#else
-        throwIllegalStateException(e, "TLSV1_1 not supported");
-        goto init_failed;
-#endif
+        if(ssl_methods.TLSv1_1_server_method != NULL) {
+            if (mode == SSL_MODE_CLIENT)
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_client_method());
+            else if (mode == SSL_MODE_SERVER)
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_server_method());
+            else
+                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_method());
+        } else {
+            throwIllegalStateException(e, "TLSV1_1 not supported");
+            goto init_failed;
+        }
     } else if (protocol == SSL_PROTOCOL_TLSV1) {
         if (mode == SSL_MODE_CLIENT)
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_client_method());
@@ -500,34 +506,28 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         /* requested but not supported */
         throwIllegalStateException(e, "SSLV2 not supported");
         goto init_failed;
-#ifndef HAVE_TLSV1_2
-    } else if (protocol & SSL_PROTOCOL_TLSV1_2) {
+    } else if (protocol & SSL_PROTOCOL_TLSV1_2 && ssl_methods.TLSv1_2_server_method == NULL) {
         /* requested but not supported */
         throwIllegalStateException(e, "TLSV1_2 not supported");
         goto init_failed;
-#endif
-#ifndef HAVE_TLSV1_1
-    } else if (protocol & SSL_PROTOCOL_TLSV1_1) {
+    } else if (protocol & SSL_PROTOCOL_TLSV1_1 && ssl_methods.TLSv1_1_server_method == NULL) {
         /* requested but not supported */
         throwIllegalStateException(e, "TLSV1_1 not supported");
         goto init_failed;
-#endif
+    } else if (ssl_methods.TLS_server_method == NULL) {
+        if (mode == SSL_MODE_CLIENT)
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_client_method());
+        else if (mode == SSL_MODE_SERVER)
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_server_method());
+        else
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
     } else {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
         if (mode == SSL_MODE_CLIENT)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_client_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_client_method());
         else if (mode == SSL_MODE_SERVER)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_server_method());
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_server_method());
         else
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
-#else
-        if (mode == SSL_MODE_CLIENT)
-                ctx = ssl_methods.SSL_CTX_new(TLS_client_method());
-        else if (mode == SSL_MODE_SERVER)
-                ctx = ssl_methods.SSL_CTX_new(TLS_server_method());
-        else
-                ctx = ssl_methods.SSL_CTX_new(TLS_method());
-#endif
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_method());
     }
     if (!ctx) {
         char err[256];
@@ -554,18 +554,19 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv3),NULL);
     if (!(protocol & SSL_PROTOCOL_TLSV1))
         ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1),NULL);
-#ifdef HAVE_TLSV1_1
-    if (!(protocol & SSL_PROTOCOL_TLSV1_1))
-        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_1),NULL);
-#endif
-#ifdef HAVE_TLSV1_2
-    if (!(protocol & SSL_PROTOCOL_TLSV1_2))
-        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_2),NULL);
-#endif
+    if(ssl_methods.TLSv1_1_server_method != NULL) { //we use the presence of the method to test if it is supported
+        if (!(protocol & SSL_PROTOCOL_TLSV1_1))
+            ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_1),NULL);
+    }
+    if(ssl_methods.TLSv1_2_server_method != NULL) {
+        if (!(protocol & SSL_PROTOCOL_TLSV1_2))
+            ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_2),NULL);
+    }
     /*
      * Configure additional context ingredients
      */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_DH_USE),NULL);
+//TODO: what do we do with these defines?
 #ifdef HAVE_ECC
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_ECDH_USE),NULL);
 #endif
@@ -757,11 +758,11 @@ UT_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
+//#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
     /* Clear the flag if not supported */
     if (opt & 0x00040000)
         opt &= ~0x00040000;
-#endif
+//#endif
 	ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(opt),NULL);
 }
 

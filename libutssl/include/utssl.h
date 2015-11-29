@@ -422,6 +422,9 @@ typedef struct {
     const SSL_METHOD *(*TLSv1_client_method)(void);
     const SSL_METHOD *(*TLSv1_method)(void);
     const SSL_METHOD *(*TLSv1_server_method)(void);
+    const SSL_METHOD *(*TLS_server_method)(void);
+    const SSL_METHOD *(*TLS_client_method)(void);
+    const SSL_METHOD *(*TLS_method)(void);
     struct evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
 } ssl_dynamic_methods;
@@ -491,6 +494,8 @@ typedef struct {
     void (*X509_free)(X509 *a);
     X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
     int (*i2d_X509)(X509 *a, unsigned char **out);
+
+    void (*ENGINE_load_builtin_engines)(void);
 } crypto_dynamic_methods;
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
