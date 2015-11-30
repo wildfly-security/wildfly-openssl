@@ -494,7 +494,6 @@ typedef struct {
     void (*X509_free)(X509 *a);
     X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
     int (*i2d_X509)(X509 *a, unsigned char **out);
-
     void (*ENGINE_load_builtin_engines)(void);
 } crypto_dynamic_methods;
 

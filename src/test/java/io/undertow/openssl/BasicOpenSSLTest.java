@@ -81,7 +81,7 @@ public class BasicOpenSSLTest {
 
             final SSLHostConfig sslHostConfig = new SSLHostConfig();
             sslHostConfig.setCertificateVerificationDepth(100);
-            OpenSSLContext context = new OpenSSLContext(sslHostConfig);
+            final SSLContext context = SSLContext.getInstance("openssl.TLSv1");
             context.init(keyManagers, trustManagers, new SecureRandom());
             return context;
         } catch (Exception e) {
@@ -91,7 +91,8 @@ public class BasicOpenSSLTest {
 
 
     @Test
-    public void basicOpenSSLTest() throws IOException {
+    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
+        OpenSSLProvider.register();
         final AtomicReference<byte[]> sessionID = new AtomicReference<>();
         final SSLContext sslContext = createSSLContext();
 

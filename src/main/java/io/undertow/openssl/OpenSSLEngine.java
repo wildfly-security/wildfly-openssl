@@ -21,6 +21,7 @@ import org.eclipse.jetty.alpn.ALPN;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
@@ -98,6 +99,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     // Header (5) + Data (2^14) + Compression (1024) + Encryption (1024) + MAC (20) + Padding (256)
     static final int MAX_ENCRYPTED_PACKET_LENGTH = MAX_CIPHERTEXT_LENGTH + 5 + 20 + 256;
+    public static final int DEFAULT_CERTIFICATE_VALIDATION_DEPTH = 100;
 
     public OpenSSLSessionContext getSessionContext() {
         return sessionContext;
@@ -1052,5 +1054,44 @@ public final class OpenSSLEngine extends SSLEngine {
         return handshakeFinished;
     }
 
+    @Override
+    public SSLParameters getSSLParameters() {
+        return super.getSSLParameters();
+    }
 
+    @Override
+    public void setSSLParameters(SSLParameters sslParameters) {
+        super.setSSLParameters(sslParameters);
+
+        // Use server's preference order for ciphers (rather than
+        // client's)
+        boolean orderCiphersSupported = false;
+        try {
+            orderCiphersSupported = SSL.hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+            if (orderCiphersSupported) {
+                if (sslParameters.getUseCipherSuitesOrder()) {
+                    SSL.setSSLContextOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                } else {
+                    SSL.clearSSLContextOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                }
+            }
+        } catch (UnsatisfiedLinkError e) {
+            // Ignore
+        }
+        if (!orderCiphersSupported) {
+            // OpenSSL does not support ciphers ordering.
+            ROOT_LOGGER.noHonorCipherOrder();
+        }
+
+        int value = 0;
+        if(sslParameters.getNeedClientAuth()) {
+            value = SSL.SSL_CVERIFY_REQUIRE;
+        } else if(sslParameters.getWantClientAuth()) {
+            value = SSL.SSL_CVERIFY_OPTIONAL;
+        } else {
+            value = SSL.SSL_CVERIFY_NONE;
+        }
+        SSL.setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
+
+    }
 }

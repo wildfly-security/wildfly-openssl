@@ -50,11 +50,13 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.StringTokenizer;
 
 import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
 
-public class OpenSSLContextSPI extends SSLContextSpi {
+public abstract class OpenSSLContextSPI extends SSLContextSpi {
+
+    public static final int DEFAULT_SESSION_CACHE_SIZE = 1000;
+
     private static final String BEGIN_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
 
     private static final String END_CERT = "\n-----END RSA PRIVATE KEY-----";
@@ -62,8 +64,6 @@ public class OpenSSLContextSPI extends SSLContextSpi {
     private static final String[] ALGORITHMS = {"RSA"};
 
     private static final String defaultProtocol = "TLS";
-
-    private final SSLHostConfig sslHostConfig;
     private OpenSSLServerSessionContext sessionContext;
 
     private List<String> ciphers = new ArrayList<>();
@@ -95,41 +95,8 @@ public class OpenSSLContextSPI extends SSLContextSpi {
         }
     }
 
-    OpenSSLContextSPI(SSLHostConfig sslHostConfig)
-            throws SSLException {
-        this.sslHostConfig = sslHostConfig;
-        boolean success = false;
+    OpenSSLContextSPI(final int value) throws SSLException {
         try {
-
-            // SSL protocol
-            int value = SSL.SSL_PROTOCOL_NONE;
-            if (sslHostConfig.getProtocols().size() == 0) {
-                value = SSL.SSL_PROTOCOL_ALL;
-            } else {
-                for (String protocol : sslHostConfig.getProtocols()) {
-                    if (SSL.SSL_PROTO_SSLv2Hello.equalsIgnoreCase(protocol)) {
-                        // NO-OP. OpenSSL always supports SSLv2Hello
-                    } else if (SSL.SSL_PROTO_SSLv2.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_SSLV2;
-                    } else if (SSL.SSL_PROTO_SSLv3.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_SSLV3;
-                    } else if (SSL.SSL_PROTO_TLSv1.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_TLSV1;
-                    } else if (SSL.SSL_PROTO_TLSv1_1.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_TLSV1_1;
-                    } else if (SSL.SSL_PROTO_TLSv1_2.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_TLSV1_2;
-                    } else if (SSL.SSL_PROTO_ALL.equalsIgnoreCase(protocol)) {
-                        value |= SSL.SSL_PROTOCOL_ALL;
-                    } else {
-                        // Protocol not recognized, fail to start as it is safer than
-                        // continuing with the default which might enable more than the
-                        // is required
-                        throw ROOT_LOGGER.invalidSSLProtocol(protocol);
-                    }
-                }
-            }
-
             // Create SSL Context
             try {
                 ctx = SSL.makeSSLContext(value, SSL.SSL_MODE_SERVER);
@@ -139,71 +106,19 @@ public class OpenSSLContextSPI extends SSLContextSpi {
                 // the AprLifecycleListener settings from here
                 throw ROOT_LOGGER.failedToMakeSSLContext(e);
             }
-            success = true;
-        } catch (Exception e) {
-            throw ROOT_LOGGER.failedToInitialiseSSLContext(e);
-        }
-    }
-
-    /**
-     * Setup the SSL_CTX
-     *
-     * @param kms Must contain a KeyManager of the type
-     *            {@code OpenSSLKeyManager}
-     * @param tms
-     */
-    private synchronized void init(KeyManager[] kms, TrustManager[] tms) {
-        if (initialized) {
-            ROOT_LOGGER.initCalledMultipleTimes();
-            return;
-        }
-        try {
-            boolean legacyRenegSupported = false;
             try {
-                legacyRenegSupported = SSL.hasOp(SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
-                if (legacyRenegSupported)
-                    if (sslHostConfig.getInsecureRenegotiation()) {
-                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
-                    } else {
-                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
-                    }
+                //disable unsafe renegotiation
+                SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
             }
-            if (!legacyRenegSupported) {
-                // OpenSSL does not support unsafe legacy renegotiation.
-                ROOT_LOGGER.debug("Your version of OpenSSL does not support legacy renegotiation");
-            }
-            // Use server's preference order for ciphers (rather than
-            // client's)
-            boolean orderCiphersSupported = false;
-            try {
-                orderCiphersSupported = SSL.hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                if (orderCiphersSupported) {
-                    if (sslHostConfig.getHonorCipherOrder()) {
-                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                    } else {
-                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                    }
-                }
-            } catch (UnsatisfiedLinkError e) {
-                // Ignore
-            }
-            if (!orderCiphersSupported) {
-                // OpenSSL does not support ciphers ordering.
-                ROOT_LOGGER.noHonorCipherOrder();
-            }
 
-            // Disable compression if requested
+            // Disable compression
             boolean disableCompressionSupported = false;
             try {
                 disableCompressionSupported = SSL.hasOp(SSL.SSL_OP_NO_COMPRESSION);
                 if (disableCompressionSupported) {
-                    if (sslHostConfig.getDisableCompression()) {
-                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
-                    } else {
-                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
-                    }
+                    SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -217,11 +132,7 @@ public class OpenSSLContextSPI extends SSLContextSpi {
             try {
                 disableSessionTicketsSupported = SSL.hasOp(SSL.SSL_OP_NO_TICKET);
                 if (disableSessionTicketsSupported) {
-                    if (sslHostConfig.getDisableSessionTickets()) {
-                        SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
-                    } else {
-                        SSL.clearSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
-                    }
+                    SSL.setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -230,43 +141,26 @@ public class OpenSSLContextSPI extends SSLContextSpi {
                 // OpenSSL is too old to support TLS Session Tickets.
                 ROOT_LOGGER.noDisableSessionTickets();
             }
+        } catch (Exception e) {
+            throw ROOT_LOGGER.failedToInitialiseSSLContext(e);
+        }
 
-            // Set session cache size, if specified
-            if (sslHostConfig.getSessionCacheSize() > 0) {
-                SSL.setSessionCacheSize(ctx, sslHostConfig.getSessionCacheSize());
-            } else {
-                // Get the default session cache size using SSLContext.setSessionCacheSize()
-                long sessionCacheSize = SSL.setSessionCacheSize(ctx, 20480);
-                // Revert the session cache size to the default value.
-                SSL.setSessionCacheSize(ctx, sessionCacheSize);
-            }
+    }
 
-            // Set session timeout, if specified
-            if (sslHostConfig.getSessionTimeout() > 0) {
-                SSL.setSessionCacheTimeout(ctx, sslHostConfig.getSessionTimeout());
-            } else {
-                // Get the default session timeout using SSLContext.setSessionCacheTimeout()
-                long sessionTimeout = SSL.setSessionCacheTimeout(ctx, 300);
-                // Revert the session timeout to the default value.
-                SSL.setSessionCacheTimeout(ctx, sessionTimeout);
-            }
+    /**
+     * Setup the SSL_CTX
+     *
+     * @param kms Must contain a KeyManager of the type
+     *            {@code OpenSSLKeyManager}
+     * @param tms
+     */
+    private synchronized void init(KeyManager[] kms, TrustManager[] tms) throws KeyManagementException {
+        if (initialized) {
+            ROOT_LOGGER.initCalledMultipleTimes();
+            return;
+        }
 
-            // List the ciphers that the client is permitted to negotiate
-            String ciphers = sslHostConfig.getCiphers();
-            if (!("ALL".equals(ciphers)) && ciphers.indexOf(":") == -1) {
-                StringTokenizer tok = new StringTokenizer(ciphers, ",");
-                this.ciphers = new ArrayList<>();
-                while (tok.hasMoreTokens()) {
-                    String token = tok.nextToken().trim();
-                    if (!"".equals(token)) {
-                        this.ciphers.add(token);
-                    }
-                }
-                ciphers = CipherSuiteConverter.toOpenSsl(ciphers);
-            } else {
-                this.ciphers = OpenSSLCipherConfigurationParser.parseExpression(ciphers);
-            }
-            SSL.setCipherSuite(ctx, ciphers);
+        try {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
             if (keyManager == null) {
@@ -306,23 +200,8 @@ public class OpenSSLContextSPI extends SSLContextSpi {
                             sslHostConfig.getCertificateRevocationListPath()));
             */
             // Client certificate verification
-            int value = 0;
-            switch (sslHostConfig.getCertificateVerification()) {
-                case NONE:
-                    value = SSL.SSL_CVERIFY_NONE;
-                    break;
-                case OPTIONAL:
-                    value = SSL.SSL_CVERIFY_OPTIONAL;
-                    break;
-                case OPTIONAL_NO_CA:
-                    value = SSL.SSL_CVERIFY_OPTIONAL_NO_CA;
-                    break;
-                case REQUIRED:
-                    value = SSL.SSL_CVERIFY_REQUIRE;
-                    break;
-            }
-            SSL.setSSLContextVerify(ctx, value, sslHostConfig.getCertificateVerificationDepth());
 
+            SSL.setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
             if (tms != null) {
                 final X509TrustManager manager = chooseTrustManager(tms);
                 SSL.setCertVerifyCallback(ctx, new CertificateVerifier() {
@@ -480,5 +359,26 @@ public class OpenSSLContextSPI extends SSLContextSpi {
 
     public void sessionRemoved(byte[] session) {
         sessionContext.remove(session);
+    }
+
+    public static final class OpenSSLTLS_1_0_ContextSpi extends OpenSSLContextSPI {
+
+        public OpenSSLTLS_1_0_ContextSpi() throws SSLException {
+            super(SSL.SSL_PROTOCOL_TLSV1);
+        }
+    }
+
+    public static final class OpenSSLTLS_1_1_ContextSpi extends OpenSSLContextSPI {
+
+        public OpenSSLTLS_1_1_ContextSpi() throws SSLException {
+            super(SSL.SSL_PROTOCOL_TLSV1_1);
+        }
+    }
+
+    public static final class OpenSSLTLS_1_2_ContextSpi extends OpenSSLContextSPI {
+
+        public OpenSSLTLS_1_2_ContextSpi() throws SSLException {
+            super(SSL.SSL_PROTOCOL_TLSV1_2);
+        }
     }
 }

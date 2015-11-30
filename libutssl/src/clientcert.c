@@ -238,10 +238,13 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
 }
 
 
-UT_OPENSSL(void, setSSLContextVerify)(JNIEnv *e, jobject o, jlong ctx,
+UT_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl,
                                                 jint level, jint depth)
 {
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    SSL *c = J2P(ssl, SSL *);
+
+    ALL BROKEN!!
+
     int verify = SSL_VERIFY_NONE;
 
     UNREFERENCED(o);

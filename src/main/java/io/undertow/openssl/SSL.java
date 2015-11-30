@@ -28,7 +28,7 @@ class SSL {
     static {
         System.loadLibrary("utssl");
         String path = System.getProperty("io.undertow.openssl.path");
-        if(!path.endsWith("/")) {
+        if(path != null && !path.endsWith("/")) {
             path = path + "/";
         }
         initialize(path);
@@ -592,6 +592,20 @@ class SSL {
     static native void clearSSLContextOptions(long ctx, int options);
 
     /**
+     * Set OpenSSL Option.
+     * @param ssl Server or Client SSL to use.
+     * @param options  See SSL.SSL_OP_* for option flags.
+     */
+    static native void setSSLOptions(long ssl, int options);
+
+    /**
+     * Clears OpenSSL Options.
+     * @param ssl Server or Client SSL to use.
+     * @param options  See SSL.SSL_OP_* for option flags.
+     */
+    static native void clearSSLOptions(long ssl, int options);
+
+    /**
      * Cipher Suite available for negotiation in SSL handshake.
      * <br>
      * This complex directive uses a colon-separated cipher-spec string consisting
@@ -765,12 +779,12 @@ class SSL {
      * certificate can be self-signed or has to be signed by a CA which is directly
      * known to the server (i.e. the CA's certificate is under
      * <code>setCACertificatePath</code>), etc.
-     * @param ctx Server or Client context to use.
+     * @param ssl SSL instance
      * @param level Type of Client Certificate verification.
      * @param depth Maximum depth of CA Certificates in Client Certificate
      *              verification.
      */
-    static native void setSSLContextVerify(long ctx, int level, int depth);
+    static native void setSSLVerify(long ssl, int level, int depth);
 
     /**
      * When tc-native encounters a SNI extension in the TLS handshake it will

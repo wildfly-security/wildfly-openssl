@@ -137,7 +137,7 @@ public interface OpenSSLLogger extends BasicLogger {
     SSLException failedToMakeSSLContext(@Cause Exception e);
 
     @Message(id = 32, value = "Failed to initialise OpenSSL context")
-    SSLException failedToInitialiseSSLContext(@Cause Exception e);
+    RuntimeException failedToInitialiseSSLContext(@Cause Exception e);
 
     @LogMessage(level = WARN)
     @Message(id = 33, value = "Prefix missing when parsing SSL config hostname:%s string:%s")
