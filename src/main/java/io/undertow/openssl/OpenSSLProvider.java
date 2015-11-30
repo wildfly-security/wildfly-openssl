@@ -7,6 +7,9 @@ import java.security.Security;
  * @author Stuart Douglas
  */
 public final class OpenSSLProvider extends Provider {
+
+    private static boolean registered = false;
+
     protected OpenSSLProvider() {
         super("openssl", 1.0, "OpenSSL provider");
         put("SSLContext.openssl.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
@@ -14,7 +17,10 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
     }
 
-    public static void register() {
-        Security.addProvider(new OpenSSLProvider());
+    public synchronized static void register() {
+        if (!registered) {
+            registered = true;
+            Security.addProvider(new OpenSSLProvider());
+        }
     }
 }

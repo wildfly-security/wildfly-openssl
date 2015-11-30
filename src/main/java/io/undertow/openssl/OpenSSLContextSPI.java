@@ -96,6 +96,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     OpenSSLContextSPI(final int value) throws SSLException {
+        SSL.init();
         try {
             // Create SSL Context
             try {

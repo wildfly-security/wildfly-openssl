@@ -25,13 +25,24 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 class SSL {
 
-    static {
-        System.loadLibrary("utssl");
-        String path = System.getProperty("io.undertow.openssl.path");
-        if(path != null && !path.endsWith("/")) {
-            path = path + "/";
+    private SSL () {}
+
+    private static volatile boolean init = false;
+
+    static void init() {
+        if(!init) {
+            synchronized (SSL.class) {
+                if(!init) {
+                    System.loadLibrary("utssl");
+                    String path = System.getProperty("io.undertow.openssl.path");
+                    if (path != null && !path.endsWith("/")) {
+                        path = path + "/";
+                    }
+                    initialize(path);
+                    init = true;
+                }
+            }
         }
-        initialize(path);
     }
 
     private static native void initialize(String openSSLPath);
