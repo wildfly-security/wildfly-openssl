@@ -23,23 +23,11 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
-            <version>${version.org.jboss.logging}</version>
-        </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty.alpn</groupId>
             <artifactId>alpn-api</artifactId>
             <version>${version.org.eclipse.jetty.alpn}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging-processor</artifactId>
-            <version>${version.org.jboss.logging.processor}</version>
             <scope>provided</scope>
         </dependency>
 

@@ -17,7 +17,7 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
     }
 
-    public synchronized static void register() {
+    public static synchronized void register() {
         if (!registered) {
             registered = true;
             Security.addProvider(new OpenSSLProvider());

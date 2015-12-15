@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,16 +32,18 @@ import java.util.regex.Pattern;
  */
 public final class CipherSuiteConverter {
 
+    private static final Logger LOG = Logger.getLogger(CipherSuiteConverter.class.getName());
+
     /**
      * A_B_WITH_C_D, where:
-     *
+     * <p/>
      * A - TLS or SSL (protocol)
      * B - handshake algorithm (key exchange and authentication algorithms to be precise)
      * C - bulk cipher
      * D - HMAC algorithm
-     *
+     * <p/>
      * This regular expression assumees that:
-     *
+     * <p/>
      * 1) A is always TLS or SSL, and
      * 2) D is always a single word.
      */
@@ -48,13 +52,13 @@ public final class CipherSuiteConverter {
 
     /**
      * A-B-C, where:
-     *
+     * <p/>
      * A - handshake algorithm (key exchange and authentication algorithms to be precise)
      * B - bulk cipher
      * C - HMAC algorithm
-     *
+     * <p/>
      * This regular expression assumes that:
-     *
+     * <p/>
      * 1) A has some deterministic pattern as shown below, and
      * 2) C is always a single word
      */
@@ -122,7 +126,7 @@ public final class CipherSuiteConverter {
      */
     public static String toOpenSsl(Iterable<String> javaCipherSuites) {
         final StringBuilder buf = new StringBuilder();
-        for (String c: javaCipherSuites) {
+        for (String c : javaCipherSuites) {
             if (c == null) {
                 break;
             }
@@ -175,8 +179,8 @@ public final class CipherSuiteConverter {
         p2j.put("TLS", "TLS_" + javaCipherSuiteSuffix);
         o2j.put(openSslCipherSuite, p2j);
 
-        if (OpenSSLLogger.ROOT_LOGGER.isDebugEnabled()) {
-            OpenSSLLogger.ROOT_LOGGER.debugf("mapping java cipher %s to %s", javaCipherSuite, openSslCipherSuite);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("mapping java cipher " + javaCipherSuite + " to " + openSslCipherSuite);
         }
 
         return openSslCipherSuite;
@@ -265,8 +269,9 @@ public final class CipherSuiteConverter {
 
     /**
      * Convert from OpenSSL cipher suite name convention to java cipher suite name convention.
+     *
      * @param openSslCipherSuite An OpenSSL cipher suite name.
-     * @param protocol The cryptographic protocol (i.e. SSL, TLS, ...).
+     * @param protocol           The cryptographic protocol (i.e. SSL, TLS, ...).
      * @return The translated cipher suite name according to java conventions. This will not be {@code null}.
      */
     public static String toJava(String openSslCipherSuite, String protocol) {
@@ -303,9 +308,9 @@ public final class CipherSuiteConverter {
         j2o.putIfAbsent(javaCipherSuiteTls, openSslCipherSuite);
         j2o.putIfAbsent(javaCipherSuiteSsl, openSslCipherSuite);
 
-        if (OpenSSLLogger.ROOT_LOGGER.isDebugEnabled()) {
-            OpenSSLLogger.ROOT_LOGGER.debugf("mapping java cipher %s to %s", javaCipherSuiteTls, openSslCipherSuite);
-            OpenSSLLogger.ROOT_LOGGER.debugf("mapping java cipher %s to %s", javaCipherSuiteSsl, openSslCipherSuite);
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("mapping java cipher " + javaCipherSuiteTls + " to " + openSslCipherSuite);
+            LOG.fine("mapping java cipher " + javaCipherSuiteSsl + " to " + openSslCipherSuite);
         }
 
         return p2j;
@@ -410,5 +415,6 @@ public final class CipherSuiteConverter {
         return hmacAlgo;
     }
 
-    private CipherSuiteConverter() { }
+    private CipherSuiteConverter() {
+    }
 }

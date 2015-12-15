@@ -33,14 +33,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-
-import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class OpenSSLEngine extends SSLEngine {
 
-    private static final SSLException ENGINE_CLOSED = ROOT_LOGGER.engineClosed();
-    private static final SSLException RENEGOTIATION_UNSUPPORTED = ROOT_LOGGER.renegotiationUnsupported();
-    private static final SSLException ENCRYPTED_PACKET_OVERSIZED = ROOT_LOGGER.oversizedPacket();
+    private static final Logger LOG = Logger.getLogger(OpenSSLEngine.class.getName());
+
+
+    private static final SSLException ENGINE_CLOSED = new SSLException("Engine is closed");
+    private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException("Renegotiation is not supported");
+    private static final SSLException ENCRYPTED_PACKET_OVERSIZED = new SSLException("Oversized packet");
 
     private static final Set<String> AVAILABLE_CIPHER_SUITES;
 
@@ -67,7 +70,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 SSL.freeSSLContext(sslCtx);
             }
         } catch (Exception e) {
-            ROOT_LOGGER.ciphersFailure(e);
+            LOG.log(Level.WARNING, "Failed to initialize ciphers", e);
         }
         AVAILABLE_CIPHER_SUITES = Collections.unmodifiableSet(availableCipherSuites);
     }
@@ -159,7 +162,7 @@ public final class OpenSSLEngine extends SSLEngine {
     OpenSSLEngine(long sslCtx, String fallbackApplicationProtocol,
                   boolean clientMode, OpenSSLSessionContext sessionContext) {
         if (sslCtx == 0) {
-            throw ROOT_LOGGER.noSSLContext();
+            throw new IllegalStateException("No SSL Context");
         }
         ssl = SSL.newSSL(sslCtx, !clientMode);
         networkBIO = SSL.makeNetworkBIO(ssl);
@@ -223,7 +226,7 @@ public final class OpenSSLEngine extends SSLEngine {
             }
         }
 
-        throw ROOT_LOGGER.writeToEngineFailed(sslWrote);
+        throw new IllegalStateException("Write to SSL failed. Error code " + sslWrote);
     }
 
     /**
@@ -345,14 +348,14 @@ public final class OpenSSLEngine extends SSLEngine {
 
         // Throw required runtime exceptions
         if (srcs == null) {
-            throw ROOT_LOGGER.nullBuffer();
+            throw new IllegalArgumentException("Buffer is null");
         }
         if (dst == null) {
-            throw ROOT_LOGGER.nullBuffer();
+            throw new IllegalArgumentException("Buffer is null");
         }
 
         if (offset + length > srcs.length) {
-            throw ROOT_LOGGER.invalidBufferIndex(offset, length, srcs.length);
+            throw new IndexOutOfBoundsException("Invalid offest (" + offset + ") and length (" + length + ") into buffer array of length (" + srcs.length + ")");
         }
 
         if (dst.isReadOnly()) {
@@ -407,7 +410,7 @@ public final class OpenSSLEngine extends SSLEngine {
         for (int i = offset; i < endOffset; ++i) {
             final ByteBuffer src = srcs[i];
             if (src == null) {
-                throw ROOT_LOGGER.nullBuffer();
+                throw new IllegalArgumentException("Buffer is null");
             }
             while (src.hasRemaining()) {
 
@@ -451,13 +454,13 @@ public final class OpenSSLEngine extends SSLEngine {
 
         // Throw requried runtime exceptions
         if (src == null) {
-            throw ROOT_LOGGER.nullBuffer();
+            throw new IllegalArgumentException("Buffer is null");
         }
         if (dsts == null) {
-            throw ROOT_LOGGER.nullBuffer();
+            throw new IllegalArgumentException("Buffer is null");
         }
         if (offset >= dsts.length || offset + length > dsts.length) {
-            throw ROOT_LOGGER.invalidBufferIndex(offset, length, dsts.length);
+            throw new IndexOutOfBoundsException("Invalid offest (" + offset + ") and length (" + length + ") into buffer array of length (" + dsts.length + ")");
         }
 
         int capacity = 0;
@@ -465,7 +468,7 @@ public final class OpenSSLEngine extends SSLEngine {
         for (int i = offset; i < endOffset; i++) {
             ByteBuffer dst = dsts[i];
             if (dst == null) {
-                throw ROOT_LOGGER.nullBuffer();
+                throw new IllegalArgumentException("Buffer is null");
             }
             if (dst.isReadOnly()) {
                 throw new ReadOnlyBufferException();
@@ -518,7 +521,9 @@ public final class OpenSSLEngine extends SSLEngine {
             long error = SSL.getLastErrorNumber();
             if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getErrorString(error);
-                ROOT_LOGGER.debugf("Read from SSL failed error: (%s) read result:(%s) error string: %s", error, lastPrimingReadResult, err);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Read from SSL failed error: (" + error + ") read result:(" + lastPrimingReadResult + ") error string: " + err);
+                }
                 // There was an internal error -- shutdown
                 shutdown();
                 throw new SSLException(err);
@@ -606,7 +611,7 @@ public final class OpenSSLEngine extends SSLEngine {
         shutdown();
 
         if (accepted != 0 && !receivedShutdown) {
-            throw ROOT_LOGGER.inboundClosed();
+            throw new SSLException("Inbound is closed");
         }
     }
 
@@ -665,7 +670,7 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public void setEnabledCipherSuites(String[] cipherSuites) {
         if (cipherSuites == null) {
-            throw ROOT_LOGGER.nullCypherSuites();
+            throw new IllegalArgumentException("Null cypher suites");
         }
         final StringBuilder buf = new StringBuilder();
         for (String cipherSuite : cipherSuites) {
@@ -677,7 +682,9 @@ public final class OpenSSLEngine extends SSLEngine {
                 cipherSuite = converted;
             }
             if (!AVAILABLE_CIPHER_SUITES.contains(cipherSuite)) {
-                ROOT_LOGGER.debugf("Unsupported cypher suite %s(%s), available %s", cipherSuite, converted, AVAILABLE_CIPHER_SUITES);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + AVAILABLE_CIPHER_SUITES);
+                }
             }
 
             buf.append(cipherSuite);
@@ -685,7 +692,7 @@ public final class OpenSSLEngine extends SSLEngine {
         }
 
         if (buf.length() == 0) {
-            throw ROOT_LOGGER.emptyCypherSuiteList();
+            throw new IllegalArgumentException("Empty cypher suite list");
         }
         buf.setLength(buf.length() - 1);
 
@@ -693,7 +700,7 @@ public final class OpenSSLEngine extends SSLEngine {
         try {
             SSL.setCipherSuites(ssl, cipherSuiteSpec);
         } catch (Exception e) {
-            throw ROOT_LOGGER.failedCypherSuite(e, cipherSuiteSpec);
+            throw new IllegalStateException("Failed cypher suite " + cipherSuiteSpec, e);
         }
     }
 
@@ -744,7 +751,7 @@ public final class OpenSSLEngine extends SSLEngine {
         boolean tlsv1_2 = false;
         for (String p : protocols) {
             if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
-                throw ROOT_LOGGER.unsupportedProtocol(p);
+                throw new IllegalArgumentException("Unsupported protocol " + p);
             }
             if (p.equals(SSL.SSL_PROTO_SSLv2)) {
                 sslv2 = true;
@@ -851,7 +858,9 @@ public final class OpenSSLEngine extends SSLEngine {
             long error = SSL.getLastErrorNumber();
             if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getErrorString(error);
-                ROOT_LOGGER.debugf("Engine handshake failure %s", err);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Engine handshake failure " + err);
+                }
                 // There was an internal error -- shutdown
                 shutdown();
                 throw new SSLException(err);
@@ -862,7 +871,7 @@ public final class OpenSSLEngine extends SSLEngine {
             handshakeFinished = true;
 
             ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.remove(OpenSSLEngine.this);
-            if(provider != null) {
+            if (provider != null) {
                 provider.unsupported();
             }
         }
@@ -876,7 +885,9 @@ public final class OpenSSLEngine extends SSLEngine {
             long error = SSL.getLastErrorNumber();
             if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getErrorString(error);
-                ROOT_LOGGER.debugf("Renegotiation failure %s", err);
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine("Renegotiation failure " + err);
+                }
                 // There was an internal error -- shutdown
                 shutdown();
                 throw new SSLException(err);
@@ -1080,13 +1091,13 @@ public final class OpenSSLEngine extends SSLEngine {
         }
         if (!orderCiphersSupported) {
             // OpenSSL does not support ciphers ordering.
-            ROOT_LOGGER.noHonorCipherOrder();
+            LOG.fine("The version of SSL in use does not support cipher ordering");
         }
 
         int value = 0;
-        if(sslParameters.getNeedClientAuth()) {
+        if (sslParameters.getNeedClientAuth()) {
             value = SSL.SSL_CVERIFY_REQUIRE;
-        } else if(sslParameters.getWantClientAuth()) {
+        } else if (sslParameters.getWantClientAuth()) {
             value = SSL.SSL_CVERIFY_OPTIONAL;
         } else {
             value = SSL.SSL_CVERIFY_NONE;

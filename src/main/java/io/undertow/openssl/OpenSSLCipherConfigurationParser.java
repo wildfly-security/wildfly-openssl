@@ -28,11 +28,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class in charge with parsing openSSL expressions to define a list of ciphers.
  */
 public class OpenSSLCipherConfigurationParser {
+
+    private static final Logger LOG = Logger.getLogger(OpenSSLCipherConfigurationParser.class.getName());
 
     private static boolean initialized = false;
 
@@ -638,7 +642,7 @@ public class OpenSSLCipherConfigurationParser {
                 if (aliases.containsKey(alias)) {
                     removedCiphers.addAll(aliases.get(alias));
                 } else {
-                    OpenSSLLogger.ROOT_LOGGER.unknownElement(alias);
+                    LOG.warning("Unknown element " + alias);
                 }
             } else if (element.startsWith(TO_END)) {
                 String alias = element.substring(1);
@@ -672,8 +676,8 @@ public class OpenSSLCipherConfigurationParser {
         for (Cipher cipher : ciphers) {
             result.addAll(cipher.getJsseNames());
         }
-        if (OpenSSLLogger.ROOT_LOGGER.isDebugEnabled()) {
-            OpenSSLLogger.ROOT_LOGGER.debugf("Effective cyphers %s", displayResult(ciphers, true, ","));
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("Effective cyphers " + displayResult(ciphers, true, ","));
         }
         return result;
     }

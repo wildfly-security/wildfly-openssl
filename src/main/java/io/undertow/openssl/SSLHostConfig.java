@@ -20,11 +20,14 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Represents the TLS configuration for a virtual host.
  */
 public class SSLHostConfig {
+
+    private static final Logger LOG = Logger.getLogger(SSLHostConfig.class.getName());
 
     protected static final String DEFAULT_SSL_HOST_NAME = "_default_";
     protected static final Set<String> SSL_PROTO_ALL = new HashSet<>();
@@ -202,7 +205,7 @@ public class SSLHostConfig {
 
         // Split using a positive lookahead to keep the separator in
         // the capture so we can check which case it is.
-        for (String value: input.split("(?=[-+,])")) {
+        for (String value : input.split("(?=[-+,])")) {
             String trimmed = value.trim();
             // Ignore token which only consists of prefix character
             if (trimmed.length() > 1) {
@@ -225,7 +228,7 @@ public class SSLHostConfig {
                         trimmed = trimmed.substring(1).trim();
                     }
                     if (!protocols.isEmpty()) {
-                        OpenSSLLogger.ROOT_LOGGER.prefixMissing(trimmed, getHostName());
+                        LOG.warning("Prefix missing when parsing SSL config hostname:" + trimmed + " string:" + getHostName());
                     }
                     if (trimmed.equalsIgnoreCase(SSL.SSL_PROTO_ALL)) {
                         protocols.addAll(SSL_PROTO_ALL);
@@ -326,7 +329,7 @@ public class SSLHostConfig {
                 // Could be a typo. Don't default to NONE since that is not
                 // secure. Force user to fix config. Could default to REQUIRED
                 // instead.
-                throw OpenSSLLogger.ROOT_LOGGER.invalidOption(value);
+                throw new IllegalArgumentException("Invalid option " + value);
             }
         }
     }

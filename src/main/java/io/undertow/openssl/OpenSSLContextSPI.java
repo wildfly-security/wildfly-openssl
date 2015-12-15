@@ -50,10 +50,12 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-
-import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class OpenSSLContextSPI extends SSLContextSpi {
+
+    private static final Logger LOG = Logger.getLogger(OpenSSLContextSPI.class.getName());
 
     public static final int DEFAULT_SESSION_CACHE_SIZE = 1000;
 
@@ -105,7 +107,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
                 // the AprLifecycleListener settings from here
-                throw ROOT_LOGGER.failedToMakeSSLContext(e);
+                throw new SSLException("Failed to make SSL context", e);
             }
             try {
                 //disable unsafe renegotiation
@@ -125,7 +127,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 // Ignore
             }
             if (!disableCompressionSupported) {
-                ROOT_LOGGER.noDisableCompression();
+                LOG.fine("The version of SSL in use does not support disabling compression");
             }
 
             // Disable TLS Session Tickets (RFC4507) to protect perfect forward secrecy
@@ -140,10 +142,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
             if (!disableSessionTicketsSupported) {
                 // OpenSSL is too old to support TLS Session Tickets.
-                ROOT_LOGGER.noDisableSessionTickets();
+                LOG.fine("The version of SSL in use does not support disabling session tickets");
             }
         } catch (Exception e) {
-            throw ROOT_LOGGER.failedToInitialiseSSLContext(e);
+            throw new RuntimeException( "Failed to initialise OpenSSL context", e);
         }
 
     }
@@ -157,7 +159,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
      */
     private synchronized void init(KeyManager[] kms, TrustManager[] tms) throws KeyManagementException {
         if (initialized) {
-            ROOT_LOGGER.initCalledMultipleTimes();
+            LOG.warning("Ignoring second invocation of init() method");
             return;
         }
 
@@ -165,7 +167,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
             if (keyManager == null) {
-                throw OpenSSLLogger.ROOT_LOGGER.couldNotFindSuitableKeyManger();
+                throw new IllegalArgumentException("could not find suitable trust manager");
             }
             boolean oneFound = false;
             for (String algorithm : ALGORITHMS) {
@@ -174,7 +176,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 if (aliases != null && aliases.length != 0) {
                     oneFound = true;
                     String alias = aliases[0];
-                    ROOT_LOGGER.debugf("Using alias %s", alias);
+                    if(LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Using alias " + alias);
+                    }
 
                     X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
                     PrivateKey key = keyManager.getPrivateKey(alias);
@@ -186,7 +190,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
 
             if (!oneFound) {
-                throw ROOT_LOGGER.couldNotExtractAliasFromKeyManager();
+                throw new IllegalStateException("KeyManager does not contain a valid certificates");
             }
             /*
             // Support Client Certificates
@@ -213,7 +217,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                             manager.checkClientTrusted(peerCerts, auth);
                             return true;
                         } catch (Exception e) {
-                            ROOT_LOGGER.debug("Certificate verification failed", e);
+                            if(LOG.isLoggable(Level.FINE)) {
+                                LOG.log(Level.FINE, "Certificate verification failed", e);
+                            }
                         }
                         return false;
                     }
@@ -239,7 +245,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 return (X509KeyManager) tm;
             }
         }
-        throw ROOT_LOGGER.keyManagerMissing();
+        throw new IllegalStateException("Key manager is missing");
     }
 
     static X509TrustManager chooseTrustManager(TrustManager[] managers) {
@@ -248,7 +254,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 return (X509TrustManager) m;
             }
         }
-        throw ROOT_LOGGER.trustManagerMissing();
+        throw new IllegalStateException("Trust manager is missing");
     }
 
     private static X509Certificate[] certificates(byte[][] chain) {
@@ -330,12 +336,12 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     @Override
     protected SSLSocketFactory engineGetSocketFactory() {
-        throw ROOT_LOGGER.unsupportedMethod();
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
     protected SSLServerSocketFactory engineGetServerSocketFactory() {
-        throw ROOT_LOGGER.unsupportedMethod();
+        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override

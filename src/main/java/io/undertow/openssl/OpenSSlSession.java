@@ -12,8 +12,6 @@ import java.security.cert.Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.undertow.openssl.OpenSSLLogger.ROOT_LOGGER;
-
 /**
  * @author Stuart Douglas
  */
@@ -83,10 +81,10 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized void putValue(String name, Object value) {
         if (name == null) {
-            throw ROOT_LOGGER.nullName();
+            throw new IllegalArgumentException("Name was null");
         }
         if (value == null) {
-            throw ROOT_LOGGER.nullValue();
+            throw new IllegalArgumentException("Value was null");
         }
         Map<String, Object> values = this.values;
         if (values == null) {
@@ -103,7 +101,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized Object getValue(String name) {
         if (name == null) {
-            throw ROOT_LOGGER.nullName();
+            throw new IllegalArgumentException("Name was null");
         }
         if (values == null) {
             return null;
@@ -114,7 +112,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized void removeValue(String name) {
         if (name == null) {
-            throw ROOT_LOGGER.nullName();
+            throw new IllegalArgumentException("Name was null");
         }
         Map<String, Object> values = this.values;
         if (values == null) {
@@ -142,7 +140,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         if (peerCerts == null) {
-            throw ROOT_LOGGER.unverifiedPeer();
+            throw new SSLPeerUnverifiedException("Unverified Peer");
         }
         return peerCerts;
     }
@@ -156,7 +154,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
         if (x509PeerCerts == null) {
-            throw ROOT_LOGGER.unverifiedPeer();
+            throw new SSLPeerUnverifiedException("Unverified Peer");
         }
         return x509PeerCerts;
     }
