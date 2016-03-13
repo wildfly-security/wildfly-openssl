@@ -1019,13 +1019,13 @@ public final class OpenSSLEngine extends SSLEngine {
             }
             switch (mode) {
                 case NONE:
-                    SSL.setVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
+                    SSL.setSSLVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
                     break;
                 case REQUIRE:
-                    SSL.setVerify(ssl, SSL.SSL_CVERIFY_REQUIRE, VERIFY_DEPTH);
+                    SSL.setSSLVerify(ssl, SSL.SSL_CVERIFY_REQUIRE, VERIFY_DEPTH);
                     break;
                 case OPTIONAL:
-                    SSL.setVerify(ssl, SSL.SSL_CVERIFY_OPTIONAL, VERIFY_DEPTH);
+                    SSL.setSSLVerify(ssl, SSL.SSL_CVERIFY_OPTIONAL, VERIFY_DEPTH);
                     break;
             }
             clientAuth = mode;
@@ -1081,9 +1081,9 @@ public final class OpenSSLEngine extends SSLEngine {
             orderCiphersSupported = SSL.hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
             if (orderCiphersSupported) {
                 if (sslParameters.getUseCipherSuitesOrder()) {
-                    SSL.setSSLContextOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                    SSL.setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 } else {
-                    SSL.clearSSLContextOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                    SSL.setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 }
             }
         } catch (UnsatisfiedLinkError e) {

@@ -237,48 +237,7 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     return ok;
 }
 
-
-UT_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl,
-                                                jint level, jint depth)
-{
-    SSL *c = J2P(ssl, SSL *);
-
-    ALL BROKEN!!
-
-    int verify = SSL_VERIFY_NONE;
-
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    c->verify_mode = level;
-
-    if (c->verify_mode == SSL_CVERIFY_UNSET)
-        c->verify_mode = SSL_CVERIFY_NONE;
-    if (depth > 0)
-        c->verify_depth = depth;
-    /*
-     *  Configure callbacks for SSL context
-     */
-    if (c->verify_mode == SSL_CVERIFY_REQUIRE)
-        verify |= SSL_VERIFY_PEER_STRICT;
-    if ((c->verify_mode == SSL_CVERIFY_OPTIONAL) ||
-        (c->verify_mode == SSL_CVERIFY_OPTIONAL_NO_CA))
-        verify |= SSL_VERIFY_PEER;
-    if (!c->store) {
-        if (ssl_methods.SSL_CTX_set_default_verify_paths(c->ctx)) {
-            c->store = ssl_methods.SSL_CTX_get_cert_store(c->ctx);
-            crypto_methods.X509_STORE_set_flags(c->store, 0);
-        }
-        else {
-            /* XXX: See if this is fatal */
-        }
-    }
-    //TODO: fix this
-    ssl_methods.SSL_CTX_set_verify(c->ctx, verify, SSL_callback_SSL_verify);
-}
-
-
-
-UT_OPENSSL(void, setVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint depth)
+UT_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint depth)
 {
     tcn_ssl_ctxt_t *c;
     int verify;

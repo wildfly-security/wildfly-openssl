@@ -773,13 +773,13 @@ UT_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-    ssl_methods.SSL_CTX_ctrl(c,SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
 }
 
 UT_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
                                                  jint opt)
 {
-    SSL *c = J2P(ssl, SSL *)
+    SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
@@ -788,18 +788,17 @@ UT_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
     if (opt & 0x00040000)
         opt &= ~0x00040000;
 //#endif
-	ssl_methods.
-    SSL *c = J2P(ssl, SSL *)(c,SSL_CTRL_OPTIONS,(opt),NULL);
+    ssl_methods.SSL_ctrl(c,SSL_CTRL_OPTIONS,(opt),NULL);
 }
 
 UT_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
                                                    jint opt)
 {
-    SSL *c = J2P(ssl, SSL *)
+    SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-    ssl_methods.SSL_ctrl((c->ctx),SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    ssl_methods.SSL_ctrl(c,SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
 }
 
 UT_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx,
