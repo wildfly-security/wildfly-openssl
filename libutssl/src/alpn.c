@@ -126,7 +126,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
     }
     //now we allocate an array
     jobjectArray array = (*e)->NewObjectArray(e, count, stringClass, NULL);
-    jobject nativeArray[count];
+	jobject *nativeArray = malloc(count * sizeof(jobject));
     p = in;
     end = in + inlen;
     int c = 0;
@@ -149,6 +149,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
     if(result == NULL) {
         (*javavm)->DetachCurrentThread(javavm);
+		free(nativeArray);
         return SSL_TLSEXT_ERR_NOACK;
     }
 
@@ -166,6 +167,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
                 *out = proto;
                 *outlen = proto_len;
                 (*javavm)->DetachCurrentThread(javavm);
+				free(nativeArray);
                 return SSL_TLSEXT_ERR_OK;
             }
         }
@@ -175,6 +177,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
     //it did not return a valid response
     (*javavm)->DetachCurrentThread(javavm);
+	free(nativeArray);
     return SSL_TLSEXT_ERR_NOACK;
 
 }

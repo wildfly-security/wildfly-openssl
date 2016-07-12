@@ -253,7 +253,6 @@ UT_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint
     verify = SSL_VERIFY_NONE;
 
     UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
     c->verify_mode = level;
 
     if (c->verify_mode == SSL_CVERIFY_UNSET)

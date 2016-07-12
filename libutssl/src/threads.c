@@ -24,7 +24,9 @@ extern crypto_dynamic_methods crypto_methods;
 #ifdef WIN32
 #define ssl_lock_type HANDLE
 static HANDLE* ssl_lock_cs;
-struct CRYPTO_dynlock_value = todo;
+struct CRYPTO_dynlock_value {
+	HANDLE mutex;
+};
 #else
 #define ssl_lock_type pthread_mutex_t
 static pthread_mutex_t* ssl_lock_cs;
@@ -44,14 +46,16 @@ static void ssl_thread_lock(int mode, int type,
     if (type < ssl_lock_num_locks) {
         if (mode & CRYPTO_LOCK) {
 #ifdef WIN32
-            todo
+			WaitForSingleObject(
+				&ssl_lock_cs[type],    // handle to mutex
+				INFINITE);  // no time-out interval
 #else
             pthread_mutex_lock(&ssl_lock_cs[type]);
 #endif
         }
         else {
 #ifdef WIN32
-            todo
+			ReleaseMutex(&ssl_lock_cs[type]);
 #else
             pthread_mutex_unlock(&ssl_lock_cs[type]);
 #endif
@@ -87,7 +91,11 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
 {
     struct CRYPTO_dynlock_value *value;
     #ifdef WIN32
-    todo
+	value = malloc(sizeof(*value));
+	value->mutex = CreateMutex(
+		NULL,              // default security attributes
+		FALSE,             // initially not owned
+		NULL);             // unnamed mutex
     #else
         value = malloc(sizeof(*value));
         if(value == NULL) {
@@ -112,14 +120,16 @@ static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
 {
     if (mode & CRYPTO_LOCK) {
 #ifdef WIN32
-            todo
+		WaitForSingleObject(
+			&(l->mutex),    // handle to mutex
+			INFINITE);  // no time-out interval
 #else
         pthread_mutex_lock(&(l->mutex));
 #endif
     }
     else {
 #ifdef WIN32
-        todo
+		ReleaseMutex(&(l->mutex));
 #else
         pthread_mutex_unlock(&(l->mutex));
 #endif
@@ -134,7 +144,7 @@ static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
 {
 
 #ifdef WIN32
-            todo
+	ReleaseMutex(&(l->mutex));
 #else
     pthread_mutex_destroy(&(l->mutex));
     free(l);
@@ -147,8 +157,8 @@ void ssl_thread_setup()
     ssl_lock_cs = malloc(ssl_lock_num_locks * sizeof(ssl_lock_type));
 
     for (i = 0; i < ssl_lock_num_locks; i++) {
-#ifdef WINDOWS
-        todo
+#ifdef WIN32
+		CloseHandle(&ssl_lock_cs[i]);
 #else
          pthread_mutex_init(&ssl_lock_cs[i], 0);
 #endif

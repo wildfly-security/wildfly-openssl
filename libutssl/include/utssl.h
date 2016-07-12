@@ -25,6 +25,18 @@
 
 #define _GNU_SOURCE
 
+/* platform dependent code */
+#ifdef WIN32
+#include <windows.h>
+#define LLT(X) (X)
+#else
+#include <pthread.h>
+#define LLT(X) ((long)(X))
+
+#include <unistd.h>
+#include <dlfcn.h>
+#endif
+
 
 /* openssl is deprecated on OSX
    this pragma directive is requires to build it
@@ -48,18 +60,6 @@
 #define TCN_ASSERT(x) (void)0
 #endif
 
-/* platform dependent code */
-#ifdef WIN32
-
-todo: windows threads
-#define LLT(X) (X)
-
-#else
-
-#include <pthread.h>
-#define LLT(X) ((long)(X))
-
-#endif
 
 
 #define P2J(P)          ((jlong)LLT(P))
@@ -266,8 +266,6 @@ typedef struct {
 
 typedef struct {
     SSL_CTX         *ctx;
-    BIO             *bio_os;
-    BIO             *bio_is;
 
     unsigned char   context_id[SHA_DIGEST_LENGTH];
 

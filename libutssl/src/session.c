@@ -155,12 +155,7 @@ UT_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArr
     jbyte* b;
 
     if ((*e)->GetArrayLength(e, keys) != TICKET_KEYS_SIZE) {
-        if (c->bio_os) {
-            crypto_methods.BIO_printf(c->bio_os, "[ERROR] Session ticket keys provided were wrong size.");
-        }
-        else {
-            fprintf(stderr, "[ERROR] Session ticket keys provided were wrong size.");
-        }
+        fprintf(stderr, "[ERROR] Session ticket keys provided were wrong size.");
         exit(1);
     }
 

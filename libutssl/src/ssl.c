@@ -1,7 +1,9 @@
 
 #include "utssl.h"
 
-#include <dlfcn.h>
+#ifdef WIN32
+#include <openssl\applink.c>
+#endif
 
 
 #if defined(SSL_OP_NO_TLSv1_1)
@@ -15,13 +17,21 @@
 #ifdef __APPLE__
 #define LIBCRYPTO_NAME "libcrypto.dylib"
 #else
+#ifdef WIN32
+#define LIBCRYPTO_NAME "libeay32.dll"
+#else
 #define LIBCRYPTO_NAME "libcrypto"
+#endif
 #endif
 
 #ifdef __APPLE__
 #define LIBSSL_NAME "libssl.dylib"
 #else
+#ifdef WIN32
+#define LIBSSL_NAME "libssl32.dll"
+#else
 #define LIBSSL_NAME "libssl"
+#endif
 #endif
 
 static int ssl_initialized = 0;
@@ -190,13 +200,61 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
     return SSL_TLSEXT_ERR_OK;
 }
 
+#ifdef WIN32
+
+#define REQUIRE_SYMBOL(handle, symb, target) target = GetProcAddress(handle, #symb); if(target == 0) { throwIllegalStateException(e, "Could not load required symbol from" #handle " " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = GetProcAddress(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define GET_SSL_SYMBOL(symb) ssl_methods.symb = GetProcAddress(ssl, #symb);
+#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = GetProcAddress(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define GET_CRYPTO_SYMBOL(symb)  crypto_methods.symb = GetProcAddress(crypto, #symb);
+
+#else
+
 #define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
 #define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 #define GET_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb);
 
+#endif
+
 int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 
+#ifdef WIN32
+	HMODULE crypto, ssl;
+
+    if(path == NULL) {
+	    crypto = LoadLibrary(LIBCRYPTO_NAME);
+	} else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
+        crypto = LoadLibrary(full);
+        free(full);
+	}
+    if( crypto == NULL ) {
+        throwIllegalStateException(e, "Could not load libeay32.dll");
+        return 1;
+    }
+    REQUIRE_SYMBOL(crypto, SSLeay, ssl_methods.SSLeay);
+    if(path == NULL) {
+	    ssl = LoadLibrary(LIBSSL_NAME);
+	} else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
+        ssl = LoadLibrary(full);
+        free(full);
+    }
+
+    if( ssl == NULL ) {
+        throwIllegalStateException(e, "Could not load libssl32.dll");
+        return 1;
+    }
+#else
     void * ssl;
     if(path == NULL) {
         ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
@@ -207,8 +265,32 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         strncpy(full, path, size);
         strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
         ssl = dlopen(full, RTLD_LAZY);
+        free(full);
+    }
+
+    void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
+    if(path == NULL) {
+        crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
+    } else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
+        crypto = dlopen(full, RTLD_LAZY);
+        free(full);
+    }
+    if( ssl == NULL ) {
+        throwIllegalStateException(e, "Could not load libssl");
+        return 1;
+    }
+    if( crypto == NULL ) {
+        throwIllegalStateException(e, "Could not load libcrypto");
+        return 1;
     }
     REQUIRE_SSL_SYMBOL(SSLeay);
+#endif
+
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
     REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_CTX_check_private_key);
@@ -298,19 +380,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     GET_SSL_SYMBOL(TLS_method);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
-    void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
-    if(path == NULL) {
-        crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
-    } else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
-        crypto = dlopen(full, RTLD_LAZY);
-    }
-
-
     REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl_pending);
@@ -377,7 +446,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(X509_free);
     GET_CRYPTO_SYMBOL(ENGINE_load_builtin_engines);
     
-
 
     dhparams[0].prime = crypto_methods.get_rfc3526_prime_8192;
 
@@ -544,9 +612,6 @@ UT_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    c->bio_os   = crypto_methods.BIO_new(crypto_methods.BIO_s_file());
-    if (c->bio_os != NULL)
-        crypto_methods.BIO_ctrl(c->bio_os,BIO_C_SET_FILE_PTR,BIO_NOCLOSE | BIO_FP_TEXT,(char *)stderr);
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_ALL),NULL);
     /* always disable SSLv2, as per RFC 6176 */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv2),NULL);
@@ -719,14 +784,6 @@ UT_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
                 c->keys[i] = NULL;
             }
         }
-        if (c->bio_is) {
-            SSL_BIO_close(c->bio_is);
-            c->bio_is = NULL;
-        }
-        if (c->bio_os) {
-            SSL_BIO_close(c->bio_os);
-            c->bio_os = NULL;
-        }
 
         if (c->verifier) {
             JNIEnv *e;
@@ -782,7 +839,6 @@ UT_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
     SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
 //#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
     /* Clear the flag if not supported */
     if (opt & 0x00040000)
@@ -797,7 +853,6 @@ UT_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
     SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
-    TCN_ASSERT(ctx != 0);
     ssl_methods.SSL_ctrl(c,SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
 }
 
@@ -940,18 +995,10 @@ UT_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
              * Give a warning when no CAs were configured but client authentication
              * should take place. This cannot work.
              */
-            if (c->bio_os) {
-                crypto_methods.BIO_printf(c->bio_os,
-                            "[WARN] Oops, you want to request client "
-                            "authentication, but no CAs are known for "
-                            "verification!?");
-            }
-            else {
-                fprintf(stderr,
-                        "[WARN] Oops, you want to request client "
-                        "authentication, but no CAs are known for "
-                        "verification!?");
-            }
+            fprintf(stderr,
+                    "[WARN] Oops, you want to request client "
+                    "authentication, but no CAs are known for "
+                    "verification!?");
 
         }
     }

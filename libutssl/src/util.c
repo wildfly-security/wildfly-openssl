@@ -2,7 +2,6 @@
 #include "utssl.h"
 
 
-#include <unistd.h>
 
 static JavaVM     *tcn_global_vm = NULL;
 
