@@ -79,8 +79,6 @@ public class BasicOpenSSLTest {
 
         try {
 
-            final SSLHostConfig sslHostConfig = new SSLHostConfig();
-            sslHostConfig.setCertificateVerificationDepth(100);
             final SSLContext context = SSLContext.getInstance("openssl.TLSv1");
             context.init(keyManagers, trustManagers, new SecureRandom());
             return context;
