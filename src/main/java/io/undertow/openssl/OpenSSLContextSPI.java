@@ -17,24 +17,10 @@
 package io.undertow.openssl;
 
 
-import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContextSpi;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSessionContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509KeyManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -52,6 +38,22 @@ import java.util.Base64;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContextSpi;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSessionContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 
 public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
@@ -145,7 +147,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 LOG.fine("The version of SSL in use does not support disabling session tickets");
             }
         } catch (Exception e) {
-            throw new RuntimeException( "Failed to initialise OpenSSL context", e);
+            throw new RuntimeException("Failed to initialise OpenSSL context", e);
         }
 
     }
@@ -176,14 +178,14 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 if (aliases != null && aliases.length != 0) {
                     oneFound = true;
                     String alias = aliases[0];
-                    if(LOG.isLoggable(Level.FINE)) {
+                    if (LOG.isLoggable(Level.FINE)) {
                         LOG.fine("Using alias " + alias);
                     }
 
                     X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
                     PrivateKey key = keyManager.getPrivateKey(alias);
                     StringBuilder sb = new StringBuilder(BEGIN_CERT);
-                    sb.append(Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(key.getEncoded()));
+                    sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
                     sb.append(END_CERT);
                     SSL.setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                 }
@@ -217,7 +219,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                             manager.checkClientTrusted(peerCerts, auth);
                             return true;
                         } catch (Exception e) {
-                            if(LOG.isLoggable(Level.FINE)) {
+                            if (LOG.isLoggable(Level.FINE)) {
                                 LOG.log(Level.FINE, "Certificate verification failed", e);
                             }
                         }
@@ -271,14 +273,6 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     public SSLEngine createSSLEngine() {
         return new OpenSSLEngine(ctx, defaultProtocol, false, sessionContext);
-    }
-
-    public SSLServerSocketFactory getServerSocketFactory() {
-        throw new UnsupportedOperationException();
-    }
-
-    public SSLParameters getSupportedSSLParameters() {
-        throw new UnsupportedOperationException();
     }
 
     /**
@@ -336,7 +330,47 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     @Override
     protected SSLSocketFactory engineGetSocketFactory() {
-        throw new UnsupportedOperationException("method not supported");
+        return new SSLSocketFactory() {
+            @Override
+            public String[] getDefaultCipherSuites() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public String[] getSupportedCipherSuites() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Socket createSocket() throws IOException {
+                return new OpenSSLSocket(new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+            }
+
+            @Override
+            public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+            }
+
+            @Override
+            public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
+                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+            }
+
+            @Override
+            public Socket createSocket(InetAddress host, int port) throws IOException {
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+            }
+
+            @Override
+            public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+            }
+        };
     }
 
     @Override
