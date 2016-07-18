@@ -405,6 +405,7 @@ typedef struct {
     int (*SSL_shutdown)(SSL *s);
     int (*SSL_state)(const SSL *ssl);
     int (*SSL_write)(SSL *ssl, const void *buf, int num);
+    int (*SSL_get_error)(const SSL *ssl, int ret);
     const SSL_METHOD *(*SSLv23_client_method)(void);
     const SSL_METHOD *(*SSLv23_method)(void);
     const SSL_METHOD *(*SSLv23_server_method)(void);

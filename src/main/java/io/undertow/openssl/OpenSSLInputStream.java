@@ -26,6 +26,6 @@ class OpenSSLInputStream extends InputStream {
 
     @Override
     public int read(byte[] b) throws IOException {
-        return socket.read(b);
+        return socket.read(b, 0, b.length);
     }
 }

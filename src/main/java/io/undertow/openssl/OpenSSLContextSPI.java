@@ -104,7 +104,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         try {
             // Create SSL Context
             try {
-                ctx = SSL.makeSSLContext(value, SSL.SSL_MODE_SERVER);
+                ctx = SSL.makeSSLContext(value, SSL.SSL_MODE_COMBINED);
             } catch (Exception e) {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check

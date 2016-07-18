@@ -420,7 +420,7 @@ class SSL {
      */
     static native int doHandshake(long ssl);
 
-
+    static native int getSSLError(long ssl, int code);
     /**
      * SSL_renegotiate
      * @param ssl the SSL instance (SSL *)

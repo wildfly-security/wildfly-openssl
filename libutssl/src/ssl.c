@@ -309,6 +309,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_remove_cb);
+    REQUIRE_SSL_SYMBOL(SSL_get_error);
     GET_SSL_SYMBOL(SSL_CTX_set_alpn_protos);
     GET_SSL_SYMBOL(SSL_CTX_set_alpn_select_cb);
     GET_SSL_SYMBOL(SSL_get0_alpn_selected);
@@ -1391,6 +1392,14 @@ UT_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     return ssl_methods.SSL_do_handshake(ssl_);
 }
 
+
+UT_OPENSSL(jint, getSSLError)(JNIEnv *e, jobject o, jlong ssl, jlong code)
+{
+    const SSL *ssl_ = J2P(ssl, SSL *);
+    UNREFERENCED(o);
+    return ssl_methods.SSL_get_error(ssl_, code);
+}
+
 UT_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
@@ -1407,8 +1416,6 @@ UT_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
 UT_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o) {
     return crypto_methods.ERR_get_error();
 }
-
-
 
 UT_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o,
                                                                      jlong bio /* BIO * */) {
