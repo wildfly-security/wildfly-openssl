@@ -227,7 +227,6 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     }
                 });
             }
-            String[] protos = new OpenSSLProtocols(enabledProtocol).getProtocols();
 
             sessionContext = new OpenSSLServerSessionContext(ctx);
             sessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
@@ -348,7 +347,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-                throw new UnsupportedOperationException();
+                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
             }
 
             @Override

@@ -7,8 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.HandshakeCompletedEvent;
@@ -35,11 +39,17 @@ public class OpenSSLSocket extends SSLSocket {
 
     private boolean handshakeDone = false;
 
+    private final Socket delegate;
+
+    private final boolean autoclose;
+
     protected OpenSSLSocket(SSLEngine sslEngine) {
         super();
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
+        delegate = this;
+        this.autoclose = true;
     }
 
     protected OpenSSLSocket(String host, int port, SSLEngine sslEngine) throws IOException, UnknownHostException {
@@ -47,6 +57,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
+        delegate = this;
+        this.autoclose = true;
     }
 
     protected OpenSSLSocket(InetAddress address, int port, SSLEngine sslEngine) throws IOException {
@@ -54,6 +66,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
+        delegate = this;
+        this.autoclose = true;
     }
 
     protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException, UnknownHostException {
@@ -61,6 +75,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
+        delegate = this;
+        this.autoclose = true;
     }
 
     protected OpenSSLSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException {
@@ -68,6 +84,53 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
+        delegate = this;
+        this.autoclose = true;
+    }
+
+    protected OpenSSLSocket(Socket socket, boolean autoclose, SSLEngine sslEngine) {
+        super();
+        this.sslEngine = sslEngine;
+        this.sslOut = new OpenSSLOutputStream(this);
+        this.sslIn = new OpenSSLInputStream(this);
+        this.delegate = socket;
+        this.autoclose = autoclose;
+    }
+
+    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, SSLEngine sslEngine) throws IOException, UnknownHostException {
+        super(host, port);
+        this.sslEngine = sslEngine;
+        this.sslOut = new OpenSSLOutputStream(this);
+        this.sslIn = new OpenSSLInputStream(this);
+        this.delegate = socket;
+        this.autoclose = autoclose;
+    }
+
+    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, SSLEngine sslEngine) throws IOException {
+        super(address, port);
+        this.sslEngine = sslEngine;
+        this.sslOut = new OpenSSLOutputStream(this);
+        this.sslIn = new OpenSSLInputStream(this);
+        this.delegate = socket;
+        this.autoclose = autoclose;
+    }
+
+    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException, UnknownHostException {
+        super(host, port, clientAddress, clientPort);
+        this.sslEngine = sslEngine;
+        this.sslOut = new OpenSSLOutputStream(this);
+        this.sslIn = new OpenSSLInputStream(this);
+        this.delegate = socket;
+        this.autoclose = autoclose;
+    }
+
+    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException {
+        super(address, port, clientAddress, clientPort);
+        this.sslEngine = sslEngine;
+        this.sslOut = new OpenSSLOutputStream(this);
+        this.sslIn = new OpenSSLInputStream(this);
+        this.delegate = socket;
+        this.autoclose = autoclose;
     }
 
     @Override
@@ -203,7 +266,11 @@ public class OpenSSLSocket extends SSLSocket {
             dataToUnwrap.close();
             dataToUnwrap = null;
         }
-        super.close();
+        if (delegate == this) {
+            super.close();
+        } else {
+            delegate.close();
+        }
     }
 
     private void runHandshake() throws IOException {
@@ -226,14 +293,14 @@ public class OpenSSLSocket extends SSLSocket {
                             ByteBuffer ind = indirectPooled.getBuffer();
                             ind.put(buffer);
                             ind.flip();
-                            super.getOutputStream().write(ind.array(), ind.arrayOffset() + ind.position(), ind.remaining());
+                            getDelegateOutputStream().write(ind.array(), ind.arrayOffset() + ind.position(), ind.remaining());
                         }
                     }
                 } else {
                     try (DefaultByteBufferPool.PooledByteBuffer indirectPooled = INDIRECT_POOL.allocate()) {
                         int readOffset = 0;
                         for (; ; ) {
-                            int read = super.getInputStream().read(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + readOffset, indirectPooled.getBuffer().remaining());
+                            int read = getDelegateInputStream().read(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + readOffset, indirectPooled.getBuffer().remaining());
                             readOffset += read;
                             if (read > 0) {
                                 indirectPooled.getBuffer().limit(readOffset);
@@ -284,6 +351,13 @@ public class OpenSSLSocket extends SSLSocket {
 
     }
 
+    private InputStream getDelegateInputStream() throws IOException {
+        if (delegate == this) {
+            return super.getInputStream();
+        }
+        return delegate.getInputStream();
+    }
+
     public int read() throws IOException {
         byte[] b = new byte[1];
         read(b);
@@ -324,7 +398,7 @@ public class OpenSSLSocket extends SSLSocket {
             try {
                 unwrappedData = DIRECT_POOL.allocate();
                 for (; ; ) {
-                    int read = super.getInputStream().read(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + readOffset, indirectPooled.getBuffer().remaining());
+                    int read = getDelegateInputStream().read(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + readOffset, indirectPooled.getBuffer().remaining());
                     readOffset += read;
                     if (readOffset > 0) {
                         indirectPooled.getBuffer().limit(readOffset);
@@ -414,7 +488,7 @@ public class OpenSSLSocket extends SSLSocket {
                             indirectPooled.getBuffer().clear();
                             indirectPooled.getBuffer().put(compressedPooled.getBuffer());
                             indirectPooled.getBuffer().flip();
-                            super.getOutputStream().write(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + indirectPooled.getBuffer().position(), indirectPooled.getBuffer().remaining());
+                            getDelegateOutputStream().write(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + indirectPooled.getBuffer().position(), indirectPooled.getBuffer().remaining());
                         }
                     }
                 }
@@ -423,7 +497,353 @@ public class OpenSSLSocket extends SSLSocket {
 
     }
 
+    private OutputStream getDelegateOutputStream() throws IOException {
+        if (delegate == this) {
+            return super.getOutputStream();
+        }
+        return delegate.getOutputStream();
+    }
+
     public void write(byte[] b) throws IOException {
         write(b, 0, b.length);
+    }
+
+
+    @Override
+    public void connect(SocketAddress endpoint) throws IOException {
+        if (delegate == this) {
+            super.connect(endpoint);
+        } else {
+            delegate.connect(endpoint);
+        }
+    }
+
+    @Override
+    public void connect(SocketAddress endpoint, int timeout) throws IOException {
+        if (delegate == this) {
+            super.connect(endpoint, timeout);
+        } else {
+            delegate.connect(endpoint, timeout);
+        }
+    }
+
+    @Override
+    public void bind(SocketAddress bindpoint) throws IOException {
+        if (delegate == this) {
+            super.bind(bindpoint);
+        } else {
+            delegate.bind(bindpoint);
+        }
+    }
+
+    @Override
+    public InetAddress getInetAddress() {
+        if (delegate == this) {
+            return super.getInetAddress();
+        } else {
+            return delegate.getInetAddress();
+        }
+    }
+
+    @Override
+    public InetAddress getLocalAddress() {
+        if (delegate == this) {
+            return super.getLocalAddress();
+        } else {
+            return delegate.getLocalAddress();
+        }
+    }
+
+    @Override
+    public int getPort() {
+        if (delegate == this) {
+            return super.getPort();
+        } else {
+            return delegate.getPort();
+        }
+    }
+
+    @Override
+    public int getLocalPort() {
+        if (delegate == this) {
+            return super.getLocalPort();
+        } else {
+            return delegate.getLocalPort();
+        }
+    }
+
+    @Override
+    public SocketAddress getRemoteSocketAddress() {
+        if (delegate == this) {
+            return super.getRemoteSocketAddress();
+        } else {
+            return delegate.getRemoteSocketAddress();
+        }
+    }
+
+    @Override
+    public SocketAddress getLocalSocketAddress() {
+        if (delegate == this) {
+            return super.getLocalSocketAddress();
+        } else {
+            return delegate.getLocalSocketAddress();
+        }
+    }
+
+    @Override
+    public SocketChannel getChannel() {
+        if (delegate == this) {
+            return super.getChannel();
+        } else {
+            return delegate.getChannel();
+        }
+    }
+
+    @Override
+    public void setTcpNoDelay(boolean on) throws SocketException {
+        if (delegate == this) {
+            super.setTcpNoDelay(on);
+        } else {
+            delegate.setTcpNoDelay(on);
+        }
+    }
+
+    @Override
+    public boolean getTcpNoDelay() throws SocketException {
+        if (delegate == this) {
+            return super.getTcpNoDelay();
+        } else {
+            return delegate.getTcpNoDelay();
+        }
+    }
+
+    @Override
+    public void setSoLinger(boolean on, int linger) throws SocketException {
+        if (delegate == this) {
+            super.setSoLinger(on, linger);
+        } else {
+            delegate.setSoLinger(on, linger);
+        }
+    }
+
+    @Override
+    public int getSoLinger() throws SocketException {
+        if (delegate == this) {
+            return super.getSoLinger();
+        } else {
+            return delegate.getSoLinger();
+        }
+    }
+
+    @Override
+    public void sendUrgentData(int data) throws IOException {
+        if (delegate == this) {
+            super.sendUrgentData(data);
+        } else {
+            delegate.sendUrgentData(data);
+        }
+    }
+
+    @Override
+    public void setOOBInline(boolean on) throws SocketException {
+        if (delegate == this) {
+            super.setOOBInline(on);
+        } else {
+            delegate.setOOBInline(on);
+        }
+    }
+
+    @Override
+    public boolean getOOBInline() throws SocketException {
+        if (delegate == this) {
+            return super.getOOBInline();
+        } else {
+            return delegate.getOOBInline();
+        }
+    }
+
+    @Override
+    public synchronized void setSoTimeout(int timeout) throws SocketException {
+        if (delegate == this) {
+            super.setSoTimeout(timeout);
+        } else {
+            delegate.setSoTimeout(timeout);
+        }
+    }
+
+    @Override
+    public synchronized int getSoTimeout() throws SocketException {
+        if (delegate == this) {
+            return super.getSoTimeout();
+        } else {
+            return delegate.getSoTimeout();
+        }
+    }
+
+    @Override
+    public synchronized void setSendBufferSize(int size) throws SocketException {
+        if (delegate == this) {
+            super.setSendBufferSize(size);
+        } else {
+            delegate.setSendBufferSize(size);
+        }
+    }
+
+    @Override
+    public synchronized int getSendBufferSize() throws SocketException {
+        if (delegate == this) {
+            return super.getSendBufferSize();
+        } else {
+            return delegate.getSendBufferSize();
+        }
+    }
+
+    @Override
+    public synchronized void setReceiveBufferSize(int size) throws SocketException {
+        if (delegate == this) {
+            super.setReceiveBufferSize(size);
+        } else {
+            delegate.setReceiveBufferSize(size);
+        }
+    }
+
+    @Override
+    public synchronized int getReceiveBufferSize() throws SocketException {
+        if (delegate == this) {
+            return super.getReceiveBufferSize();
+        } else {
+            return delegate.getReceiveBufferSize();
+        }
+    }
+
+    @Override
+    public void setKeepAlive(boolean on) throws SocketException {
+        if (delegate == this) {
+            super.setKeepAlive(on);
+        } else {
+            delegate.setKeepAlive(on);
+        }
+    }
+
+    @Override
+    public boolean getKeepAlive() throws SocketException {
+        if (delegate == this) {
+            return super.getKeepAlive();
+        } else {
+            return delegate.getKeepAlive();
+        }
+    }
+
+    @Override
+    public void setTrafficClass(int tc) throws SocketException {
+        if (delegate == this) {
+            super.setTrafficClass(tc);
+        } else {
+            delegate.setTrafficClass(tc);
+        }
+    }
+
+    @Override
+    public int getTrafficClass() throws SocketException {
+        if (delegate == this) {
+            return super.getTrafficClass();
+        } else {
+            return delegate.getTrafficClass();
+        }
+    }
+
+    @Override
+    public void setReuseAddress(boolean on) throws SocketException {
+        if (delegate == this) {
+            super.setReuseAddress(on);
+        } else {
+            delegate.setReuseAddress(on);
+        }
+    }
+
+    @Override
+    public boolean getReuseAddress() throws SocketException {
+        if (delegate == this) {
+            return super.getReuseAddress();
+        } else {
+            return delegate.getReuseAddress();
+        }
+    }
+
+    @Override
+    public void shutdownInput() throws IOException {
+        if (delegate == this) {
+            super.shutdownInput();
+        } else {
+            delegate.shutdownInput();
+        }
+    }
+
+    @Override
+    public void shutdownOutput() throws IOException {
+        if (delegate == this) {
+            super.shutdownOutput();
+        } else {
+            delegate.shutdownOutput();
+        }
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " ]engine state: " + sslEngine + "]";
+    }
+
+    @Override
+    public boolean isConnected() {
+        if (delegate == this) {
+            return super.isConnected();
+        } else {
+            return delegate.isConnected();
+        }
+    }
+
+    @Override
+    public boolean isBound() {
+        if (delegate == this) {
+            return super.isBound();
+        } else {
+            return delegate.isBound();
+        }
+    }
+
+    @Override
+    public boolean isClosed() {
+        if (delegate == this) {
+            return super.isClosed();
+        } else {
+            return delegate.isClosed();
+        }
+    }
+
+    @Override
+    public boolean isInputShutdown() {
+        if (delegate == this) {
+            return super.isInputShutdown();
+        } else {
+            return delegate.isInputShutdown();
+        }
+    }
+
+    @Override
+    public boolean isOutputShutdown() {
+        if (delegate == this) {
+            return super.isOutputShutdown();
+        } else {
+            return delegate.isOutputShutdown();
+        }
+    }
+
+    @Override
+    public void setPerformancePreferences(int connectionTime, int latency, int bandwidth) {
+        if (delegate == this) {
+            super.setPerformancePreferences(connectionTime, latency, bandwidth);
+        } else {
+            delegate.setPerformancePreferences(connectionTime, latency, bandwidth);
+        }
     }
 }
