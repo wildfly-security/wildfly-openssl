@@ -268,7 +268,7 @@ public class OpenSSLSocket extends SSLSocket {
         }
         if (delegate == this) {
             super.close();
-        } else {
+        } else if (autoclose) {
             delegate.close();
         }
     }

@@ -19,31 +19,21 @@ package io.undertow.openssl;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
@@ -67,26 +57,14 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private static final String[] ALGORITHMS = {"RSA"};
 
-    private static final String defaultProtocol = "TLS";
     private OpenSSLServerSessionContext sessionContext;
 
-    private List<String> ciphers = new ArrayList<>();
-
-    public List<String> getCiphers() {
-        return ciphers;
-    }
-
-    private String enabledProtocol;
-
-    public String getEnabledProtocol() {
-        return enabledProtocol;
-    }
-
-    public void setEnabledProtocol(String protocol) {
-        enabledProtocol = (protocol == null) ? defaultProtocol : protocol;
-    }
+    private static volatile String[] allAvailbleCiphers;
 
     protected final long ctx;
+
+
+    private volatile String[] ciphers;
 
     static final CertificateFactory X509_CERT_FACTORY;
     private boolean initialized = false;
@@ -97,6 +75,42 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         } catch (CertificateException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public static String[] getAvailableCipherSuites() {
+        if(allAvailbleCiphers == null) {
+            synchronized (OpenSSLContextSPI.class) {
+                if(allAvailbleCiphers == null) {
+
+                    final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
+                    try {
+                        final long sslCtx = SSL.makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
+                        try {
+                            SSL.setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
+                            SSL.setCipherSuite(sslCtx, "ALL");
+                            final long ssl = SSL.newSSL(sslCtx, true);
+                            try {
+                                for (String c : SSL.getCiphers(ssl)) {
+                                    // Filter out bad input.
+                                    if (c == null || c.length() == 0 || availableCipherSuites.contains(c)) {
+                                        continue;
+                                    }
+                                    availableCipherSuites.add(CipherSuiteConverter.toJava(c, "ALL"));
+                                }
+                            } finally {
+                                SSL.freeSSL(ssl);
+                            }
+                        } finally {
+                            SSL.freeSSLContext(sslCtx);
+                        }
+                    } catch (Exception e) {
+                        LOG.log(Level.WARNING, "Failed to initialize ciphers", e);
+                    }
+                    allAvailbleCiphers = availableCipherSuites.toArray(new String[availableCipherSuites.size()]);
+                }
+            }
+        }
+        return allAvailbleCiphers;
     }
 
     OpenSSLContextSPI(final int value) throws SSLException {
@@ -117,7 +131,6 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
             }
-
             // Disable compression
             boolean disableCompressionSupported = false;
             try {
@@ -271,45 +284,20 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     public SSLEngine createSSLEngine() {
-        return new OpenSSLEngine(ctx, defaultProtocol, false, sessionContext);
+        return new OpenSSLEngine(ctx, false, sessionContext);
     }
 
-    /**
-     * Generates a key specification for an (encrypted) private key.
-     *
-     * @param password characters, if {@code null} or empty an unencrypted key
-     *                 is assumed
-     * @param key      bytes of the DER encoded private key
-     * @return a key specification
-     * @throws IOException                        if parsing {@code key} fails
-     * @throws NoSuchAlgorithmException           if the algorithm used to encrypt
-     *                                            {@code key} is unknown
-     * @throws NoSuchPaddingException             if the padding scheme specified in the
-     *                                            decryption algorithm is unknown
-     * @throws InvalidKeySpecException            if the decryption key based on
-     *                                            {@code password} cannot be generated
-     * @throws InvalidKeyException                if the decryption key based on
-     *                                            {@code password} cannot be used to decrypt {@code key}
-     * @throws InvalidAlgorithmParameterException if decryption algorithm
-     *                                            parameters are somehow faulty
-     */
-    protected static PKCS8EncodedKeySpec generateKeySpec(char[] password, byte[] key)
-            throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
-            InvalidKeyException, InvalidAlgorithmParameterException {
 
-        if (password == null || password.length == 0) {
-            return new PKCS8EncodedKeySpec(key);
+    public String[] getCiphers() {
+        if(ciphers == null) {
+            synchronized (this) {
+                if(ciphers == null) {
+                    SSLEngine engine = createSSLEngine();
+                    ciphers = engine.getEnabledCipherSuites();
+                }
+            }
         }
-
-        EncryptedPrivateKeyInfo encryptedPrivateKeyInfo = new EncryptedPrivateKeyInfo(key);
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(encryptedPrivateKeyInfo.getAlgName());
-        PBEKeySpec pbeKeySpec = new PBEKeySpec(password);
-        SecretKey pbeKey = keyFactory.generateSecret(pbeKeySpec);
-
-        Cipher cipher = Cipher.getInstance(encryptedPrivateKeyInfo.getAlgName());
-        cipher.init(Cipher.DECRYPT_MODE, pbeKey, encryptedPrivateKeyInfo.getAlgParameters());
-
-        return encryptedPrivateKeyInfo.getKeySpec(cipher);
+        return ciphers.clone();
     }
 
     @Override
@@ -337,44 +325,69 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public String[] getSupportedCipherSuites() {
-                throw new UnsupportedOperationException();
+                return getCiphers().clone();
             }
 
             @Override
             public Socket createSocket() throws IOException {
-                return new OpenSSLSocket(new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(new OpenSSLEngine(ctx, true, sessionContext));
             }
 
             @Override
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, sessionContext));
             }
 
             @Override
             public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, sessionContext));
             }
 
             @Override
             public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, sessionContext));
             }
 
             @Override
             public Socket createSocket(InetAddress host, int port) throws IOException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, sessionContext));
             }
 
             @Override
             public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, defaultProtocol, true, sessionContext));
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, sessionContext));
             }
         };
     }
 
     @Override
     protected SSLServerSocketFactory engineGetServerSocketFactory() {
-        throw new UnsupportedOperationException("method not supported");
+        return new SSLServerSocketFactory() {
+            @Override
+            public String[] getDefaultCipherSuites() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public String[] getSupportedCipherSuites() {
+                return getCiphers().clone();
+            }
+
+            @Override
+            public ServerSocket createServerSocket(int port) throws IOException {
+                return new OpenSSLServerSocket(port, OpenSSLContextSPI.this);
+            }
+
+            @Override
+            public ServerSocket createServerSocket(int port, int backlog) throws IOException {
+                return new OpenSSLServerSocket(port, backlog, OpenSSLContextSPI.this);
+            }
+
+            @Override
+            public ServerSocket createServerSocket(int port, int backlog, InetAddress ifAddress) throws IOException {
+                return new OpenSSLServerSocket(port, backlog, ifAddress, OpenSSLContextSPI.this);
+            }
+        };
     }
 
     @Override

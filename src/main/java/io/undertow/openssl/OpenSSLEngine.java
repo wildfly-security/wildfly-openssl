@@ -16,25 +16,23 @@
  */
 package io.undertow.openssl;
 
-import org.eclipse.jetty.alpn.ALPN;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
+
+import org.eclipse.jetty.alpn.ALPN;
 
 public final class OpenSSLEngine extends SSLEngine {
 
@@ -44,36 +42,6 @@ public final class OpenSSLEngine extends SSLEngine {
     private static final SSLException ENGINE_CLOSED = new SSLException("Engine is closed");
     private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException("Renegotiation is not supported");
     private static final SSLException ENCRYPTED_PACKET_OVERSIZED = new SSLException("Oversized packet");
-
-    private static final Set<String> AVAILABLE_CIPHER_SUITES;
-
-    static {
-        final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
-        try {
-            final long sslCtx = SSL.makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
-            try {
-                SSL.setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
-                SSL.setCipherSuite(sslCtx, "ALL");
-                final long ssl = SSL.newSSL(sslCtx, true);
-                try {
-                    for (String c : SSL.getCiphers(ssl)) {
-                        // Filter out bad input.
-                        if (c == null || c.length() == 0 || availableCipherSuites.contains(c)) {
-                            continue;
-                        }
-                        availableCipherSuites.add(CipherSuiteConverter.toJava(c, "ALL"));
-                    }
-                } finally {
-                    SSL.freeSSL(ssl);
-                }
-            } finally {
-                SSL.freeSSLContext(sslCtx);
-            }
-        } catch (Exception e) {
-            LOG.log(Level.WARNING, "Failed to initialize ciphers", e);
-        }
-        AVAILABLE_CIPHER_SUITES = Collections.unmodifiableSet(availableCipherSuites);
-    }
 
     static {
         ENGINE_CLOSED.setStackTrace(new StackTraceElement[0]);
@@ -159,7 +127,7 @@ public final class OpenSSLEngine extends SSLEngine {
      * @param sessionContext the {@link OpenSSLSessionContext} this
      *                       {@link SSLEngine} belongs to.
      */
-    OpenSSLEngine(long sslCtx, String fallbackApplicationProtocol,
+    OpenSSLEngine(long sslCtx,
                   boolean clientMode, OpenSSLSessionContext sessionContext) {
         if (sslCtx == 0) {
             throw new IllegalStateException("No SSL Context");
@@ -647,8 +615,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public String[] getSupportedCipherSuites() {
-        Set<String> availableCipherSuites = AVAILABLE_CIPHER_SUITES;
-        return availableCipherSuites.toArray(new String[availableCipherSuites.size()]);
+        return OpenSSLContextSPI.getAvailableCipherSuites();
     }
 
     @Override
@@ -681,9 +648,10 @@ public final class OpenSSLEngine extends SSLEngine {
             if (converted != null) {
                 cipherSuite = converted;
             }
-            if (!AVAILABLE_CIPHER_SUITES.contains(cipherSuite)) {
+            Set<String> availbile = new HashSet<>(Arrays.asList(OpenSSLContextSPI.getAvailableCipherSuites()));
+            if (!availbile.contains(cipherSuite)) {
                 if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + AVAILABLE_CIPHER_SUITES);
+                    LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + availbile);
                 }
             }
 
