@@ -756,6 +756,9 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public SSLSession getSession() {
+        if (!handshakeFinished) {
+            throw new RuntimeException("not yet implemented");
+        }
         return sessionContext.getSession(SSL.getSessionId(getSsl()));
     }
 
