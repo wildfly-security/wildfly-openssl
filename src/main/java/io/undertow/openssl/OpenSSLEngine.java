@@ -508,7 +508,7 @@ public final class OpenSSLEngine extends SSLEngine {
         int pendingApp = (handshakeFinished || SSL.isInInit(ssl) == 0) ? SSL.pendingReadableBytesInSSL(ssl) : 0;
         int bytesProduced = 0;
 
-        if (pendingApp > 0) {
+        while (pendingApp > 0) {
             // Do we have enough room in dsts to write decrypted data?
             if (capacity < pendingApp) {
                 return new SSLEngineResult(SSLEngineResult.Status.BUFFER_OVERFLOW, getHandshakeStatus(), bytesConsumed, 0);
@@ -545,6 +545,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     idx++;
                 }
             }
+            pendingApp = SSL.pendingReadableBytesInSSL(ssl);
         }
 
         // Check to see if we received a close_notify message from the peer

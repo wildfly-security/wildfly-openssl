@@ -347,6 +347,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_load_error_strings);
     REQUIRE_SSL_SYMBOL(SSL_new);
     REQUIRE_SSL_SYMBOL(SSL_pending);
+    REQUIRE_SSL_SYMBOL(SSL_set_read_ahead);
     REQUIRE_SSL_SYMBOL(SSL_read);
     REQUIRE_SSL_SYMBOL(SSL_renegotiate);
     REQUIRE_SSL_SYMBOL(SSL_renegotiate_pending);
@@ -1313,6 +1314,7 @@ UT_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     } else {
         ssl_methods.SSL_set_connect_state(ssl);
     }
+    ssl_methods.SSL_set_read_ahead(ssl, 0);
 
     /* Setup verify and seed */
     ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);

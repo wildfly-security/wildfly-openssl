@@ -64,7 +64,6 @@ class EchoRunnable implements Runnable {
                                 result = engine.unwrap(in, out);
                                 moreData = in.hasRemaining();
                                 if (result.bytesProduced() > 0) {
-                                    System.out.println(out);
                                     out.flip();
                                     byte[] b = new byte[out.remaining()];
                                     out.get(b);
@@ -97,8 +96,18 @@ class EchoRunnable implements Runnable {
                         while (true) {
                             in.clear();
                             out.clear();
+                            boolean close = false;
                             if (dataStream.size() > 0) {
-                                String read = new String(dataStream.toByteArray());
+                                byte[] dataBytes = dataStream.toByteArray();
+                                int i;
+                                for ( i = 0; i < dataBytes.length; i++) {
+                                    byte b = dataBytes[i];
+                                    if (b == 0) {
+                                        close = true;
+                                        break;
+                                    }
+                                }
+                                String read = new String(dataBytes, 0, i);
                                 System.out.println(read);
                                 dataStream.reset();
                                 in.put((read).getBytes(StandardCharsets.US_ASCII));
@@ -109,15 +118,26 @@ class EchoRunnable implements Runnable {
                                 out.get(bytes, 0, len);
                                 s.getOutputStream().write(bytes, 0, len);
                                 in.clear();
+                                out.clear();
+                                if(close) {
+                                    engine.closeOutbound();
+                                    s.close();
+                                }
                             }
                             int read = s.getInputStream().read(bytes);
                             if (read == -1) {
                                 return;
                             }
+                            System.out.println(read);
                             in.put(bytes, 0, read);
                             in.flip();
                             result = engine.unwrap(in, out);
-                            if (result.bytesProduced() > 0) {
+                            boolean prod = false;
+                            if(result.bytesProduced() > 0) {
+                                prod = true;
+                                result = engine.unwrap(in, out);
+                            }
+                            if (result.bytesProduced() > 0 || prod) {
                                 out.flip();
                                 byte[] b = new byte[out.remaining()];
                                 out.get(b);

@@ -391,6 +391,7 @@ typedef struct {
     void (*SSL_load_error_strings)(void);
     SSL *(*SSL_new)(SSL_CTX *ctx);
     int (*SSL_pending)(const SSL *s);
+    int (*SSL_set_read_ahead)(const SSL *s, int yes);
     int (*SSL_read)(SSL *ssl, void *buf, int num);
     int (*SSL_renegotiate)(SSL *s);
     int (*SSL_renegotiate_pending)(SSL *s);

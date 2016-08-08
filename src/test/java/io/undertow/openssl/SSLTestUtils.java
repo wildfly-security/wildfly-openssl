@@ -1,5 +1,6 @@
 package io.undertow.openssl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
@@ -59,6 +60,16 @@ public class SSLTestUtils {
         } catch (Exception e) {
             throw new RuntimeException("Unable to create and initialise the SSLContext", e);
         }
+    }
+
+    public static byte[] readData(InputStream in) throws IOException {
+        int r;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        while ((r = in.read(buf)) > 0) {
+            out.write(buf, 0, r);
+        }
+        return out.toByteArray();
     }
 
 }
