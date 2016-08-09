@@ -29,6 +29,7 @@ public final class OpenSSLProvider extends Provider {
 
     protected OpenSSLProvider() {
         super("openssl", 1.0, "OpenSSL provider");
+        put("SSLContext.openssl.TLS", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLSContextSpi.class.getSimpleName());
         put("SSLContext.openssl.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
         put("SSLContext.openssl.TLSv1.1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getSimpleName());
         put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());

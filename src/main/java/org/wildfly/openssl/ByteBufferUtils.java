@@ -21,9 +21,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
-/**
- * @author Stuart Douglas
- */
 public class ByteBufferUtils {
 
     private static final Method cleanerMethod;

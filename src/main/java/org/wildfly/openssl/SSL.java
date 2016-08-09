@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 class SSL {
 
+    public static final String ORG_WILDFLY_OPENSSL_PATH = "org.wildfly.openssl.path";
+    public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
+
     private SSL () {}
 
     private static volatile boolean init = false;
@@ -33,8 +36,13 @@ class SSL {
         if(!init) {
             synchronized (SSL.class) {
                 if(!init) {
-                    System.loadLibrary("wfssl");
-                    String path = System.getProperty("org.wildfly.openssl.path");
+                    String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
+                    if(libPath == null) {
+                        System.loadLibrary("wfssl");
+                    } else {
+                        Runtime.getRuntime().load(libPath);
+                    }
+                    String path = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
                     if (path != null && !path.endsWith("/")) {
                         path = path + "/";
                     }
@@ -432,10 +440,6 @@ class SSL {
      * @param SSL
      */
     static native int isInInit(long SSL);
-
-    /*
-     * End Twitter API Additions
-     */
 
     /**
      * SSL_get0_alpn_selected

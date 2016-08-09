@@ -415,6 +415,13 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         sessionContext.remove(session);
     }
 
+    public static final class OpenSSLTLSContextSpi extends OpenSSLContextSPI {
+
+        public OpenSSLTLSContextSpi() throws SSLException {
+            super(SSL.SSL_PROTOCOL_ALL);
+        }
+    }
+
     public static final class OpenSSLTLS_1_0_ContextSpi extends OpenSSLContextSPI {
 
         public OpenSSLTLS_1_0_ContextSpi() throws SSLException {
