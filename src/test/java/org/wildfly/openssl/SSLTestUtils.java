@@ -75,6 +75,7 @@ public class SSLTestUtils {
             context.init(keyManagers, trustManagers, new SecureRandom());
             return context;
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Unable to create and initialise the SSLContext", e);
         }
     }

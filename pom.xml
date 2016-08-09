@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -34,6 +35,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.org.eclipse.jetty.alpn>1.0.0</version.org.eclipse.jetty.alpn>
         <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
+
+        <openssl.path></openssl.path>
     </properties>
 
     <dependencies>
@@ -102,11 +105,24 @@
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <forkMode>once</forkMode>
                     <systemProperties>
-                        <org.wildfly.openssl.path>/usr/local/opt/openssl/lib</org.wildfly.openssl.path>
+                        <org.wildfly.openssl.path>${openssl.path}</org.wildfly.openssl.path>
                     </systemProperties>
                     <argLine>-Djava.library.path=${project.basedir}/libwfssl</argLine>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os><family>mac</family></os>
+            </activation>
+            <properties>
+                <openssl.path>/usr/local/opt/openssl/lib</openssl.path>
+            </properties>
+
+        </profile>
+    </profiles>
 </project>

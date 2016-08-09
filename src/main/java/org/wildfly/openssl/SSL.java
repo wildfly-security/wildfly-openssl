@@ -37,12 +37,15 @@ class SSL {
             synchronized (SSL.class) {
                 if(!init) {
                     String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
-                    if(libPath == null) {
+                    if(libPath == null || libPath.isEmpty()) {
                         System.loadLibrary("wfssl");
                     } else {
                         Runtime.getRuntime().load(libPath);
                     }
                     String path = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
+                    if(path != null && path.isEmpty()) {
+                        path = null;
+                    }
                     if (path != null && !path.endsWith("/")) {
                         path = path + "/";
                     }

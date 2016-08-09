@@ -20,7 +20,7 @@
 #ifdef WIN32
 #define LIBCRYPTO_NAME "libeay32.dll"
 #else
-#define LIBCRYPTO_NAME "libcrypto"
+#define LIBCRYPTO_NAME "libcrypto.so"
 #endif
 #endif
 
@@ -30,7 +30,7 @@
 #ifdef WIN32
 #define LIBSSL_NAME "libssl32.dll"
 #else
-#define LIBSSL_NAME "libssl"
+#define LIBSSL_NAME "libssl.so"
 #endif
 #endif
 

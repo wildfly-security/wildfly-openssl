@@ -3,7 +3,9 @@ project (wfssl)
 
 find_package(Java REQUIRED)
 find_package(JNI REQUIRED)
-find_package(OPENSSL REQUIRED)
+
+find_package(OPENSSL)
+
 
 include_directories(${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2} ${OPENSSL_INCLUDE_DIR})
 
