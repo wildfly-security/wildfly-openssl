@@ -37,7 +37,7 @@ import org.junit.Test;
 /**
  * @author Stuart Douglas
  */
-public class SslProtocolsTest {
+public class SslCiphersTest {
 
     @BeforeClass
     public static void setup() {

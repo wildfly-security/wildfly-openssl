@@ -1,0 +1,35 @@
+This file contains a list of things that we should develop tests for before the first release. Once all this is implemented
+it should be removed
+
+Note that all of this needs to be verified on both the client and server side.
+
+- ALPN
+- Session Resumption
+- Protocol Selection (e.g. if we have only enabled TLS1.2 it won't fall back to 1.0)
+- Cipher selection (org.wildfly.openssl.SslCiphersTest currently exists for the server side, but should be enhanced to include ecliptic curve)
+- SessionContext implementation
+    - Make sure it does not leak
+    - Make sure timeout works as expected
+    - Make sure cache size works as expected
+    - Make sure disabling sessions works as expected
+    - getHandshakeSession works as expected
+    - All SSLSession methods work as expected
+- Load testing
+    - lots of data
+    - lots of connections
+    - tests should use randomly generated data (but record seed so can be reproduced)
+    - simple framework for running perf tests (not an actual junit tests
+- Security testing
+    - Insecure protocols and ciphers are disabled by default
+    - Make sure we don't accept invalid certificates (server and client)
+- Client cert auth
+    - Make sure want and need work as expected
+- SNI
+    - Make sure it works properly
+
+
+
+
+
+
+
