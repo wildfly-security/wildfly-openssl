@@ -18,7 +18,6 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +36,7 @@ public class BasicOpenSSLSocketTest {
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
 
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             OpenSSLProvider.register();
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
 
@@ -45,7 +44,7 @@ public class BasicOpenSSLSocketTest {
             acceptThread.start();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
