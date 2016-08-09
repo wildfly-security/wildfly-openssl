@@ -81,7 +81,8 @@ public class SslCiphersTest {
 
             final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
 
-            EchoRunnable echo = new EchoRunnable(new ServerSocket(7676), sslContext, sessionID, (engine -> {
+            ServerSocket serverSocket = new ServerSocket(7676);
+            EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 engineRef.set(engine);
                 try {
                     engine.setEnabledCipherSuites(new String[]{suite});
@@ -111,6 +112,7 @@ public class SslCiphersTest {
             socket.getSession().invalidate();
             socket.close();
             echo.stop();
+            serverSocket.close();
         }
     }
 }
