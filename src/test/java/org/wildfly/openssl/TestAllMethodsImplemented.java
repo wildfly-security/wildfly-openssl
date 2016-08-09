@@ -37,8 +37,6 @@ import java.util.regex.Pattern;
  */
 public class TestAllMethodsImplemented {
 
-
-
     @Test
     public void testAllMethodsImplemented() throws IOException {
 

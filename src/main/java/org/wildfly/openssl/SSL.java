@@ -870,10 +870,10 @@ class SSL {
      * Set application layer protocol for application layer protocol negotiation extension.
      *
      * This should only be called by the client.
-     * @param ctx Server context to use.
+     * @param ssl SSL Engine to use
      * @param alpnProtos protocols in priority order
      */
-    static native void setAlpnProtos(long ctx, String[] alpnProtos);
+    static native void setAlpnProtos(long ssl, String[] alpnProtos);
 
     /**
      * Sets the server ALPN callback for a spcific engine

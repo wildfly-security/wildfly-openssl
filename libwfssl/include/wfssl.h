@@ -307,10 +307,6 @@ typedef struct {
     unsigned char   *next_proto_data;
     unsigned int    next_proto_len;
     int             next_selector_failure_behavior;
-
-    /* Holds the alpn protocols, each of them prefixed with the len of the protocol */
-    unsigned char   *alpn_proto_data;
-    unsigned int    alpn_proto_len;
     /* End add from netty-tcnative */
     jobject session_context;
 } tcn_ssl_ctxt_t;
@@ -356,7 +352,7 @@ typedef struct {
     long (*SSL_CTX_ctrl)(SSL_CTX *ctx, int cmd, long larg, void *parg);
     void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
     void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
-    int (*SSL_CTX_set_alpn_protos)(SSL_CTX *ctx, const unsigned char *protos, unsigned protos_len);
+    int (*SSL_set_alpn_protos)(SSL *ssl, const unsigned char *protos, unsigned protos_len);
     void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg), void *arg);
     void (*SSL_CTX_set_cert_verify_callback)(SSL_CTX *ctx, int (*cb) (X509_STORE_CTX *, void *), void *arg);
     int (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *str);

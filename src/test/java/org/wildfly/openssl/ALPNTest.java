@@ -24,8 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -34,7 +32,7 @@ import org.junit.Test;
 /**
  * @author Stuart Douglas
  */
-public class BasicOpenSSLEngineTest {
+public class ALPNTest {
 
     public static final String MESSAGE = "Hello World";
 
@@ -44,14 +42,20 @@ public class BasicOpenSSLEngineTest {
     }
 
     @Test
-    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
+    public void testALPN() throws IOException, NoSuchAlgorithmException {
         try (ServerSocket serverSocket = new ServerSocket(7676)) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
-
-            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID));
+            final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
+            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
+                OpenSSLEngine openSSLEngine = (OpenSSLEngine) engine;
+                openSSLEngine.setApplicationProtocols("h2", "h2/13", "http");
+                engineAtomicReference.set(openSSLEngine);
+                return openSSLEngine;
+            })));
             acceptThread.start();
-            final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+            final OpenSSLSocket socket = (OpenSSLSocket) sslContext.getSocketFactory().createSocket();
+            socket.setApplicationProtocols("h2/13", "h2", "http");
             socket.connect(new InetSocketAddress("localhost", 7676));
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
@@ -59,35 +63,9 @@ public class BasicOpenSSLEngineTest {
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            Assert.assertEquals("server side", "h2", engineAtomicReference.get().getSelectedApplicationProtocol());
+            Assert.assertEquals("client side", "h2", socket.getSelectedApplicationProtocol());
         }
     }
 
-
-    @Test
-    public void openSslLotsOfDataTest() throws IOException, NoSuchAlgorithmException {
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
-            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
-
-            EchoRunnable target = new EchoRunnable(serverSocket, sslContext, sessionID);
-            Thread acceptThread = new Thread(target);
-            acceptThread.start();
-            final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.connect(new InetSocketAddress("localhost", 7676));
-            String message = generateMessage(1000);
-            socket.getOutputStream().write(message.getBytes(StandardCharsets.US_ASCII));
-            socket.getOutputStream().write(new byte[]{0});
-
-            Assert.assertEquals(message, new String(SSLTestUtils.readData(socket.getInputStream())));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-        }
-    }
-
-    private static String generateMessage(int repetitions) {
-        final StringBuilder builder = new StringBuilder(repetitions * MESSAGE.length());
-        for (int i = 0; i < repetitions; ++i) {
-            builder.append(MESSAGE);
-        }
-        return builder.toString();
-    }
 }

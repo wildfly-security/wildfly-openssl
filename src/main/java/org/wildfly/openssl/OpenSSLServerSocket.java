@@ -51,7 +51,7 @@ public class OpenSSLServerSocket extends SSLServerSocket {
     @Override
     public Socket accept() throws IOException {
         final Socket delegate = super.accept();
-        return new OpenSSLSocket(delegate, true, openSSLContextSPI.createSSLEngine());
+        return new OpenSSLSocket(delegate, true, (OpenSSLEngine) openSSLContextSPI.createSSLEngine());
     }
 
     @Override

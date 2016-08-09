@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
@@ -43,7 +42,7 @@ import javax.net.ssl.SSLSocket;
  */
 public class OpenSSLSocket extends SSLSocket {
 
-    private final SSLEngine sslEngine;
+    private final OpenSSLEngine sslEngine;
     private final List<HandshakeCompletedListener> handshakeCompletedListenerList = new ArrayList<>();
     private final OpenSSLOutputStream sslOut;
     private final OpenSSLInputStream sslIn;
@@ -57,7 +56,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     private final boolean autoclose;
 
-    protected OpenSSLSocket(SSLEngine sslEngine) {
+    protected OpenSSLSocket(OpenSSLEngine sslEngine) {
         super();
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -66,7 +65,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(String host, int port, SSLEngine sslEngine) throws IOException, UnknownHostException {
+    protected OpenSSLSocket(String host, int port, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
         super(host, port);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -75,7 +74,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(InetAddress address, int port, SSLEngine sslEngine) throws IOException {
+    protected OpenSSLSocket(InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
         super(address, port);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -84,7 +83,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException, UnknownHostException {
+    protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
         super(host, port, clientAddress, clientPort);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -93,7 +92,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException {
+    protected OpenSSLSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -102,7 +101,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, SSLEngine sslEngine) {
+    protected OpenSSLSocket(Socket socket, boolean autoclose, OpenSSLEngine sslEngine) {
         super();
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -111,7 +110,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = autoclose;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, SSLEngine sslEngine) throws IOException, UnknownHostException {
+    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
         super(host, port);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -120,7 +119,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = autoclose;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, SSLEngine sslEngine) throws IOException {
+    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
         super(address, port);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -129,7 +128,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = autoclose;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException, UnknownHostException {
+    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
         super(host, port, clientAddress, clientPort);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -138,7 +137,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = autoclose;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, InetAddress clientAddress, int clientPort, SSLEngine sslEngine) throws IOException {
+    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
@@ -860,4 +859,17 @@ public class OpenSSLSocket extends SSLSocket {
             delegate.setPerformancePreferences(connectionTime, latency, bandwidth);
         }
     }
+
+    public String getSelectedApplicationProtocol() {
+        return sslEngine.getSelectedApplicationProtocol();
+    }
+
+    public String[] getApplicationProtocols() {
+        return sslEngine.getApplicationProtocols();
+    }
+
+    public void setApplicationProtocols(String... applicationProtocols) {
+        sslEngine.setApplicationProtocols(applicationProtocols);
+    }
+
 }

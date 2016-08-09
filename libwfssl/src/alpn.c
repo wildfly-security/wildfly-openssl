@@ -12,7 +12,7 @@ void alpn_init(JNIEnv *e) {
 }
 
 /* Convert protos to wire format */
-static int initProtocols(JNIEnv *e, const tcn_ssl_ctxt_t *c, unsigned char **proto_data,
+static int initProtocols(JNIEnv *e, unsigned char **proto_data,
             unsigned int *proto_len, jobjectArray protos) {
     int i;
     unsigned char *p_data;
@@ -182,18 +182,20 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
 }
 
-WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray alpn_protos)
+WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray alpn_protos)
 {
-    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+    if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    SSL *ssl_ = J2P(ssl, SSL *);
 
     TCN_ASSERT(ctx != 0);
     UNREFERENCED(o);
-
-    if (initProtocols(e, c, &c->alpn_proto_data, &c->alpn_proto_len, alpn_protos) == 0) {
-        ssl_methods.SSL_CTX_set_alpn_protos(c->ctx, c->alpn_proto_data, c->alpn_proto_len);
+    unsigned char * alpn_proto_data = NULL;
+    unsigned int alpn_proto_len = 0;
+    if (initProtocols(e, &alpn_proto_data, &alpn_proto_len, alpn_protos) == 0) {
+        ssl_methods.SSL_set_alpn_protos(ssl_, alpn_proto_data, alpn_proto_len);
+        free(alpn_proto_data);
     }
 }
 
@@ -201,7 +203,7 @@ WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ctx, jobjectArray al
 WF_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 {
 
-    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+    if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -231,7 +233,7 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 }
 
 WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
-    if(ssl_methods.SSL_CTX_set_alpn_protos == NULL) {
+    if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
     SSL *ssl_ = J2P(ssl, SSL *);

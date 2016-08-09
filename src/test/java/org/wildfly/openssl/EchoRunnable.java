@@ -167,7 +167,7 @@ class EchoRunnable implements Runnable {
                         } catch (IOException e1) {
                             //ignore
                         }
-                        //e.printStackTrace();
+                        e.printStackTrace();
                         //throw new RuntimeException(e);
                     }
 

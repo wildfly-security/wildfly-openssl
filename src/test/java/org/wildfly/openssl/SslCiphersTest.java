@@ -17,7 +17,6 @@
 
 package org.wildfly.openssl;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -41,9 +40,6 @@ public class SslCiphersTest {
 
     @BeforeClass
     public static void setup() {
-        System.setProperty("javax.net.ssl.keyStore", new File("src/test/resources/client.keystore").getAbsolutePath());
-        System.setProperty("javax.net.ssl.trustStore", new File("src/test/resources/client.truststore").getAbsolutePath());
-        System.setProperty("javax.net.ssl.keyStorePassword", "password");
         OpenSSLProvider.register();
     }
 

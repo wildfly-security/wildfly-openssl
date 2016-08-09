@@ -33,21 +33,12 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.org.eclipse.jetty.alpn>1.0.0</version.org.eclipse.jetty.alpn>
         <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
 
         <openssl.path></openssl.path>
     </properties>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.eclipse.jetty.alpn</groupId>
-            <artifactId>alpn-api</artifactId>
-            <version>${version.org.eclipse.jetty.alpn}</version>
-            <scope>provided</scope>
-        </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -105,6 +96,9 @@
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <forkMode>once</forkMode>
                     <systemProperties>
+                        <javax.net.ssl.keyStore>src/test/resources/client.keystore</javax.net.ssl.keyStore>
+                        <javax.net.ssl.trustStore>src/test/resources/client.truststore</javax.net.ssl.trustStore>
+                        <javax.net.ssl.keyStorePassword>password</javax.net.ssl.keyStorePassword>
                         <org.wildfly.openssl.path>${openssl.path}</org.wildfly.openssl.path>
                     </systemProperties>
                     <argLine>-Djava.library.path=${project.basedir}/libwfssl</argLine>

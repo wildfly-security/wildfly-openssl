@@ -310,7 +310,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_remove_cb);
     REQUIRE_SSL_SYMBOL(SSL_get_error);
-    GET_SSL_SYMBOL(SSL_CTX_set_alpn_protos);
+    GET_SSL_SYMBOL(SSL_set_alpn_protos);
     GET_SSL_SYMBOL(SSL_CTX_set_alpn_select_cb);
     GET_SSL_SYMBOL(SSL_get0_alpn_selected);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cert_verify_callback);
@@ -798,12 +798,6 @@ WF_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
             c->next_proto_data = NULL;
         }
         c->next_proto_len = 0;
-
-        if (c->alpn_proto_data) {
-            free(c->alpn_proto_data);
-            c->alpn_proto_data = NULL;
-        }
-        c->alpn_proto_len = 0;
     }
     return 0;
 }

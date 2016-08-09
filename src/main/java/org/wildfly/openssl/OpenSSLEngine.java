@@ -32,8 +32,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
-import org.eclipse.jetty.alpn.ALPN;
-
 public final class OpenSSLEngine extends SSLEngine {
 
     private static final Logger LOG = Logger.getLogger(OpenSSLEngine.class.getName());
@@ -116,6 +114,9 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private final boolean clientMode;
     private final OpenSSLSessionContext sessionContext;
+
+    private String[] applicationProtocols;
+    private String selectedApplicationProtocol;
 
     /**
      * Creates a new instance
@@ -810,18 +811,25 @@ public final class OpenSSLEngine extends SSLEngine {
     private void handshake() throws SSLException {
         if (!alpnRegistered) {
             alpnRegistered = true;
-            final ALPN.Provider cb = ALPN.get(this);
-            if (cb != null) {
-                SSL.setServerALPNCallback(ssl, new ServerALPNCallback() {
-                    @Override
-                    public String select(String[] data) {
-                        ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.remove(OpenSSLEngine.this);
-                        if (provider != null) {
-                            return provider.select(Arrays.asList(data));
+            if (applicationProtocols != null) {
+                if (!isClientMode()) {
+                    SSL.setServerALPNCallback(ssl, new ServerALPNCallback() {
+                        @Override
+                        public String select(String[] data) {
+                            for (String proto : applicationProtocols) {
+                                for (String clientProto : data) {
+                                    if (clientProto.equals(proto)) {
+                                        selectedApplicationProtocol = proto;
+                                        return proto;
+                                    }
+                                }
+                            }
+                            return null;
                         }
-                        return null;
-                    }
-                });
+                    });
+                } else {
+                    SSL.setAlpnProtos(ssl, applicationProtocols);
+                }
             }
         }
         int code = SSL.doHandshake(ssl);
@@ -840,12 +848,14 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
             // if SSL_do_handshake returns > 0 it means the handshake was finished. This means we can update
             // handshakeFinished directly and so eliminate uncessary calls to SSL.isInInit(...)
-            handshakeFinished = true;
+            handshakeFinished();
+        }
+    }
 
-            ALPN.ServerProvider provider = (ALPN.ServerProvider) ALPN.remove(OpenSSLEngine.this);
-            if (provider != null) {
-                provider.unsupported();
-            }
+    private void handshakeFinished() {
+        handshakeFinished = true;
+        if(isClientMode() && applicationProtocols != null) {
+            selectedApplicationProtocol = SSL.getAlpnSelected(ssl);
         }
     }
 
@@ -891,7 +901,7 @@ public final class OpenSSLEngine extends SSLEngine {
             // No pending data to be sent to the peer
             // Check to see if we have finished handshaking
             if (SSL.isInInit(ssl) == 0) {
-                handshakeFinished = true;
+                handshakeFinished();
                 return SSLEngineResult.HandshakeStatus.FINISHED;
             }
 
@@ -1027,6 +1037,18 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public SSLSession getHandshakeSession() {
         return sessionContext.getHandshakeSession(this, SSL.getSessionId(getSsl()));
+    }
+
+    public String getSelectedApplicationProtocol() {
+        return selectedApplicationProtocol;
+    }
+
+    public String[] getApplicationProtocols() {
+        return applicationProtocols;
+    }
+
+    public void setApplicationProtocols(String ... applicationProtocols) {
+        this.applicationProtocols = applicationProtocols;
     }
 
     long getSsl() {

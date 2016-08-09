@@ -17,7 +17,6 @@
 
 package org.wildfly.openssl;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -37,9 +36,6 @@ public class BasicOpenSSLSocketTest {
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
-        System.setProperty("javax.net.ssl.keyStore", new File("src/test/resources/client.keystore").getAbsolutePath());
-        System.setProperty("javax.net.ssl.trustStore", new File("src/test/resources/client.truststore").getAbsolutePath());
-        System.setProperty("javax.net.ssl.keyStorePassword", "password");
 
         try (ServerSocket serverSocket = new ServerSocket(7676)) {
             OpenSSLProvider.register();

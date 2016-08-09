@@ -4,6 +4,9 @@ OpenSSL Bindings for Java
 This project provides OpenSSL bindings for Java. As much as possible they attempt to use existing JSSE API's, so the
 SSLContext should be usable as a drop in replacement for applications that are currently using JSSE.
 
+This code was originally based on the Tomcat Native code, however it has been fairly extensively modified to more closely
+align with JSSE and to support dynamic linking.
+
 Usage
 =====
 
