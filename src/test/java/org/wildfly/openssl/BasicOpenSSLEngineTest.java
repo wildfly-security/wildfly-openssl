@@ -18,7 +18,6 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -45,14 +44,14 @@ public class BasicOpenSSLEngineTest {
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID));
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
@@ -65,7 +64,7 @@ public class BasicOpenSSLEngineTest {
 
     @Test
     public void openSslLotsOfDataTest() throws IOException, NoSuchAlgorithmException {
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
@@ -73,7 +72,7 @@ public class BasicOpenSSLEngineTest {
             Thread acceptThread = new Thread(target);
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             String message = generateMessage(1000);
             socket.getOutputStream().write(message.getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().write(new byte[]{0});

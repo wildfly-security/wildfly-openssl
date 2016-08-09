@@ -20,6 +20,9 @@ package org.wildfly.openssl;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -36,6 +39,9 @@ import javax.net.ssl.TrustManagerFactory;
  * @author Stuart Douglas
  */
 public class SSLTestUtils {
+
+    public static final String HOST = System.getProperty("org.wildfly.openssl.test.host", "localhost");
+    public static final int PORT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.port", "7676"));
 
     private static KeyStore loadKeyStore(final String name) throws IOException {
         final InputStream stream = BasicOpenSSLEngineTest.class.getClassLoader().getResourceAsStream(name);
@@ -88,6 +94,14 @@ public class SSLTestUtils {
             out.write(buf, 0, r);
         }
         return out.toByteArray();
+    }
+
+    public static ServerSocket createServerSocket() throws IOException {
+        return new ServerSocket(PORT);
+    }
+
+    public static SocketAddress createSocketAddress() {
+        return new InetSocketAddress(HOST, PORT);
     }
 
 }

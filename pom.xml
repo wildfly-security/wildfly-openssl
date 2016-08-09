@@ -36,6 +36,10 @@
         <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
 
         <openssl.path></openssl.path>
+
+        <!-- Test properties -->
+        <org.wildfly.openssl.test.host>localhost</org.wildfly.openssl.test.host>
+        <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
     </properties>
 
     <dependencies>
@@ -100,6 +104,8 @@
                         <javax.net.ssl.trustStore>src/test/resources/client.truststore</javax.net.ssl.trustStore>
                         <javax.net.ssl.keyStorePassword>password</javax.net.ssl.keyStorePassword>
                         <org.wildfly.openssl.path>${openssl.path}</org.wildfly.openssl.path>
+                        <org.wildfly.openssl.test.host>${org.wildfly.openssl.test.host}</org.wildfly.openssl.test.host>
+                        <org.wildfly.openssl.test.port>${org.wildfly.openssl.test.port}</org.wildfly.openssl.test.port>
                     </systemProperties>
                     <argLine>-Djava.library.path=${project.basedir}/libwfssl</argLine>
                 </configuration>

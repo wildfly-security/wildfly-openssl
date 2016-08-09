@@ -18,7 +18,6 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -43,7 +42,7 @@ public class ALPNTest {
 
     @Test
     public void testALPN() throws IOException, NoSuchAlgorithmException {
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
@@ -56,7 +55,7 @@ public class ALPNTest {
             acceptThread.start();
             final OpenSSLSocket socket = (OpenSSLSocket) sslContext.getSocketFactory().createSocket();
             socket.setApplicationProtocols("h2/13", "h2", "http");
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
@@ -70,7 +69,7 @@ public class ALPNTest {
 
     @Test
     public void testALPNFailure() throws IOException, NoSuchAlgorithmException {
-        try (ServerSocket serverSocket = new ServerSocket(7676)) {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
@@ -82,7 +81,7 @@ public class ALPNTest {
             })));
             acceptThread.start();
             final OpenSSLSocket socket = (OpenSSLSocket) sslContext.getSocketFactory().createSocket();
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);

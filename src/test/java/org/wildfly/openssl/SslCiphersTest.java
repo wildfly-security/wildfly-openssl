@@ -18,7 +18,6 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -77,7 +76,7 @@ public class SslCiphersTest {
 
             final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
 
-            ServerSocket serverSocket = new ServerSocket(7676);
+            ServerSocket serverSocket = SSLTestUtils.createServerSocket();
             EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 engineRef.set(engine);
                 try {
@@ -92,7 +91,7 @@ public class SslCiphersTest {
 
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
             socket.setEnabledCipherSuites(new String[]{suite});
-            socket.connect(new InetSocketAddress("localhost", 7676));
+            socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
