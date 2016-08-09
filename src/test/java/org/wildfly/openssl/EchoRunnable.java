@@ -125,7 +125,6 @@ class EchoRunnable implements Runnable {
                                     }
                                 }
                                 String read = new String(dataBytes, 0, i);
-                                System.out.println(read);
                                 dataStream.reset();
                                 in.put((read).getBytes(StandardCharsets.US_ASCII));
                                 in.flip();
@@ -145,7 +144,6 @@ class EchoRunnable implements Runnable {
                             if (read == -1) {
                                 return;
                             }
-                            System.out.println(read);
                             in.put(bytes, 0, read);
                             in.flip();
                             result = engine.unwrap(in, out);

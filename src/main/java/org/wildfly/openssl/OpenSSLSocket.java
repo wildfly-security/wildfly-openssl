@@ -324,11 +324,9 @@ public class OpenSSLSocket extends SSLSocket {
                                 buffer.clear();
                                 buffer.put(indirectPooled.getBuffer());
                                 buffer.flip();
-                                System.out.println("bbb");
                                 result = sslEngine.unwrap(buffer, unwrappedData.getBuffer());
                                 if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                                     //try and read some more from the socket
-                                    System.out.println("vont");
                                     continue;
                                 }
                                 if (unwrappedData.getBuffer().position() == 0) {
