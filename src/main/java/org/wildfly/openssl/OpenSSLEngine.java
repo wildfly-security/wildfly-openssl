@@ -91,8 +91,9 @@ public final class OpenSSLEngine extends SSLEngine {
     private static final long EMPTY_ADDR = SSL.bufferAddress(ByteBuffer.allocate(0));
 
     // OpenSSL state
-    private long ssl;
-    private long networkBIO;
+    private final long sslCtx;
+    private long ssl = 0;
+    private long networkBIO = 0;
 
     /**
      * 0 - not accepted, 1 - accepted implicitly via wrap()/unwrap(), 2 -
@@ -112,7 +113,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean isOutboundDone;
     private boolean engineClosed;
 
-    private final boolean clientMode;
+    private boolean clientMode;
     private final OpenSSLSessionContext sessionContext;
 
     private String[] applicationProtocols;
@@ -133,10 +134,16 @@ public final class OpenSSLEngine extends SSLEngine {
         if (sslCtx == 0) {
             throw new IllegalStateException("No SSL Context");
         }
-        ssl = SSL.newSSL(sslCtx, !clientMode);
-        networkBIO = SSL.makeNetworkBIO(ssl);
+        this.sslCtx = sslCtx;
         this.clientMode = clientMode;
         this.sessionContext = sessionContext;
+    }
+
+    private void initSsl() {
+        if(ssl == 0 && DESTROYED_UPDATER.get(this) == 0) {
+            ssl = SSL.newSSL(sslCtx, !clientMode);
+            networkBIO = SSL.makeNetworkBIO(ssl);
+        }
     }
 
     /**
@@ -144,9 +151,11 @@ public final class OpenSSLEngine extends SSLEngine {
      */
     public synchronized void shutdown() {
         if (DESTROYED_UPDATER.compareAndSet(this, 0, 1)) {
-            SSL.freeSSL(ssl);
-            SSL.freeBIO(networkBIO);
-            sessionContext.removeHandshakeSession(getSsl());
+            if(ssl != 0) {
+                SSL.freeSSL(ssl);
+                SSL.freeBIO(networkBIO);
+                sessionContext.removeHandshakeSession(getSsl());
+            }
             ssl = networkBIO = 0;
 
             // internal errors can cause shutdown without marking the engine closed
@@ -164,7 +173,7 @@ public final class OpenSSLEngine extends SSLEngine {
         final int limit = src.limit();
         final int len = Math.min(limit - pos, MAX_PLAINTEXT_LENGTH);
         final int sslWrote;
-
+        initSsl();
         if (src.isDirect()) {
             final long addr = SSL.bufferAddress(src) + pos;
             sslWrote = SSL.writeToSSL(ssl, addr, len);
@@ -238,6 +247,7 @@ public final class OpenSSLEngine extends SSLEngine {
      * Read plaintext data from the OpenSSL internal BIO
      */
     private int readPlaintextData(final ByteBuffer dst) {
+        initSsl();
         if (dst.isDirect()) {
             final int pos = dst.position();
             final long addr = SSL.bufferAddress(dst) + pos;
@@ -420,6 +430,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (destroyed != 0) {
             return new SSLEngineResult(SSLEngineResult.Status.CLOSED, SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING, 0, 0);
         }
+        initSsl();
 
         // Throw requried runtime exceptions
         if (src == null) {
@@ -622,6 +633,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public String[] getEnabledCipherSuites() {
+        initSsl();
         String[] enabled = SSL.getCiphers(ssl);
         if (enabled == null) {
             return new String[0];
@@ -641,6 +653,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (cipherSuites == null) {
             throw new IllegalArgumentException("Null cypher suites");
         }
+        initSsl();
         final StringBuilder buf = new StringBuilder();
         for (String cipherSuite : cipherSuites) {
             if (cipherSuite == null) {
@@ -681,6 +694,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public String[] getEnabledProtocols() {
+        initSsl();
         List<String> enabled = new ArrayList<>();
         // Seems like there is no way to explict disable SSLv2Hello in openssl so it is always enabled
         enabled.add(SSL.SSL_PROTO_SSLv2Hello);
@@ -714,6 +728,7 @@ public final class OpenSSLEngine extends SSLEngine {
             // This is correct from the API docs
             throw new IllegalArgumentException();
         }
+        initSsl();
         boolean sslv2 = false;
         boolean sslv3 = false;
         boolean tlsv1 = false;
@@ -758,8 +773,9 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public SSLSession getSession() {
+        initSsl();
         if (!handshakeFinished) {
-            throw new RuntimeException("not yet implemented");
+            return getHandshakeSession();
         }
         return sessionContext.getSession(SSL.getSessionId(getSsl()));
     }
@@ -809,6 +825,7 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     private void handshake() throws SSLException {
+        initSsl();
         if (!alpnRegistered) {
             alpnRegistered = true;
             if (applicationProtocols != null) {
@@ -860,6 +877,7 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     private void renegotiate() throws SSLException {
+        initSsl();
         handshakeFinished = false;
         int code = SSL.renegotiate(ssl);
         if (code <= 0) {
@@ -890,6 +908,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (accepted == 0 || destroyed != 0) {
             return SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
         }
+        initSsl();
 
         // Check if we are in the initial handshake phase
         if (!handshakeFinished) {
@@ -960,7 +979,9 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setUseClientMode(boolean clientMode) {
-        if (clientMode != this.clientMode) {
+        if(ssl == 0) {
+            this.clientMode = clientMode;
+        } else if (clientMode != this.clientMode) {
             throw new UnsupportedOperationException();
         }
     }
@@ -994,6 +1015,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (clientMode) {
             return;
         }
+        initSsl();
         synchronized (this) {
             if (clientAuth == mode) {
                 // No need to issue any JNI calls if the mode is the same
@@ -1036,6 +1058,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public SSLSession getHandshakeSession() {
+        initSsl();
         return sessionContext.getHandshakeSession(this, SSL.getSessionId(getSsl()));
     }
 
@@ -1052,6 +1075,7 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     long getSsl() {
+        initSsl();
         return ssl;
     }
 
@@ -1068,6 +1092,7 @@ public final class OpenSSLEngine extends SSLEngine {
     public void setSSLParameters(SSLParameters sslParameters) {
         super.setSSLParameters(sslParameters);
 
+        initSsl();
         // Use server's preference order for ciphers (rather than
         // client's)
         boolean orderCiphersSupported = false;
