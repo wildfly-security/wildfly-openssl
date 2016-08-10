@@ -46,6 +46,7 @@ public class BasicOpenSSLSocketTest {
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
 

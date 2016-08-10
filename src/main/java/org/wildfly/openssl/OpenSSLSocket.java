@@ -470,7 +470,7 @@ public class OpenSSLSocket extends SSLSocket {
     }
 
     public void flush() throws IOException {
-        getOutputStream().flush();
+        getDelegateOutputStream().flush();
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
