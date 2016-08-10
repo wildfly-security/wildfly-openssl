@@ -133,6 +133,17 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         sessions.remove(new Key(sessionId));
     }
 
+    public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {
+        Key k = new Key(sessionId);
+        OpenSSlSession session = sessions.get(k);
+        if(session == null) {
+            return;
+        }
+        for(String key : handshakeSession.getValueNames()) {
+            session.putValue(key, handshakeSession.getValue(key));
+        }
+    }
+
     private static class Key {
         private final  byte[] data;
 

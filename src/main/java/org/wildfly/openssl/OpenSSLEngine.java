@@ -118,6 +118,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private String[] applicationProtocols;
     private String selectedApplicationProtocol;
+    private SSLSession handshakeSession;
 
     /**
      * Creates a new instance
@@ -874,6 +875,9 @@ public final class OpenSSLEngine extends SSLEngine {
         if(isClientMode() && applicationProtocols != null) {
             selectedApplicationProtocol = SSL.getAlpnSelected(ssl);
         }
+        if(handshakeSession != null) {
+            sessionContext.mergeHandshakeSession(handshakeSession, SSL.getSessionId(ssl));
+        }
     }
 
     private void renegotiate() throws SSLException {
@@ -1059,7 +1063,14 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public SSLSession getHandshakeSession() {
         initSsl();
-        return sessionContext.getHandshakeSession(this, SSL.getSessionId(getSsl()));
+        if(handshakeFinished) {
+            return null;
+        }
+
+        if(handshakeSession == null) {
+            handshakeSession = new OpenSSlSession(!clientMode, sessionContext);
+        }
+        return handshakeSession;
     }
 
     public String getSelectedApplicationProtocol() {
