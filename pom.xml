@@ -38,6 +38,7 @@
         <openssl.path></openssl.path>
 
         <!-- Test properties -->
+        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <org.wildfly.openssl.test.host>localhost</org.wildfly.openssl.test.host>
         <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
     </properties>
@@ -97,7 +98,7 @@
                 <version>2.17</version>
 
                 <configuration>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
                     <forkMode>once</forkMode>
                     <systemProperties>
                         <javax.net.ssl.keyStore>src/test/resources/client.keystore</javax.net.ssl.keyStore>
