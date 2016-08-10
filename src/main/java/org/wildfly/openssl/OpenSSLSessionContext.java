@@ -33,12 +33,6 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     private final Map<Key, OpenSSlSession> sessions = new ConcurrentHashMap<>();
 
-    /**
-     * sessions that are in the process of handshaking. When the session is complete it is moved to the
-     * sessions map. The sessions make is managed by the session callbacks
-     */
-    private final Map<Long, OpenSSlSession> handshakeSessions = new ConcurrentHashMap<>();
-
     private final OpenSSLSessionStats stats;
     final long context;
 
@@ -50,24 +44,6 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     @Override
     public SSLSession getSession(byte[] bytes) {
         return sessions.get(new Key(bytes));
-    }
-
-    synchronized SSLSession getHandshakeSession(OpenSSLEngine ssl, byte[] id) {
-        OpenSSlSession ret = sessions.get(new Key(id));
-        if(ret != null) {
-            return ret;
-        }
-        ret = handshakeSessions.get(ssl.getSsl());
-        if(ret != null) {
-            return ret;
-        }
-        ret = new OpenSSlSession(true, this);
-        handshakeSessions.put(ssl.getSsl(), ret);
-        return ret;
-    }
-
-    void removeHandshakeSession(long ssl) {
-        handshakeSessions.remove(ssl);
     }
 
     @Override
@@ -118,19 +94,20 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
-        OpenSSlSession existing = handshakeSessions.remove(ssl);
-        if(existing != null) {
-            existing.initialised(session, ssl, sessionId);
-            sessions.put(new Key(sessionId), existing);
-        } else {
-            final OpenSSlSession openSSlSession = new OpenSSlSession(true, this);
-            openSSlSession.initialised(session, ssl, sessionId);
-            sessions.put(new Key(sessionId), openSSlSession);
-        }
+        final OpenSSlSession openSSlSession = new OpenSSlSession(true, this);
+        openSSlSession.initialised(session, ssl, sessionId);
+        sessions.put(new Key(sessionId), openSSlSession);
     }
 
     synchronized void sessionRemovedCallback(byte[] sessionId) {
         sessions.remove(new Key(sessionId));
+    }
+
+    void initClientSideSession(long ssl) {
+        byte[] sessionId = SSL.getSessionId(ssl);
+        OpenSSlSession session = new OpenSSlSession(false, this);
+        sessions.put(new Key(sessionId), session);
+        session.initialised(SSL.getSessionPointer(ssl), ssl, sessionId);
     }
 
     public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {

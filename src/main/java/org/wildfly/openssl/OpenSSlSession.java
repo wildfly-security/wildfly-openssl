@@ -34,6 +34,7 @@ import java.util.Map;
  */
 class OpenSSlSession implements SSLSession {
 
+    public static final String NULL_CIPHER = "TLS_NULL_WITH_NULL_NULL";
     private final boolean server;
     private final OpenSSLSessionContext sessionContext;
 
@@ -200,6 +201,9 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public String getCipherSuite() {
+        if(cipherSuite == null) {
+            return NULL_CIPHER;
+        }
         return cipherSuite;
     }
 

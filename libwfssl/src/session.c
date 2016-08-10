@@ -192,6 +192,18 @@ WF_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl)
     session = ssl_methods.SSL_get_session(ssl_);
     return getSessionId(e, session);
 }
+WF_OPENSSL(jlong, getSessionPointer)(JNIEnv *e, jobject o, jlong ssl)
+{
+
+    SSL_SESSION *session;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return 0;
+    }
+    session = ssl_methods.SSL_get_session(ssl_);
+    return P2J(session);
+}
 
 
 WF_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ses) {

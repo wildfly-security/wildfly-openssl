@@ -558,6 +558,8 @@ class SSL {
      */
     static native byte[] getSessionId(long ssl);
 
+    static native long getSessionPointer(long ssl);
+
     static native long bufferAddress(ByteBuffer buffer);
 
 

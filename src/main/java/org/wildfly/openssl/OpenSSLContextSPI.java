@@ -58,7 +58,8 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private static final String[] ALGORITHMS = {"RSA"};
 
-    private OpenSSLServerSessionContext sessionContext;
+    private OpenSSLServerSessionContext serverSessionContext;
+    private OpenSSLClientSessionContext clientSessionContext;
 
     private static volatile String[] allAvailbleCiphers;
 
@@ -242,8 +243,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 });
             }
 
-            sessionContext = new OpenSSLServerSessionContext(ctx);
-            sessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
+            serverSessionContext = new OpenSSLServerSessionContext(ctx);
+            serverSessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
+            clientSessionContext = new OpenSSLClientSessionContext(ctx);
             initialized = true;
 
             //TODO: ALPN must be optional
@@ -281,11 +283,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     public SSLSessionContext getServerSessionContext() {
-        return sessionContext;
+        return serverSessionContext;
     }
 
     public SSLEngine createSSLEngine() {
-        return new OpenSSLEngine(ctx, false, sessionContext);
+        return new OpenSSLEngine(ctx, false, OpenSSLContextSPI.this);
     }
 
 
@@ -331,32 +333,32 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public Socket createSocket() throws IOException {
-                return new OpenSSLSocket(new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(InetAddress host, int port) throws IOException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, sessionContext));
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
             }
         };
     }
@@ -402,17 +404,17 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     @Override
-    protected SSLSessionContext engineGetServerSessionContext() {
-        return sessionContext;
+    protected OpenSSLServerSessionContext engineGetServerSessionContext() {
+        return serverSessionContext;
     }
 
     @Override
-    protected SSLSessionContext engineGetClientSessionContext() {
-        return sessionContext;
+    protected OpenSSLClientSessionContext engineGetClientSessionContext() {
+        return clientSessionContext;
     }
 
     public void sessionRemoved(byte[] session) {
-        sessionContext.remove(session);
+        serverSessionContext.remove(session);
     }
 
     public static final class OpenSSLTLSContextSpi extends OpenSSLContextSPI {

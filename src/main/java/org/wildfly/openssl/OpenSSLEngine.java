@@ -71,7 +71,11 @@ public final class OpenSSLEngine extends SSLEngine {
     public static final int DEFAULT_CERTIFICATE_VALIDATION_DEPTH = 100;
 
     public OpenSSLSessionContext getSessionContext() {
-        return sessionContext;
+        if(clientMode) {
+            return openSSLContextSPI.engineGetClientSessionContext();
+        } else {
+            return openSSLContextSPI.engineGetServerSessionContext();
+        }
     }
 
     public boolean isClientMode() {
@@ -95,6 +99,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private long ssl = 0;
     private long networkBIO = 0;
 
+    private final OpenSSLContextSPI openSSLContextSPI;
     /**
      * 0 - not accepted, 1 - accepted implicitly via wrap()/unwrap(), 2 -
      * accepted explicitly via beginHandshake() call
@@ -114,7 +119,6 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean engineClosed;
 
     private boolean clientMode;
-    private final OpenSSLSessionContext sessionContext;
 
     private String[] applicationProtocols;
     private String selectedApplicationProtocol;
@@ -127,17 +131,15 @@ public final class OpenSSLEngine extends SSLEngine {
      *                       engine
      * @param clientMode     {@code true} if this is used for clients, {@code false}
      *                       otherwise
-     * @param sessionContext the {@link OpenSSLSessionContext} this
-     *                       {@link SSLEngine} belongs to.
      */
     OpenSSLEngine(long sslCtx,
-                  boolean clientMode, OpenSSLSessionContext sessionContext) {
+                  boolean clientMode, OpenSSLContextSPI openSSLContextSPI) {
         if (sslCtx == 0) {
             throw new IllegalStateException("No SSL Context");
         }
         this.sslCtx = sslCtx;
         this.clientMode = clientMode;
-        this.sessionContext = sessionContext;
+        this.openSSLContextSPI = openSSLContextSPI;
     }
 
     private void initSsl() {
@@ -153,9 +155,11 @@ public final class OpenSSLEngine extends SSLEngine {
     public synchronized void shutdown() {
         if (DESTROYED_UPDATER.compareAndSet(this, 0, 1)) {
             if(ssl != 0) {
+                if(clientMode) {
+                    openSSLContextSPI.engineGetClientSessionContext().remove(SSL.getSessionId(ssl));
+                }
                 SSL.freeSSL(ssl);
                 SSL.freeBIO(networkBIO);
-                sessionContext.removeHandshakeSession(getSsl());
             }
             ssl = networkBIO = 0;
 
@@ -778,7 +782,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (!handshakeFinished) {
             return getHandshakeSession();
         }
-        return sessionContext.getSession(SSL.getSessionId(getSsl()));
+        return getSessionContext().getSession(SSL.getSessionId(getSsl()));
     }
 
     @Override
@@ -875,8 +879,11 @@ public final class OpenSSLEngine extends SSLEngine {
         if(isClientMode() && applicationProtocols != null) {
             selectedApplicationProtocol = SSL.getAlpnSelected(ssl);
         }
+        if(clientMode) {
+            openSSLContextSPI.engineGetClientSessionContext().initClientSideSession(ssl);
+        }
         if(handshakeSession != null) {
-            sessionContext.mergeHandshakeSession(handshakeSession, SSL.getSessionId(ssl));
+            getSessionContext().mergeHandshakeSession(handshakeSession, SSL.getSessionId(ssl));
         }
     }
 
@@ -1068,7 +1075,7 @@ public final class OpenSSLEngine extends SSLEngine {
         }
 
         if(handshakeSession == null) {
-            handshakeSession = new OpenSSlSession(!clientMode, sessionContext);
+            handshakeSession = new OpenSSlSession(!clientMode, getSessionContext());
         }
         return handshakeSession;
     }

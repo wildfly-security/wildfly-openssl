@@ -220,6 +220,7 @@ public class OpenSSLSocket extends SSLSocket {
     public void startHandshake() throws IOException {
         handshakeDone = false;
         sslEngine.beginHandshake();
+        runHandshake();
     }
 
     @Override

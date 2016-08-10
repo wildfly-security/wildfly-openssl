@@ -21,13 +21,10 @@ package org.wildfly.openssl;
  * {@link OpenSSLSessionContext} implementation which offers extra methods which
  * are only useful for the server-side.
  */
-public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
-
-    OpenSSLServerSessionContext(long context) {
+public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
+    OpenSSLClientSessionContext(long context) {
         super(context);
-        SSL.registerSessionContext(context, this);
     }
-
 
     @Override
     public void setSessionTimeout(int seconds) {
@@ -44,39 +41,22 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
 
     @Override
     public void setSessionCacheSize(int size) {
-        if (size < 0) {
-            throw new IllegalArgumentException();
-        }
-        SSL.setSessionCacheSize(context, size);
+        //todo:
     }
 
     @Override
     public int getSessionCacheSize() {
-        return (int) SSL.getSessionCacheSize(context);
+        //todo
+        return 0;
     }
 
     @Override
     public void setSessionCacheEnabled(boolean enabled) {
-        long mode = enabled ? SSL.SSL_SESS_CACHE_SERVER : SSL.SSL_SESS_CACHE_OFF;
-        SSL.setSessionCacheMode(context, mode);
+        //todo
     }
 
     @Override
     public boolean isSessionCacheEnabled() {
-        return SSL.getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_SERVER;
+        return true;
     }
-
-    /**
-     * Set the context within which session be reused (server side only)
-     * See <a href="http://www.openssl.org/docs/ssl/SSL_CTX_set_session_id_context.html">
-     * man SSL_CTX_set_session_id_context</a>
-     *
-     * @param sidCtx can be any kind of binary data, it is therefore possible to use e.g. the name
-     *               of the application and/or the hostname and/or service name
-     * @return {@code true} if success, {@code false} otherwise.
-     */
-    public boolean setSessionIdContext(byte[] sidCtx) {
-        return SSL.setSessionIdContext(context, sidCtx);
-    }
-
 }
