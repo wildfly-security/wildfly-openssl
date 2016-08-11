@@ -108,7 +108,7 @@
                         <org.wildfly.openssl.test.host>${org.wildfly.openssl.test.host}</org.wildfly.openssl.test.host>
                         <org.wildfly.openssl.test.port>${org.wildfly.openssl.test.port}</org.wildfly.openssl.test.port>
                     </systemProperties>
-                    <argLine>-Djava.library.path=${project.basedir}/libwfssl</argLine>
+                    <!-- <argLine>-Djava.library.path=${project.basedir}/libwfssl</argLine> -->
                 </configuration>
             </plugin>
         </plugins>

@@ -47,11 +47,11 @@ public class TestAllMethodsImplemented {
             String file = read(new File(path, i));
             Matcher matcher = pattern.matcher(file);
             while (matcher.find()) {
-                implemented.add(matcher.toMatchResult().group(1).trim());
+                implemented.add(matcher.toMatchResult().group(1).trim() + "0");
             }
         }
         Set<String> notImplemented = new HashSet<>();
-        for(Method m : SSL.class.getDeclaredMethods()) {
+        for(Method m : SSLImpl.class.getDeclaredMethods()) {
             if(Modifier.isNative(m.getModifiers())) {
                 if(!implemented.remove(m.getName())) {
                     notImplemented.add(m.getName());

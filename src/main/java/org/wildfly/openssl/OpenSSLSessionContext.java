@@ -69,7 +69,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         if (keys == null) {
             throw new IllegalArgumentException("null ticket keys");
         }
-        SSL.setSessionTicketKeys(context, keys);
+        SSL.getInstance().setSessionTicketKeys(context, keys);
     }
 
     /**
@@ -104,10 +104,10 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     void initClientSideSession(long ssl) {
-        byte[] sessionId = SSL.getSessionId(ssl);
+        byte[] sessionId = SSL.getInstance().getSessionId(ssl);
         OpenSSlSession session = new OpenSSlSession(false, this);
         sessions.put(new Key(sessionId), session);
-        session.initialised(SSL.getSessionPointer(ssl), ssl, sessionId);
+        session.initialised(SSL.getInstance().getSessionPointer(ssl), ssl, sessionId);
     }
 
     public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {

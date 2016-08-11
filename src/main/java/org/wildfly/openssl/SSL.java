@@ -16,6 +16,13 @@
  */
 package org.wildfly.openssl;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,14 +30,22 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Class that contains all native methods to interact with OpenSSL
  */
-class SSL {
+public abstract class SSL {
+
+    private static SSL instance;
 
     public static final String ORG_WILDFLY_OPENSSL_PATH = "org.wildfly.openssl.path";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
 
-    private SSL () {}
+    public SSL () {}
+    private static Object holder;
 
     private static volatile boolean init = false;
+
+    public static SSL getInstance() {
+        init();
+        return instance;
+    }
 
     static void init() {
         if(!init) {
@@ -38,7 +53,27 @@ class SSL {
                 if(!init) {
                     String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
                     if(libPath == null || libPath.isEmpty()) {
-                        System.loadLibrary("wfssl");
+                        try {
+                            System.loadLibrary("wfssl");
+                            instance = new SSLImpl();
+                        } catch (Throwable e) {
+                            //try using out pre-packaged version
+                            LibraryClassLoader libCl = new LibraryClassLoader(SSL.class.getClassLoader());
+                            try {
+                                Class loader = libCl.loadClass(LibraryLoader.class.getName());
+                                Method load = loader.getDeclaredMethod("load");
+                                Constructor ctor = loader.getDeclaredConstructor();
+                                ctor.setAccessible(true);
+                                load.setAccessible(true);
+                                load.invoke(holder = ctor.newInstance());
+                                Class sslClass = libCl.loadClass(SSLImpl.class.getName());
+                                instance = (SSL) sslClass.newInstance();
+
+                            } catch (Exception e1) {
+                                e1.printStackTrace();
+                                throw new RuntimeException(e1);
+                            }
+                        }
                     } else {
                         Runtime.getRuntime().load(libPath);
                     }
@@ -49,14 +84,83 @@ class SSL {
                     if (path != null && !path.endsWith("/")) {
                         path = path + "/";
                     }
-                    initialize(path);
+                    instance.initialize(path);
                     init = true;
                 }
             }
         }
     }
 
-    private static native void initialize(String openSSLPath);
+    private static final class LibraryClassLoader extends ClassLoader {
+
+        public LibraryClassLoader(ClassLoader parent) {
+            super(parent);
+        }
+
+        @Override
+        protected String findLibrary(String libname) {
+            String os = System.getProperty("os.name").toLowerCase();
+            String file;
+            if(os.contains("mac")) {
+                file = "lib" + libname + ".dylib";
+            } else if(os.contains("win")) {
+                file = libname + ".dll";
+            } else {
+                file = "lib" + libname + ".so";
+            }
+            try {
+                try (InputStream resource = SSL.class.getClassLoader().getResourceAsStream(file)) {
+                    if(resource != null) {
+                        File temp = File.createTempFile("tmp-", "openssl");
+                        temp.delete();
+                        temp.mkdir();
+                        File result = new File(temp, file);
+                        try (FileOutputStream out = new FileOutputStream(result)) {
+                            byte[] buf = new byte[1000];
+                            int r;
+                            while ((r = resource.read(buf)) > 0) {
+                                out.write(buf, 0, r);
+                            }
+                        }
+                        return result.getAbsolutePath();
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+
+            System.out.println("" + libname);
+            return super.findLibrary(libname);
+        }
+
+        @Override
+        public Class<?> loadClass(String name) throws ClassNotFoundException {
+            if(!name.endsWith("$LibraryLoader") && !name.endsWith(".SSLImpl")) {
+                return getParent().loadClass(name);
+            }
+            try (InputStream file = SSL.class.getClassLoader().getResourceAsStream(name.replace(".", "/") + ".class")) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buf = new byte[1024];
+                int r;
+                while ((r = file.read(buf)) > 0) {
+                    out.write(buf, 0, r);
+                }
+                byte[] data = out.toByteArray();
+                return defineClass(name, data, 0, data.length);
+            } catch (IOException e) {
+                throw new ClassNotFoundException(e.getMessage());
+            }
+        }
+    }
+
+    static class LibraryLoader {
+        public void load() {
+            System.loadLibrary("wfssl");
+        }
+    }
+
+    protected abstract void initialize(String openSSLPath);
 
     /**
      * JSSE and OpenSSL protocol names
@@ -284,7 +388,7 @@ class SSL {
     static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
     /* Return OpenSSL version number */
-    static native int version();
+    protected abstract int version();
 
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.
@@ -298,7 +402,7 @@ class SSL {
      *
      * @return true if all SSL_OP_* are supported by OpenSSL library.
      */
-    static native boolean hasOp(int op);
+    protected abstract boolean hasOp(int op);
 
     /*
      * Begin Twitter API additions
@@ -324,19 +428,19 @@ class SSL {
      *               if false configure SSL instance to use connect handshake routines
      * @return pointer to SSL instance (SSL *)
      */
-    static native long newSSL(long ctx, boolean server);
+    protected abstract long newSSL(long ctx, boolean server);
 
     /**
      * BIO_ctrl_pending.
      * @param bio BIO pointer (BIO *)
      */
-    static native int pendingWrittenBytesInBIO(long bio);
+    protected abstract int pendingWrittenBytesInBIO(long bio);
 
     /**
      * SSL_pending.
      * @param ssl SSL pointer (SSL *)
      */
-    static native int pendingReadableBytesInSSL(long ssl);
+    protected abstract int pendingReadableBytesInSSL(long ssl);
 
     /**
      * BIO_write.
@@ -344,7 +448,7 @@ class SSL {
      * @param wbuf
      * @param wlen
      */
-    static native int writeToBIO(long bio, long wbuf, int wlen);
+    protected abstract int writeToBIO(long bio, long wbuf, int wlen);
 
     /**
      * BIO_read.
@@ -352,7 +456,7 @@ class SSL {
      * @param rbuf
      * @param rlen
      */
-    static native int readFromBIO(long bio, long rbuf, int rlen);
+    protected abstract int readFromBIO(long bio, long rbuf, int rlen);
 
     /**
      * SSL_write.
@@ -360,7 +464,7 @@ class SSL {
      * @param wbuf
      * @param wlen
      */
-    static native int writeToSSL(long ssl, long wbuf, int wlen);
+    protected abstract int writeToSSL(long ssl, long wbuf, int wlen);
 
     /**
      * SSL_read
@@ -368,19 +472,19 @@ class SSL {
      * @param rbuf
      * @param rlen
      */
-    static native int readFromSSL(long ssl, long rbuf, int rlen);
+    protected abstract int readFromSSL(long ssl, long rbuf, int rlen);
 
     /**
      * SSL_get_shutdown
      * @param ssl the SSL instance (SSL *)
      */
-    static native int getShutdown(long ssl);
+    protected abstract int getShutdown(long ssl);
 
     /**
      * SSL_free
      * @param ssl the SSL instance (SSL *)
      */
-    static native void freeSSL(long ssl);
+    protected abstract void freeSSL(long ssl);
 
     /**
      * Wire up internal and network BIOs for the given SSL instance.
@@ -393,88 +497,88 @@ class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return pointer to the Network BIO (BIO *)
      */
-    static native long makeNetworkBIO(long ssl);
+    protected abstract long makeNetworkBIO(long ssl);
 
     /**
      * BIO_free
      * @param bio
      */
-    static native void freeBIO(long bio);
+    protected abstract void freeBIO(long bio);
 
     /**
      * SSL_shutdown
      * @param ssl the SSL instance (SSL *)
      */
-    static native int shutdownSSL(long ssl);
+    protected abstract int shutdownSSL(long ssl);
 
     /**
      * Get the error number representing the last error OpenSSL encountered on
      * this thread.
      */
-    static native int getLastErrorNumber();
+    protected abstract int getLastErrorNumber();
 
     /**
      * SSL_get_cipher.
      * @param ssl the SSL instance (SSL *)
      */
-    static native String getCipherForSSL(long ssl);
+    protected abstract String getCipherForSSL(long ssl);
 
     /**
      * SSL_get_version
      * @param ssl the SSL instance (SSL *)
      */
-    static native String getVersion(long ssl);
+    protected abstract String getVersion(long ssl);
 
     /**
      * SSL_do_handshake
      * @param ssl the SSL instance (SSL *)
      */
-    static native int doHandshake(long ssl);
+    protected abstract int doHandshake(long ssl);
 
-    static native int getSSLError(long ssl, int code);
+    protected abstract int getSSLError(long ssl, int code);
     /**
      * SSL_renegotiate
      * @param ssl the SSL instance (SSL *)
      */
-    static native int renegotiate(long ssl);
+    protected abstract int renegotiate(long ssl);
 
     /**
      * SSL_in_init.
      * @param SSL
      */
-    static native int isInInit(long SSL);
+    protected abstract int isInInit(long SSL);
 
     /**
      * SSL_get0_alpn_selected
      * @param ssl the SSL instance (SSL *)
      */
-    static native String getAlpnSelected(long ssl);
+    protected abstract String getAlpnSelected(long ssl);
 
     /**
      * enables ALPN on the server side
      */
-    static native void enableAlpn(long ssl);
+    protected abstract void enableAlpn(long ssl);
 
     /**
      * Get the peer certificate chain or {@code null} if non was send.
      */
-    static native byte[][] getPeerCertChain(long ssl);
+    protected abstract byte[][] getPeerCertChain(long ssl);
 
     /**
      * Get the peer certificate or {@code null} if non was send.
      */
-    static native byte[] getPeerCertificate(long ssl);
+    protected abstract byte[] getPeerCertificate(long ssl);
     /*
      * Get the error number representing for the given {@code errorNumber}.
      */
-    static native String getErrorString(long errorNumber);
+    protected abstract String getErrorString(long errorNumber);
 
     /**
      * SSL_get_time
      * @param ssl the SSL instance (SSL *)
      * @return returns the time at which the session ssl was established. The time is given in seconds since the Epoch
      */
-    static native long getTime(long ssl);
+    protected abstract long getTime(long ssl);
 
     /**
      * Set Type of Client Certificate verification and Maximum depth of CA Certificates
@@ -510,28 +614,28 @@ class SSL {
      * @param depth Maximum depth of CA Certificates in Client Certificate
      *              verification.
      */
-    static native void setSSLVerify(long ssl, int level, int depth);
+    protected abstract void setSSLVerify(long ssl, int level, int depth);
 
     /**
      * Set OpenSSL Option.
      * @param ssl the SSL instance (SSL *)
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    static native void setOptions(long ssl, int options);
+    protected abstract void setOptions(long ssl, int options);
 
     /**
      * Get OpenSSL Option.
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
      */
-    static native int getOptions(long ssl);
+    protected abstract int getOptions(long ssl);
 
     /**
      * Returns all Returns the cipher suites that are available for negotiation in an SSL handshake.
      * @param ssl the SSL instance (SSL *)
      * @return ciphers
      */
-    static native String[] getCiphers(long ssl);
+    protected abstract String[] getCiphers(long ssl);
 
     /**
      * Returns the cipher suites available for negotiation in SSL handshake.
@@ -547,7 +651,7 @@ class SSL {
      * @param ssl the SSL instance (SSL *)
      * @param ciphers an SSL cipher specification
      */
-    static native boolean setCipherSuites(long ssl, String ciphers)
+    protected abstract boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
 
     /**
@@ -556,11 +660,11 @@ class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return the session as byte array representation obtained via SSL_SESSION_get_id.
      */
-    static native byte[] getSessionId(long ssl);
+    protected abstract byte[] getSessionId(long ssl);
 
-    static native long getSessionPointer(long ssl);
+    protected abstract long getSessionPointer(long ssl);
 
-    static native long bufferAddress(ByteBuffer buffer);
+    protected abstract long bufferAddress(ByteBuffer buffer);
 
 
     /**
@@ -588,42 +692,42 @@ class SSL {
      *
      * @throws Exception If the SSL Context could not be created
      */
-    static native long makeSSLContext(int protocol, int mode) throws Exception;
+    protected abstract long makeSSLContext(int protocol, int mode) throws Exception;
 
     /**
      * Free the resources used by the Context
      * @param ctx Server or Client context to free.
      * @return APR Status code.
      */
-    static native int freeSSLContext(long ctx);
+    protected abstract int freeSSLContext(long ctx);
 
     /**
      * Set OpenSSL Option.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    static native void setSSLContextOptions(long ctx, int options);
+    protected abstract void setSSLContextOptions(long ctx, int options);
 
     /**
      * Clears OpenSSL Options.
      * @param ctx Server or Client context to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    static native void clearSSLContextOptions(long ctx, int options);
+    protected abstract void clearSSLContextOptions(long ctx, int options);
 
     /**
      * Set OpenSSL Option.
      * @param ssl Server or Client SSL to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    static native void setSSLOptions(long ssl, int options);
+    protected abstract void setSSLOptions(long ssl, int options);
 
     /**
      * Clears OpenSSL Options.
      * @param ssl Server or Client SSL to use.
      * @param options  See SSL.SSL_OP_* for option flags.
      */
-    static native void clearSSLOptions(long ssl, int options);
+    protected abstract void clearSSLOptions(long ssl, int options);
 
     /**
      * Cipher Suite available for negotiation in SSL handshake.
@@ -639,7 +743,7 @@ class SSL {
      * @param ctx Server or Client context to use.
      * @param ciphers An SSL cipher specification.
      */
-    static native boolean setCipherSuite(long ctx, String ciphers)
+    protected abstract boolean setCipherSuite(long ctx, String ciphers)
             throws Exception;
 
     /**
@@ -661,7 +765,7 @@ class SSL {
      * @param file File of concatenated PEM-encoded CA CRLs for Client Auth.
      * @param path Directory of PEM-encoded CA Certificates for Client Auth.
      */
-    static native boolean setCARevocation(long ctx, String file,
+    protected abstract boolean setCARevocation(long ctx, String file,
                                                  String path)
             throws Exception;
 
@@ -685,7 +789,7 @@ class SSL {
      * @param key Private Key file to use if not in cert.
      * @param idx Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
      */
-    static native boolean setCertificate(long ctx, byte[] cert,
+    protected abstract boolean setCertificate(long ctx, byte[] cert,
                                                 byte[] key,
                                                 int idx)
             throws Exception;
@@ -694,57 +798,57 @@ class SSL {
      * Set the size of the internal session cache.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_set_cache_size.html
      */
-    static native long setSessionCacheSize(long ctx, long size);
+    protected abstract long setSessionCacheSize(long ctx, long size);
 
     /**
      * Get the size of the internal session cache.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_get_cache_size.html
      */
-    static native long getSessionCacheSize(long ctx);
+    protected abstract long getSessionCacheSize(long ctx);
 
     /**
      * Set the timeout for the internal session cache in seconds.
      * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
      */
-    static native long setSessionCacheTimeout(long ctx, long timeoutSeconds);
+    protected abstract long setSessionCacheTimeout(long ctx, long timeoutSeconds);
 
     /**
      * Get the timeout for the internal session cache in seconds.
      * http://www.openssl.org/docs/ssl/SSL_CTX_set_timeout.html
      */
-    static native long getSessionCacheTimeout(long ctx);
+    protected abstract long getSessionCacheTimeout(long ctx);
 
     /**
      * Set the mode of the internal session cache and return the previous used mode.
      */
-    static native long setSessionCacheMode(long ctx, long mode);
+    protected abstract long setSessionCacheMode(long ctx, long mode);
 
     /**
      * Get the mode of the current used internal session cache.
      */
-    static native long getSessionCacheMode(long ctx);
+    protected abstract long getSessionCacheMode(long ctx);
 
     /**
      * Session resumption statistics methods.
      * http://www.openssl.org/docs/ssl/SSL_CTX_sess_number.html
      */
-    static native long sessionAccept(long ctx);
-    static native long sessionAcceptGood(long ctx);
-    static native long sessionAcceptRenegotiate(long ctx);
-    static native long sessionCacheFull(long ctx);
-    static native long sessionCbHits(long ctx);
-    static native long sessionConnect(long ctx);
-    static native long sessionConnectGood(long ctx);
-    static native long sessionConnectRenegotiate(long ctx);
-    static native long sessionHits(long ctx);
-    static native long sessionMisses(long ctx);
-    static native long sessionNumber(long ctx);
-    static native long sessionTimeouts(long ctx);
+    protected abstract long sessionAccept(long ctx);
+    protected abstract long sessionAcceptGood(long ctx);
+    protected abstract long sessionAcceptRenegotiate(long ctx);
+    protected abstract long sessionCacheFull(long ctx);
+    protected abstract long sessionCbHits(long ctx);
+    protected abstract long sessionConnect(long ctx);
+    protected abstract long sessionConnectGood(long ctx);
+    protected abstract long sessionConnectRenegotiate(long ctx);
+    protected abstract long sessionHits(long ctx);
+    protected abstract long sessionMisses(long ctx);
+    protected abstract long sessionNumber(long ctx);
+    protected abstract long sessionTimeouts(long ctx);
 
     /**
      * Set TLS session keys. This allows us to share keys across TFEs.
      */
-    static native void setSessionTicketKeys(long ctx, byte[] keys);
+    protected abstract void setSessionTicketKeys(long ctx, byte[] keys);
 
     /**
      * Set File and Directory of concatenated PEM-encoded CA Certificates
@@ -767,7 +871,7 @@ class SSL {
      *             Client Auth.
      * @param path Directory of PEM-encoded CA Certificates for Client Auth.
      */
-    static native boolean setCACertificate(long ctx, String file,
+    protected abstract boolean setCACertificate(long ctx, String file,
                                                   String path)
             throws Exception;
 
@@ -835,9 +939,9 @@ class SSL {
     /**
      * invalidates the current SSL session
      */
-    static native void invalidateSession(long ctx);
+    protected abstract void invalidateSession(long ctx);
 
-    static native void registerSessionContext(long context, OpenSSLServerSessionContext openSSLServerSessionContext);
+    protected abstract void registerSessionContext(long context, OpenSSLServerSessionContext openSSLServerSessionContext);
 
     /**
      * Interface implemented by components that will receive the call back to
@@ -866,7 +970,7 @@ class SSL {
      * @param ctx Server or Client context to use.
      * @param verifier the verifier to call during handshake.
      */
-    static native void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
+    protected abstract void setCertVerifyCallback(long ctx, CertificateVerifier verifier);
 
     /**
      * Set application layer protocol for application layer protocol negotiation extension.
@@ -875,14 +979,14 @@ class SSL {
      * @param ssl SSL Engine to use
      * @param alpnProtos protocols in priority order
      */
-    static native void setAlpnProtos(long ssl, String[] alpnProtos);
+    protected abstract void setAlpnProtos(long ssl, String[] alpnProtos);
 
     /**
      * Sets the server ALPN callback for a spcific engine
      * @param ssl The SSL engine
      * @param callback the callbackto use
      */
-    static native void setServerALPNCallback(long ssl, ServerALPNCallback callback);
+    protected abstract void setServerALPNCallback(long ssl, ServerALPNCallback callback);
 
     /**
      * Set the context within which session be reused (server side only)
@@ -893,5 +997,5 @@ class SSL {
      *               of the application and/or the hostname and/or service name
      * @return {@code true} if success, {@code false} otherwise.
      */
-    static native boolean setSessionIdContext(long ctx, byte[] sidCtx);
+    protected abstract boolean setSessionIdContext(long ctx, byte[] sidCtx);
 }

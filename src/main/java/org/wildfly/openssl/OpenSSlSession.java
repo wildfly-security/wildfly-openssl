@@ -86,7 +86,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public void invalidate() {
         if (valid) {
-            SSL.invalidateSession(sessionPointer);
+            SSL.getInstance().invalidateSession(sessionPointer);
             valid = false;
         }
     }
@@ -234,14 +234,14 @@ class OpenSSlSession implements SSLSession {
 
 
     private void initPeerCertChain(long ssl) {
-        byte[][] chain = SSL.getPeerCertChain(ssl);
+        byte[][] chain = SSL.getInstance().getPeerCertChain(ssl);
         byte[] clientCert;
         if (server) {
             // if used on the server side SSL_get_peer_cert_chain(...) will not include the remote peer certificate.
             // We use SSL_get_peer_certificate to get it in this case and add it to our array later.
             //
             // See https://www.openssl.org/docs/ssl/SSL_get_peer_cert_chain.html
-            clientCert = SSL.getPeerCertificate(ssl);
+            clientCert = SSL.getInstance().getPeerCertificate(ssl);
         } else {
             clientCert = null;
         }
@@ -274,11 +274,11 @@ class OpenSSlSession implements SSLSession {
     }
 
     public void initx509PeerCertChain(long ssl) {
-        if (SSL.isInInit(ssl) != 0) {
+        if (SSL.getInstance().isInInit(ssl) != 0) {
             this.x509PeerCerts = null;
             return;
         }
-        byte[][] chain = SSL.getPeerCertChain(ssl);
+        byte[][] chain = SSL.getInstance().getPeerCertChain(ssl);
         if (chain == null) {
             this.x509PeerCerts = null;
             return;
@@ -306,12 +306,12 @@ class OpenSSlSession implements SSLSession {
 
     private void initProtcol(long ssl) {
         //TODO: fix this
-        String version = SSL.getVersion(ssl);
+        String version = SSL.getInstance().getVersion(ssl);
         protocol = "TLS:" + version;
     }
 
     private void initCipherSuite(long ssl) {
-        String c = OpenSSLEngine.toJavaCipherSuite(SSL.getCipherForSSL(ssl), ssl);
+        String c = OpenSSLEngine.toJavaCipherSuite(SSL.getInstance().getCipherForSSL(ssl), ssl);
         if (c != null) {
             cipherSuite = c;
         }

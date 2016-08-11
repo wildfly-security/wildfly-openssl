@@ -19,7 +19,7 @@ package org.wildfly.openssl;
 
 /**
  * {@link OpenSSLSessionContext} implementation which offers extra methods which
- * are only useful for the server-side.
+ * are only useful for the client-side.
  */
 public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     OpenSSLClientSessionContext(long context) {
@@ -31,12 +31,12 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
         if (seconds < 0) {
             throw new IllegalArgumentException();
         }
-        SSL.setSessionCacheTimeout(context, seconds);
+        SSL.getInstance().setSessionCacheTimeout(context, seconds);
     }
 
     @Override
     public int getSessionTimeout() {
-        return (int) SSL.getSessionCacheTimeout(context);
+        return (int) SSL.getInstance().getSessionCacheTimeout(context);
     }
 
     @Override

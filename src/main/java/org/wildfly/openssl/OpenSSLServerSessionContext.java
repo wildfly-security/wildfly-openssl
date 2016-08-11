@@ -25,7 +25,7 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
 
     OpenSSLServerSessionContext(long context) {
         super(context);
-        SSL.registerSessionContext(context, this);
+        SSL.getInstance().registerSessionContext(context, this);
     }
 
 
@@ -34,12 +34,12 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
         if (seconds < 0) {
             throw new IllegalArgumentException();
         }
-        SSL.setSessionCacheTimeout(context, seconds);
+        SSL.getInstance().setSessionCacheTimeout(context, seconds);
     }
 
     @Override
     public int getSessionTimeout() {
-        return (int) SSL.getSessionCacheTimeout(context);
+        return (int) SSL.getInstance().getSessionCacheTimeout(context);
     }
 
     @Override
@@ -47,23 +47,23 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
         if (size < 0) {
             throw new IllegalArgumentException();
         }
-        SSL.setSessionCacheSize(context, size);
+        SSL.getInstance().setSessionCacheSize(context, size);
     }
 
     @Override
     public int getSessionCacheSize() {
-        return (int) SSL.getSessionCacheSize(context);
+        return (int) SSL.getInstance().getSessionCacheSize(context);
     }
 
     @Override
     public void setSessionCacheEnabled(boolean enabled) {
-        long mode = enabled ? SSL.SSL_SESS_CACHE_SERVER : SSL.SSL_SESS_CACHE_OFF;
-        SSL.setSessionCacheMode(context, mode);
+        long mode = enabled ? SSL.getInstance().SSL_SESS_CACHE_SERVER : SSL.getInstance().SSL_SESS_CACHE_OFF;
+        SSL.getInstance().setSessionCacheMode(context, mode);
     }
 
     @Override
     public boolean isSessionCacheEnabled() {
-        return SSL.getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_SERVER;
+        return SSL.getInstance().getSessionCacheMode(context) == SSL.getInstance().SSL_SESS_CACHE_SERVER;
     }
 
     /**
@@ -76,7 +76,7 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
      * @return {@code true} if success, {@code false} otherwise.
      */
     public boolean setSessionIdContext(byte[] sidCtx) {
-        return SSL.setSessionIdContext(context, sidCtx);
+        return SSL.getInstance().setSessionIdContext(context, sidCtx);
     }
 
 }
