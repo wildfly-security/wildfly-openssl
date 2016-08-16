@@ -26,6 +26,7 @@ import javax.security.cert.CertificateException;
 import javax.security.cert.X509Certificate;
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -271,27 +272,16 @@ class OpenSSlSession implements SSLSession {
             }
         }
         this.peerCerts = peerCerts;
-    }
 
-    public void initx509PeerCertChain(long ssl) {
-        if (SSL.getInstance().isInInit(ssl) != 0) {
-            this.x509PeerCerts = null;
-            return;
-        }
-        byte[][] chain = SSL.getInstance().getPeerCertChain(ssl);
-        if (chain == null) {
-            this.x509PeerCerts = null;
-            return;
-        }
-        X509Certificate[] peerCerts = new X509Certificate[chain.length];
-        for (int i = 0; i < peerCerts.length; i++) {
+        X509Certificate[] x509Certificates = new X509Certificate[peerCerts.length];
+        for(int j = 0; j < x509Certificates.length; ++ j) {
             try {
-                peerCerts[i] = X509Certificate.getInstance(chain[i]);
-            } catch (CertificateException e) {
+                x509Certificates[j] = X509Certificate.getInstance(peerCerts[j].getEncoded());
+            } catch (CertificateException|CertificateEncodingException e) {
                 throw new IllegalStateException(e);
             }
         }
-        x509PeerCerts = peerCerts;
+        x509PeerCerts = x509Certificates;
     }
 
     void initialised(long pointer, long ssl, byte[] sessionId) {
@@ -299,7 +289,6 @@ class OpenSSlSession implements SSLSession {
         this.sessionPointer = pointer;
         this.sessionId = sessionId;
         initPeerCertChain(ssl);
-        initx509PeerCertChain(ssl);
         initCipherSuite(ssl);
         initProtcol(ssl);
     }

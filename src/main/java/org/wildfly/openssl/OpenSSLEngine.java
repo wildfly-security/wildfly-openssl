@@ -63,8 +63,7 @@ public final class OpenSSLEngine extends SSLEngine {
             SSL.getInstance().SSL_PROTO_TLSv1_1,
             SSL.getInstance().SSL_PROTO_TLSv1_2
     };
-    private static final Set<String> SUPPORTED_PROTOCOLS_SET =
-            new HashSet<>(Arrays.asList(SUPPORTED_PROTOCOLS));
+    private static final Set<String> SUPPORTED_PROTOCOLS_SET = new HashSet<>(Arrays.asList(SUPPORTED_PROTOCOLS));
 
     // Header (5) + Data (2^14) + Compression (1024) + Encryption (1024) + MAC (20) + Padding (256)
     static final int MAX_ENCRYPTED_PACKET_LENGTH = MAX_CIPHERTEXT_LENGTH + 5 + 20 + 256;
