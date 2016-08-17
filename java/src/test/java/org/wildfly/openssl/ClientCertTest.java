@@ -43,7 +43,7 @@ public class ClientCertTest {
     }
 
     @Test
-    public void jsseClientCertTest() throws IOException, NoSuchAlgorithmException {
+    public void jsseClientCertTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
@@ -62,6 +62,9 @@ public class ClientCertTest {
                 Assert.assertEquals(MESSAGE, new String(data, 0, read));
                 Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
             }
+
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 

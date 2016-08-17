@@ -20,7 +20,6 @@ package org.wildfly.openssl;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -57,7 +56,7 @@ public class SslCiphersTest {
     }
 
     @Test
-    public void testAvailableProtocols() throws IOException, NoSuchAlgorithmException {
+    public void testAvailableProtocols() throws Exception {
         final AtomicReference<byte[]> sessionID = new AtomicReference<>();
         final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
 
@@ -111,6 +110,7 @@ public class SslCiphersTest {
             socket.close();
             echo.stop();
             serverSocket.close();
+            acceptThread.join();
         }
     }
 }

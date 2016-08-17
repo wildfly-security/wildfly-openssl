@@ -34,7 +34,7 @@ import org.junit.Test;
 public class BasicOpenSSLSocketTest {
 
     @Test
-    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
+    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
 
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             OpenSSLProvider.register();
@@ -53,7 +53,8 @@ public class BasicOpenSSLSocketTest {
             Assert.assertEquals("hello world", new String(data, 0, read));
             //TODO: fix client session id
             //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 

@@ -43,7 +43,7 @@ public class BasicOpenSSLEngineTest {
     }
 
     @Test
-    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException {
+    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
@@ -58,12 +58,14 @@ public class BasicOpenSSLEngineTest {
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 
 
     @Test
-    public void openSslLotsOfDataTest() throws IOException, NoSuchAlgorithmException {
+    public void openSslLotsOfDataTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
@@ -79,6 +81,9 @@ public class BasicOpenSSLEngineTest {
 
             Assert.assertEquals(message, new String(SSLTestUtils.readData(socket.getInputStream())));
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 
