@@ -61,7 +61,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     private OpenSSLServerSessionContext serverSessionContext;
     private OpenSSLClientSessionContext clientSessionContext;
 
-    private static volatile String[] allAvailbleCiphers;
+    private static volatile String[] allAvailableCiphers;
 
     protected final long ctx;
 
@@ -80,9 +80,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     public static String[] getAvailableCipherSuites() {
-        if(allAvailbleCiphers == null) {
+        if(allAvailableCiphers == null) {
             synchronized (OpenSSLContextSPI.class) {
-                if(allAvailbleCiphers == null) {
+                if(allAvailableCiphers == null) {
 
                     final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
                     try {
@@ -108,11 +108,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     } catch (Exception e) {
                         LOG.log(Level.WARNING, "Failed to initialize ciphers", e);
                     }
-                    allAvailbleCiphers = availableCipherSuites.toArray(new String[availableCipherSuites.size()]);
+                    allAvailableCiphers = availableCipherSuites.toArray(new String[availableCipherSuites.size()]);
                 }
             }
         }
-        return allAvailbleCiphers;
+        return allAvailableCiphers;
     }
 
     OpenSSLContextSPI(final int value) throws SSLException {
