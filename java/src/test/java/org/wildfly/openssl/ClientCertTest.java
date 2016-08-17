@@ -53,14 +53,15 @@ public class ClientCertTest {
                 return engine;
             })));
             acceptThread.start();
-            final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.connect(SSLTestUtils.createSocketAddress());
-            socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-            byte[] data = new byte[100];
-            int read = socket.getInputStream().read(data);
+            try (final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket()) {
+                socket.connect(SSLTestUtils.createSocketAddress());
+                socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+                byte[] data = new byte[100];
+                int read = socket.getInputStream().read(data);
 
-            Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                Assert.assertEquals(MESSAGE, new String(data, 0, read));
+                Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            }
         }
     }
 
