@@ -43,10 +43,6 @@
         <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
     </properties>
 
-    <modules>
-        <module>java</module>
-        <module>combined</module>
-    </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -59,49 +55,48 @@
     </dependencyManagement>
     <build>
         <plugins>
-
-            <!-- Checkstyle -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${version.checkstyle.plugin}</version>
+                <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <configLocation>wildfly-checkstyle/checkstyle.xml</configLocation>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    <useFile/>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.wildfly.checkstyle</groupId>
-                        <artifactId>wildfly-checkstyle-config</artifactId>
-                        <version>${version.org.wildfly.checkstyle}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>checkstyle</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.0.2</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
     <profiles>
+        <profile>
+            <id>default-build</id>
+            <activation>
+                <property>
+                    <name>!parent-release</name>
+                </property>
+            </activation>
+            <modules>
+                <module>java</module>
+                <module>combined</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>parent-release</id>
+            <activation>
+                <property>
+                    <name>parent-release</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>mac</id>
             <activation>
