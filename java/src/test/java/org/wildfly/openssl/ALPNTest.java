@@ -42,7 +42,7 @@ public class ALPNTest {
     }
 
     @Test
-    public void testALPN() throws IOException, NoSuchAlgorithmException {
+    public void testALPN() throws IOException, NoSuchAlgorithmException, InterruptedException {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
@@ -66,11 +66,13 @@ public class ALPNTest {
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
             Assert.assertEquals("server side", "h2", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertEquals("client side", "h2", socket.getSelectedApplicationProtocol());
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 
     @Test
-    public void testALPNFailure() throws IOException, NoSuchAlgorithmException {
+    public void testALPNFailure() throws IOException, NoSuchAlgorithmException, InterruptedException {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
@@ -93,6 +95,8 @@ public class ALPNTest {
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
             Assert.assertNull("server side", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertNull("client side", socket.getSelectedApplicationProtocol());
+            serverSocket.close();
+            acceptThread.join();
         }
     }
 }
