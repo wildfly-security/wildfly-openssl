@@ -180,6 +180,36 @@ jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session) {
     return bArray;
 }
 
+WF_OPENSSL(jlong, getSession)(JNIEnv *e, jobject o, jlong ssl)
+{
+
+    SSL_SESSION *session;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return -1;
+    }
+    session = ssl_methods.SSL_get1_session(ssl_);
+    return P2J(session);
+}
+
+WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session)
+{
+
+    SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
+    if (session_ == NULL) {
+        throwIllegalStateException(e, "session is null");
+    }
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+    }
+    int r = ssl_methods.SSL_set_session(ssl_, session_);
+    if (r == 0) {
+        fprintf(stderr, "[ERROR] %s", crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), NULL));
+    }
+}
+
 WF_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl)
 {
 

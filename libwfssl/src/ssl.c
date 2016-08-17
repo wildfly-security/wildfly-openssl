@@ -340,6 +340,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_get_privatekey);
     REQUIRE_SSL_SYMBOL(SSL_get_servername);
     REQUIRE_SSL_SYMBOL(SSL_get_session);
+    REQUIRE_SSL_SYMBOL(SSL_get1_session);
+    REQUIRE_SSL_SYMBOL(SSL_set_session);
     REQUIRE_SSL_SYMBOL(SSL_get_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_get_version);
     REQUIRE_SSL_SYMBOL(SSL_library_init);

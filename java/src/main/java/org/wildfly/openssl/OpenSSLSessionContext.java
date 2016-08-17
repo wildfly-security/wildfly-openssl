@@ -103,11 +103,12 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         sessions.remove(new Key(sessionId));
     }
 
-    void initClientSideSession(long ssl) {
+    byte[] initClientSideSession(long ssl, final String host, final int port) {
         byte[] sessionId = SSL.getInstance().getSessionId(ssl);
         OpenSSlSession session = new OpenSSlSession(false, this);
         sessions.put(new Key(sessionId), session);
         session.initialised(SSL.getInstance().getSessionPointer(ssl), ssl, sessionId);
+        return sessionId;
     }
 
     public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {

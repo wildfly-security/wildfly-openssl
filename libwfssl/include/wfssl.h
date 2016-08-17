@@ -380,6 +380,8 @@ typedef struct {
     STACK_OF(X509) *(*SSL_get_peer_cert_chain)(const SSL *s);
     X509 *(*SSL_get_peer_certificate)(const SSL *s);
     SSL_SESSION *(*SSL_get_session)(const SSL *ssl);
+    SSL_SESSION *(*SSL_get1_session)(SSL *ssl);
+    int (*SSL_set_session)(SSL *ssl, SSL_SESSION *session);
     int (*SSL_get_shutdown)(const SSL *ssl);
     const char *(*SSL_get_version)(const SSL *s);
     int (*SSL_library_init)(void);

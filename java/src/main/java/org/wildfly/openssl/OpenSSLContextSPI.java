@@ -290,6 +290,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         return new OpenSSLEngine(ctx, false, OpenSSLContextSPI.this);
     }
 
+    public SSLEngine createSSLEngine(final String host, final int port) {
+        return new OpenSSLEngine(ctx, false, OpenSSLContextSPI.this, host, port);
+    }
+
 
     public String[] getCiphers() {
         if(ciphers == null) {
@@ -338,27 +342,29 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(InetAddress host, int port) throws IOException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                // TODO (jrp) getCanonicalHostName() isn't a great idea here
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host.getCanonicalHostName(), port));
             }
 
             @Override
             public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                // TODO (jrp) getCanonicalHostName() isn't a great idea here
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, address.getCanonicalHostName(), port));
             }
         };
     }
@@ -400,7 +406,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     @Override
     protected SSLEngine engineCreateSSLEngine(String host, int port) {
-        return createSSLEngine();
+        return createSSLEngine(host, port);
     }
 
     @Override

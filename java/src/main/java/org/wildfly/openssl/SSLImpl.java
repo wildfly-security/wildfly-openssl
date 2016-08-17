@@ -424,6 +424,27 @@ public class SSLImpl extends SSL {
     }
 
     /**
+     * Returns the pointer reference to the SSL session.
+     *
+     * @param ssl the SSL instance (SSL *)
+     *
+     * @return the pointer reference to the SSL session
+     */
+    static native long getSession0(long ssl);
+
+    @Override
+    protected long getSession(final long ssl) {
+        return this.getSession0(ssl);
+    }
+
+    static native void setSession0(final long ssl, final long session);
+
+    @Override
+    protected void setSession(final long ssl, final long session) {
+        this.setSession0(ssl, session);
+    }
+
+    /**
      * Returns the cipher suites available for negotiation in SSL handshake.
      * <br />
      * This complex directive uses a colon-separated cipher-spec string consisting

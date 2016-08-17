@@ -657,6 +657,37 @@ public abstract class SSL {
             throws Exception;
 
     /**
+     * Returns the pointer reference to the SSL session.
+     * <a href="https://www.openssl.org/docs/manmaster/ssl/SSL_get_session.html">https://www.openssl.org/docs/manmaster/ssl/SSL_get_session.html</a>
+     * <p>
+     * This uses the {@code SSL_get1_session()}. The {@link #invalidateSession(long)} SSL_SESSION_free} needs to
+     * explicitly be called once to decrement the reference count.
+     * </p>
+     * <p>
+     * From the OpenSSL documentation:
+     * <blockquote>
+     * If the data is to be kept, SSL_get1_session() will increment the reference count, so that the session will
+     * not be implicitly removed by other operations but stays in memory. In order to remove the session
+     * {@code SSL_SESSION_free} must be explicitly called once to decrement the reference count again.
+     * </blockquote>
+     * </p>
+     *
+     * @param ssl the SSL instance (SSL *)
+     *
+     * @return the pointer reference to the SSL session
+     */
+    protected abstract long getSession(long ssl);
+
+    /**
+     * Sets the session for the SSL instance.
+     * <a href="https://www.openssl.org/docs/manmaster/ssl/SSL_set_session.html">https://www.openssl.org/docs/manmaster/ssl/SSL_set_session.html</a>
+     *
+     * @param ssl     the SSL instance (SSL *)
+     * @param session the pointer to the SSL session to set the SSL instance to
+     */
+    protected abstract void setSession(long ssl, long session);
+
+    /**
      * Returns the ID of the session as byte array representation.
      *
      * @param ssl the SSL instance (SSL *)

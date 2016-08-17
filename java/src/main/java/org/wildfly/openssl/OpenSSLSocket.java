@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -528,6 +529,12 @@ public class OpenSSLSocket extends SSLSocket {
         } else {
             delegate.connect(endpoint);
         }
+
+        if (!(endpoint instanceof InetSocketAddress))
+            throw new IllegalArgumentException("Unsupported address type");
+        final InetSocketAddress address = (InetSocketAddress) endpoint;
+        sslEngine.setHost(address.getHostName());
+        sslEngine.setPort(address.getPort());
     }
 
     @Override
@@ -537,6 +544,12 @@ public class OpenSSLSocket extends SSLSocket {
         } else {
             delegate.connect(endpoint, timeout);
         }
+
+        if (!(endpoint instanceof InetSocketAddress))
+            throw new IllegalArgumentException("Unsupported address type");
+        final InetSocketAddress address = (InetSocketAddress) endpoint;
+        sslEngine.setHost(address.getHostName());
+        sslEngine.setPort(address.getPort());
     }
 
     @Override

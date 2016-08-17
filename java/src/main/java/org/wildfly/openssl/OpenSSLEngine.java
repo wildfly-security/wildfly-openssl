@@ -123,6 +123,9 @@ public final class OpenSSLEngine extends SSLEngine {
     private String selectedApplicationProtocol;
     private SSLSession handshakeSession;
 
+    private volatile String host;
+    private volatile int port;
+
     /**
      * Creates a new instance
      *
@@ -133,12 +136,18 @@ public final class OpenSSLEngine extends SSLEngine {
      */
     OpenSSLEngine(long sslCtx,
                   boolean clientMode, OpenSSLContextSPI openSSLContextSPI) {
+        this(sslCtx, clientMode, openSSLContextSPI, null, -1);
+    }
+    OpenSSLEngine(long sslCtx,
+                  boolean clientMode, OpenSSLContextSPI openSSLContextSPI, String host, int port) {
         if (sslCtx == 0) {
             throw new IllegalStateException("No SSL Context");
         }
         this.sslCtx = sslCtx;
         this.clientMode = clientMode;
         this.openSSLContextSPI = openSSLContextSPI;
+        this.host = host;
+        this.port = port;
     }
 
     private void initSsl() {
@@ -879,7 +888,7 @@ public final class OpenSSLEngine extends SSLEngine {
             selectedApplicationProtocol = SSL.getInstance().getAlpnSelected(ssl);
         }
         if(clientMode) {
-            openSSLContextSPI.engineGetClientSessionContext().initClientSideSession(ssl);
+            openSSLContextSPI.engineGetClientSessionContext().initClientSideSession(ssl, host, port);
         }
         if(handshakeSession != null) {
             getSessionContext().mergeHandshakeSession(handshakeSession, SSL.getInstance().getSessionId(ssl));
@@ -1144,5 +1153,13 @@ public final class OpenSSLEngine extends SSLEngine {
         }
         SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
 
+    }
+
+    void setHost(final String host) {
+        this.host = host;
+    }
+
+    void setPort(final int port) {
+        this.port = port;
     }
 }
