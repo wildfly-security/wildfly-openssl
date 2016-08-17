@@ -101,6 +101,9 @@ public class SslCiphersTest {
             String cipherSuite = socket.getSession().getCipherSuite();
             SSLEngine sslEngine = engineRef.get();
             SSLSession session = sslEngine.getSession();
+            if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+                cipherSuite = cipherSuite.replace("SSL", "TLS");
+            }
             Assert.assertEquals(session.getCipherSuite(), cipherSuite);
             Assert.assertEquals(session.getCipherSuite(), suite);
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
