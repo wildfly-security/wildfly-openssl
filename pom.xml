@@ -138,16 +138,5 @@
                 <module>windows</module>
             </modules>
         </profile>
-        <profile>
-            <id>release</id>
-            <activation>
-                <property><name>release</name></property>
-            </activation>
-            <modules>
-                <module>linux</module>
-                <module>windows</module>
-                <module>mac</module>
-            </modules>
-        </profile>
     </profiles>
 </project>
