@@ -20,43 +20,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.jboss</groupId>
-        <artifactId>jboss-parent</artifactId>
-        <version>19</version>
+        <groupId>org.wildfly.openssl</groupId>
+        <artifactId>wildfly-openssl-parent</artifactId>
+        <version>1.0.0.Alpha1-SNAPSHOT</version>
+        <relativePath>../</relativePath>
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
-    <artifactId>wildfly-openssl-parent</artifactId>
+    <artifactId>wildfly-openssl-java</artifactId>
     <version>1.0.0.Alpha1-SNAPSHOT</version>
 
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
-
-        <openssl.path></openssl.path>
-
-        <!-- Test properties -->
-        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-        <org.wildfly.openssl.test.host>localhost</org.wildfly.openssl.test.host>
-        <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
-    </properties>
-
-    <modules>
-        <module>java</module>
-        <module>combined</module>
-    </modules>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.8.2</version>
-                <scope>test</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
 
@@ -98,6 +80,25 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.17</version>
+
+                <configuration>
+                    <redirectTestOutputToFile>${maven.test.redirectTestOutputToFile}</redirectTestOutputToFile>
+                    <forkMode>once</forkMode>
+                    <systemProperties>
+                        <javax.net.ssl.keyStore>src/test/resources/client.keystore</javax.net.ssl.keyStore>
+                        <javax.net.ssl.trustStore>src/test/resources/client.truststore</javax.net.ssl.trustStore>
+                        <javax.net.ssl.keyStorePassword>password</javax.net.ssl.keyStorePassword>
+                        <org.wildfly.openssl.path>${openssl.path}</org.wildfly.openssl.path>
+                        <org.wildfly.openssl.test.host>${org.wildfly.openssl.test.host}</org.wildfly.openssl.test.host>
+                        <org.wildfly.openssl.test.port>${org.wildfly.openssl.test.port}</org.wildfly.openssl.test.port>
+                    </systemProperties>
+                    <argLine>-Djava.library.path=${project.basedir}/../libwfssl</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -105,49 +106,12 @@
         <profile>
             <id>mac</id>
             <activation>
-                <os>
-                    <family>mac</family>
-                </os>
+                <os><family>mac</family></os>
             </activation>
-            <modules>
-                <module>mac</module>
-            </modules>
             <properties>
                 <openssl.path>/usr/local/opt/openssl/lib</openssl.path>
             </properties>
-        </profile>
-        <profile>
-            <id>linux</id>
-            <activation>
-                <os>
-                    <family>linux</family>
-                </os>
-            </activation>
-            <modules>
-                <module>linux</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>windows</id>
-            <activation>
-                <os>
-                    <family>windows</family>
-                </os>
-            </activation>
-            <modules>
-                <module>windows</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>release</id>
-            <activation>
-                <property><name>release</name></property>
-            </activation>
-            <modules>
-                <module>linux</module>
-                <module>windows</module>
-                <module>mac</module>
-            </modules>
+
         </profile>
     </profiles>
 </project>
