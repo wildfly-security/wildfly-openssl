@@ -1091,6 +1091,10 @@ public final class OpenSSLEngine extends SSLEngine {
         this.applicationProtocols = applicationProtocols;
     }
 
+    public static boolean isAlpnSupported() {
+        return SSL.getInstance().isAlpnSupported();
+    }
+
     long getSsl() {
         initSsl();
         return ssl;

@@ -297,6 +297,12 @@ public class SSLImpl extends SSL {
         this.enableAlpn0(ssl);
     }
 
+    static native boolean isAlpnSupported0();
+
+    protected boolean isAlpnSupported() {
+        return isAlpnSupported0();
+    }
+
     /**
      * Get the peer certificate chain or {@code null} if non was send.
      */

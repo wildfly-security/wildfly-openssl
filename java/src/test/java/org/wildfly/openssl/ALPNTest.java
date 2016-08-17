@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -42,6 +43,7 @@ public class ALPNTest {
 
     @Test
     public void testALPN() throws IOException, NoSuchAlgorithmException {
+        Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
@@ -69,6 +71,7 @@ public class ALPNTest {
 
     @Test
     public void testALPNFailure() throws IOException, NoSuchAlgorithmException {
+        Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
             final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");

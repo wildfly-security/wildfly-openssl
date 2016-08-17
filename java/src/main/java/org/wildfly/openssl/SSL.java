@@ -559,6 +559,8 @@ public abstract class SSL {
      */
     protected abstract void enableAlpn(long ssl);
 
+    protected abstract boolean isAlpnSupported();
+
     /**
      * Get the peer certificate chain or {@code null} if non was send.
      */

@@ -225,6 +225,9 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
         throwIllegalStateException(e, "ssl is null");
         return NULL;
     }
+    if(ssl_methods.SSL_get0_alpn_selected == NULL) {
+        return NULL;
+    }
 
     UNREFERENCED(o);
 
@@ -245,4 +248,8 @@ WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject
     tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
 
     con->alpn_selection_callback = (*e)->NewGlobalRef(e, callback);
+}
+
+WF_OPENSSL(jboolean, isAlpnSupported)(JNIEnv *e, jobject o) {
+    return ssl_methods.SSL_set_alpn_protos != NULL;
 }
