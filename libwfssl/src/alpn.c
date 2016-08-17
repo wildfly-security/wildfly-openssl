@@ -189,7 +189,7 @@ WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray al
     }
     SSL *ssl_ = J2P(ssl, SSL *);
 
-    TCN_ASSERT(ctx != 0);
+    TCN_ASSERT(ssl != 0);
     UNREFERENCED(o);
     unsigned char * alpn_proto_data = NULL;
     unsigned int alpn_proto_len = 0;

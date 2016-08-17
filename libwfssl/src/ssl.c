@@ -202,11 +202,11 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 
 #ifdef WIN32
 
-#define REQUIRE_SYMBOL(handle, symb, target) target = GetProcAddress(handle, #symb); if(target == 0) { throwIllegalStateException(e, "Could not load required symbol from" #handle " " #symb); return 1;}
-#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = GetProcAddress(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
-#define GET_SSL_SYMBOL(symb) ssl_methods.symb = GetProcAddress(ssl, #symb);
-#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = GetProcAddress(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
-#define GET_CRYPTO_SYMBOL(symb)  crypto_methods.symb = GetProcAddress(crypto, #symb);
+#define REQUIRE_SYMBOL(handle, symb, target) target = (void*)GetProcAddress(handle, #symb); if(target == 0) { throwIllegalStateException(e, "Could not load required symbol from" #handle " " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = (void*)GetProcAddress(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define GET_SSL_SYMBOL(symb) ssl_methods.symb = (void*)GetProcAddress(ssl, #symb);
+#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = (void*)GetProcAddress(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define GET_CRYPTO_SYMBOL(symb)  crypto_methods.symb = (void*)GetProcAddress(crypto, #symb);
 
 #else
 
