@@ -37,6 +37,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
+
                 <executions>
                     <execution>
                         <id>copy-resources</id>
@@ -48,7 +49,7 @@
                             <outputDirectory>${basedir}/target/classes</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${basedir}/../libwfssl/</directory>
+                                    <directory>${basedir}/../libwfssl/Release/</directory>
                                     <includes>
                                         <include>wfssl.dll</include>
                                     </includes>
