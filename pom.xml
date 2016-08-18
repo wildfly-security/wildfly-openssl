@@ -36,6 +36,8 @@
         <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
 
         <openssl.path></openssl.path>
+        <cmake.generator>Unix Makefiles</cmake.generator>
+        <make.exe>make</make.exe>
 
         <!-- Test properties -->
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
@@ -129,9 +131,83 @@
                     <family>windows</family>
                 </os>
             </activation>
+            <properties>
+                <cmake.generator>NMake Makefiles</cmake.generator>
+                <make.exe>nmake</make.exe>
+            </properties>
             <modules>
                 <module>windows</module>
             </modules>
+        </profile>
+
+        <profile>
+            <id>native-build</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <native.dir>${project.basedir}${file.separator}libwfssl</native.dir>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>libwfssl</directory>
+                                    <excludes>
+                                        <exclude>include/**</exclude>
+                                        <exclude>src/**</exclude>
+                                        <exclude>**/CMakeLists.txt</exclude>
+                                    </excludes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.googlecode.cmake-maven-project</groupId>
+                        <artifactId>cmake-maven-plugin</artifactId>
+                        <version>3.4.1-b2</version>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>cmake-generate</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <sourcePath>${native.dir}</sourcePath>
+                                    <targetPath>${native.dir}</targetPath>
+                                    <generator>${cmake.generator}</generator>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>make</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${make.exe}</executable>
+                                    <workingDirectory>${native.dir}</workingDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
