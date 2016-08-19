@@ -26,7 +26,7 @@
 #define _GNU_SOURCE
 
 /* platform dependent code */
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #define LLT(X) (X)
 #else
