@@ -163,6 +163,7 @@
                                         <exclude>include/**</exclude>
                                         <exclude>src/**</exclude>
                                         <exclude>**/CMakeLists.txt</exclude>
+                                        <exclude>WindowsMakefile</exclude>
                                     </excludes>
                                 </fileset>
                             </filesets>
