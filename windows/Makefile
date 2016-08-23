@@ -1,12 +1,17 @@
 .SUFFIXES: .dll
 
-all: wfssl.dll
-OBJECTS = alpn.obj clientcert.obj options.obj session.obj ssl.obj threads.obj util.obj
+all: target\classes\wfssl.dll
+OBJECTS = target\alpn.obj target\clientcert.obj target\options.obj target\session.obj target\ssl.obj target\threads.obj target\util.obj
 
-{../libwfssl/src}.c.obj::
-    cl $< -I../libwfssl/include -I$(JAVA_HOME)/include -IC:\OpenSSL-Win64\include /LD
+{../libwfssl/src}.c{target}.obj:
+    cl $<  /Fo$@ -I..\libwfssl\include -I$(JAVA_HOME)\include -IC:\OpenSSL-Win64\include /LD /c
+
+target:
+  mkdir target
 
 
-wfssl.dll  : $(OBJECTS)
-   link $(OBJECTS)  /machine:AMD64 /DLL -out:wfssl.dll
+target\classes: target
+  mkdir target\classes
 
+target\classes\wfssl.dll: target\classes $(OBJECTS)
+   link $(OBJECTS)  /machine:AMD64 /DLL -out:target\classes\wfssl.dll
