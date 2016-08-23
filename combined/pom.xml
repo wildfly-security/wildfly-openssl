@@ -50,6 +50,9 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <createSourcesJar>true</createSourcesJar>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
