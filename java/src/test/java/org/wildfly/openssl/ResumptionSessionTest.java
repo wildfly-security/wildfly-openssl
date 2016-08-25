@@ -20,7 +20,6 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +38,7 @@ import org.junit.Test;
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  */
-public class ResumptionSessionTest {
+public class ResumptionSessionTest extends AbstractOpenSSLTest  {
 
     @Test
     public void testJsse() throws Exception {
@@ -48,7 +47,6 @@ public class ResumptionSessionTest {
 
     @Test
     public void testOpenSsl() throws Exception {
-        OpenSSLProvider.register();
         testSessionId(SSLTestUtils.createSSLContext("openssl.TLSv1"));
     }
 
@@ -85,7 +83,7 @@ public class ResumptionSessionTest {
             // TODO (jrp) remove move
             System.out.println("****** SPACER ******");
             try (final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket()) {
-                socket.connect(new InetSocketAddress("127.0.0.1", 7676));
+                socket.connect(SSLTestUtils.createSocketAddress());
                 socket.startHandshake();
                 System.out.println(Arrays.toString(socket.getSession().getId()));
             }

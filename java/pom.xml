@@ -116,9 +116,6 @@
                     <family>mac</family>
                 </os>
             </activation>
-            <properties>
-                <openssl.path>/usr/local/opt/openssl/lib</openssl.path>
-            </properties>
 
             <dependencies>
                 <dependency>

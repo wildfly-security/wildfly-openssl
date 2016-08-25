@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  *
  * @author Stuart Douglas
  */
-public class TestAllMethodsImplemented {
+public class TestAllMethodsImplemented extends AbstractOpenSSLTest  {
 
     @Test
     public void testAllMethodsImplemented() throws IOException {

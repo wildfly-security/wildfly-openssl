@@ -26,20 +26,14 @@ import javax.net.ssl.SSLContext;
 
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  * @author Stuart Douglas
  */
-public class ALPNTest {
+public class ALPNTest extends AbstractOpenSSLTest {
 
     public static final String MESSAGE = "Hello World";
-
-    @BeforeClass
-    public static void setup() {
-        OpenSSLProvider.register();
-    }
 
     @Test
     public void testALPN() throws IOException, NoSuchAlgorithmException, InterruptedException {

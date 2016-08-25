@@ -123,8 +123,9 @@ public final class OpenSSLEngine extends SSLEngine {
     private String selectedApplicationProtocol;
     private SSLSession handshakeSession;
 
-    private volatile String host;
-    private volatile int port;
+    private String host;
+    private int port;
+    private boolean reusedClientSideSession = false;
 
     /**
      * Creates a new instance
@@ -138,6 +139,7 @@ public final class OpenSSLEngine extends SSLEngine {
                   boolean clientMode, OpenSSLContextSPI openSSLContextSPI) {
         this(sslCtx, clientMode, openSSLContextSPI, null, -1);
     }
+
     OpenSSLEngine(long sslCtx,
                   boolean clientMode, OpenSSLContextSPI openSSLContextSPI, String host, int port) {
         if (sslCtx == 0) {
@@ -154,6 +156,9 @@ public final class OpenSSLEngine extends SSLEngine {
         if(ssl == 0 && DESTROYED_UPDATER.get(this) == 0) {
             ssl = SSL.getInstance().newSSL(sslCtx, !clientMode);
             networkBIO = SSL.getInstance().makeNetworkBIO(ssl);
+            if(clientMode) {
+                openSSLContextSPI.engineGetClientSessionContext().tryAttachClientSideSession(ssl, host, port);
+            }
         }
     }
 
@@ -866,7 +871,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (code <= 0) {
             // Check for OpenSSL errors caused by the handshake
             long error = SSL.getInstance().getLastErrorNumber();
-            if (error != SSL.getInstance().SSL_ERROR_NONE) {
+            if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getInstance().getErrorString(error);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Engine handshake failure " + err);
@@ -887,11 +892,14 @@ public final class OpenSSLEngine extends SSLEngine {
         if(isClientMode() && applicationProtocols != null) {
             selectedApplicationProtocol = SSL.getInstance().getAlpnSelected(ssl);
         }
-        if(clientMode) {
-            openSSLContextSPI.engineGetClientSessionContext().initClientSideSession(ssl, host, port);
-        }
-        if(handshakeSession != null) {
-            getSessionContext().mergeHandshakeSession(handshakeSession, SSL.getInstance().getSessionId(ssl));
+        if(handshakeSession != null || clientMode) {
+            byte[] sessionId = SSL.getInstance().getSessionId(ssl);
+            if (handshakeSession != null) {
+                getSessionContext().mergeHandshakeSession(handshakeSession, sessionId);
+            }
+            if (clientMode) {
+                openSSLContextSPI.engineGetClientSessionContext().storeClientSideSession(ssl, host, port, sessionId);
+            }
         }
     }
 

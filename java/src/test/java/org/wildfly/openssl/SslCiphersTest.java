@@ -34,7 +34,7 @@ import org.junit.Test;
 /**
  * @author Stuart Douglas
  */
-public class SslCiphersTest {
+public class SslCiphersTest extends AbstractOpenSSLTest {
 
     @BeforeClass
     public static void setup() {

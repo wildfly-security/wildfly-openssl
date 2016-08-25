@@ -73,16 +73,6 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     /**
-     * Enable or disable caching of SSL sessions.
-     */
-    public abstract void setSessionCacheEnabled(boolean enabled);
-
-    /**
-     * Return {@code true} if caching of SSL sessions is enabled, {@code false} otherwise.
-     */
-    public abstract boolean isSessionCacheEnabled();
-
-    /**
      * Returns the stats of this context.
      */
     public OpenSSLSessionStats stats() {
@@ -103,14 +93,6 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         sessions.remove(new Key(sessionId));
     }
 
-    byte[] initClientSideSession(long ssl, final String host, final int port) {
-        byte[] sessionId = SSL.getInstance().getSessionId(ssl);
-        OpenSSlSession session = new OpenSSlSession(false, this);
-        sessions.put(new Key(sessionId), session);
-        session.initialised(SSL.getInstance().getSessionPointer(ssl), ssl, sessionId);
-        return sessionId;
-    }
-
     public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {
         Key k = new Key(sessionId);
         OpenSSlSession session = sessions.get(k);
@@ -120,6 +102,17 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         for(String key : handshakeSession.getValueNames()) {
             session.putValue(key, handshakeSession.getValue(key));
         }
+    }
+
+    protected void clientSessionCreated(long ssl, long sessionPointer, byte[] sessionId) {
+        Key key = new Key(sessionId);
+        OpenSSlSession existing = this.sessions.get(key);
+        if(existing != null) {
+            return;
+        }
+        OpenSSlSession session = new OpenSSlSession(false, this);
+        session.initialised(sessionPointer, ssl, sessionId);
+        this.sessions.put(key, session);
     }
 
     private static class Key {

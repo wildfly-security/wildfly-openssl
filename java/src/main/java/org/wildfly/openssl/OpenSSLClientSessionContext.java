@@ -17,7 +17,6 @@
 
 package org.wildfly.openssl;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,11 +26,19 @@ import java.util.concurrent.ConcurrentHashMap;
  * are only useful for the client-side.
  */
 public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
-    private final Map<ClientSessionKey, Long> clientSessions = new ConcurrentHashMap<>();
-    private final Map<SessionIdKey, ClientSessionKey> sessionIds = new ConcurrentHashMap<>();
+    private final Map<ClientSessionKey, ClientSessionInfo> clientSessions = new ConcurrentHashMap<>();
+
+    /**
+     * The session timeout in seconds
+     */
+    private volatile int timeout;
+    private final long context;
+    private int maxCacheSize = 100;
+    private volatile boolean enabled;
 
     OpenSSLClientSessionContext(long context) {
         super(context);
+        this.context = context;
     }
 
     @Override
@@ -39,67 +46,58 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
         if (seconds < 0) {
             throw new IllegalArgumentException();
         }
-        SSL.getInstance().setSessionCacheTimeout(context, seconds);
+        this.timeout = seconds;
     }
 
     @Override
     public int getSessionTimeout() {
-        return (int) SSL.getInstance().getSessionCacheTimeout(context);
+        return timeout;
     }
 
     @Override
     public void setSessionCacheSize(int size) {
-        //todo:
+        this.maxCacheSize = size;
+        runExpire();
+    }
+
+    private void runExpire() {
+        //todo
     }
 
     @Override
     public int getSessionCacheSize() {
-        //todo
-        return 0;
+        return maxCacheSize;
     }
 
-    @Override
-    public void setSessionCacheEnabled(boolean enabled) {
-        //todo
-    }
+    void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
 
-    @Override
-    public boolean isSessionCacheEnabled() {
-        return true;
-    }
+        if (host != null && port >= 0) {
 
-    @Override
-    synchronized void sessionRemovedCallback(byte[] sessionId) {
-        super.sessionRemovedCallback(sessionId);
-        final ClientSessionKey key = sessionIds.remove(new SessionIdKey(sessionId));
-        if (key != null) {
-            clientSessions.remove(key);
+            // TODO (jrp) find a way to get the real host and port
+            final ClientSessionKey key = new ClientSessionKey(host, port);
+            // set with the session pointer from the found session
+            final ClientSessionInfo foundSessionPtr = clientSessions.remove(key);
+            if (foundSessionPtr != null) {
+                SSL.getInstance().invalidateSession(foundSessionPtr.session);
+            }
+            final long sessionPointer = SSL.getInstance().getSession(ssl);
+            clientSessions.put(key, new ClientSessionInfo(sessionPointer, sessionId));
+            clientSessionCreated(ssl, sessionPointer, sessionId);
         }
     }
 
-    @Override
-    byte[] initClientSideSession(final long ssl, final String host, final int port) {
-        final byte[] sessionId;
+    byte[] tryAttachClientSideSession(final long ssl, final String host, final int port) {
         if (host != null && port >= 0) {
             // TODO (jrp) find a way to get the real host and port
             final ClientSessionKey key = new ClientSessionKey(host, port);
             // set with the session pointer from the found session
-            final Long foundSessionPtr = clientSessions.get(key);
+            final ClientSessionInfo foundSessionPtr = clientSessions.get(key);
             if (foundSessionPtr != null) {
-                SSL.getInstance().setSession(ssl, foundSessionPtr);
-            } else {
-                final long sessionPointer = SSL.getInstance().getSession(ssl);
-                clientSessions.put(key, sessionPointer);
-                // TODO (jrp) this only seems to be invoked from the OpenSSLSession.invalidate(), but the documentation
-                // TODO (jrp) indicates it should be invoked for each invocation of SSL_get1_session
-                //SSL.getInstance().invalidateSession(sessionPointer);
+                SSL.getInstance().setSession(ssl, foundSessionPtr.session);
+                return foundSessionPtr.sessionId;
             }
-            sessionId = super.initClientSideSession(ssl, host, port);
-            sessionIds.putIfAbsent(new SessionIdKey(sessionId), key);
-        } else {
-            sessionId = super.initClientSideSession(ssl, host, port);
         }
-        return sessionId;
+        return null;
     }
 
     private static class ClientSessionKey {
@@ -132,28 +130,13 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
         }
     }
 
-    private static class SessionIdKey {
-        private final byte[] sessionId;
+    private static final class ClientSessionInfo {
+        final long session;
+        final byte[] sessionId;
 
-        private SessionIdKey(final byte[] sessionId) {
-            this.sessionId = Arrays.copyOf(sessionId, sessionId.length);
-        }
-
-        @Override
-        public int hashCode() {
-            return sessionId == null ? 0 : Arrays.hashCode(sessionId);
-        }
-
-        @Override
-        public boolean equals(final Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (!(obj instanceof SessionIdKey)) {
-                return false;
-            }
-            final SessionIdKey other = (SessionIdKey) obj;
-            return Arrays.equals(sessionId, other.sessionId);
+        private ClientSessionInfo(long session, byte[] sessionId) {
+            this.session = session;
+            this.sessionId = sessionId;
         }
     }
 }

@@ -73,6 +73,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
+        sslEngine.setHost(host);
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
@@ -82,6 +84,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
+        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
@@ -91,6 +95,9 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
+        sslEngine.setHost(host);
+        sslEngine.setPort(port);
+
     }
 
     protected OpenSSLSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
@@ -100,6 +107,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
+        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(Socket socket, boolean autoclose, OpenSSLEngine sslEngine) {
@@ -118,6 +127,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
+        sslEngine.setHost(host);
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
@@ -127,6 +138,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
+        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
@@ -136,6 +149,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
+        sslEngine.setHost(host);
+        sslEngine.setPort(port);
     }
 
     protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
@@ -145,6 +160,8 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
+        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setPort(port);
     }
 
     @Override

@@ -27,20 +27,14 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  * @author Stuart Douglas
  */
-public class BasicOpenSSLEngineTest {
+public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     public static final String MESSAGE = "Hello World";
-
-    @BeforeClass
-    public static void setup() {
-        OpenSSLProvider.register();
-    }
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {

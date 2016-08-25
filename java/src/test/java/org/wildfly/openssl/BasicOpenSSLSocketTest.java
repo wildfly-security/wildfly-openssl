@@ -31,13 +31,12 @@ import org.junit.Test;
 /**
  * @author Stuart Douglas
  */
-public class BasicOpenSSLSocketTest {
+public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
 
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
-            OpenSSLProvider.register();
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
 
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createSSLContext("TLSv1"), sessionID));
