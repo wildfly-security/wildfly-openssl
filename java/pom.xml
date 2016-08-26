@@ -95,6 +95,7 @@
                         <org.wildfly.openssl.path>${openssl.path}</org.wildfly.openssl.path>
                         <org.wildfly.openssl.test.host>${org.wildfly.openssl.test.host}</org.wildfly.openssl.test.host>
                         <org.wildfly.openssl.test.port>${org.wildfly.openssl.test.port}</org.wildfly.openssl.test.port>
+                        <org.wildfly.openssl.test.secondary.port>${org.wildfly.openssl.test.secondary.port}</org.wildfly.openssl.test.secondary.port>
                     </systemProperties>
                 </configuration>
             </plugin>

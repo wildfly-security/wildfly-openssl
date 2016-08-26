@@ -43,6 +43,7 @@
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <org.wildfly.openssl.test.host>localhost</org.wildfly.openssl.test.host>
         <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
+        <org.wildfly.openssl.test.secondary.port>7686</org.wildfly.openssl.test.secondary.port>
     </properties>
 
     <dependencyManagement>
