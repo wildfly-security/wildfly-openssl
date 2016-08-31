@@ -84,7 +84,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
-        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
     }
 
@@ -107,7 +107,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         delegate = this;
         this.autoclose = true;
-        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
     }
 
@@ -138,7 +138,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
-        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
     }
 
@@ -160,7 +160,7 @@ public class OpenSSLSocket extends SSLSocket {
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
-        sslEngine.setHost(address.getHostAddress());
+        sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
     }
 
