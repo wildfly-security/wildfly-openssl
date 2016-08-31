@@ -20,13 +20,18 @@ package org.wildfly.openssl;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import org.wildfly.openssl.util.ConcurrentDirectDeque;
 
 /**
  * {@link OpenSSLSessionContext} implementation which offers extra methods which
  * are only useful for the client-side.
  */
 public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
-    private final Map<ClientSessionKey, ClientSessionInfo> clientSessions = new ConcurrentHashMap<>();
+    private final Map<ClientSessionKey, CacheEntry> cache;
+    private final ConcurrentDirectDeque<CacheEntry> accessQueue;
 
     /**
      * The session timeout in seconds
@@ -39,6 +44,8 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     OpenSSLClientSessionContext(long context) {
         super(context);
         this.context = context;
+        cache = new ConcurrentHashMap<>();
+        accessQueue = ConcurrentDirectDeque.newInstance();
     }
 
     @Override
@@ -57,11 +64,7 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     @Override
     public void setSessionCacheSize(int size) {
         this.maxCacheSize = size;
-        runExpire();
-    }
-
-    private void runExpire() {
-        //todo
+        purgeOld();
     }
 
     @Override
@@ -70,34 +73,123 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     }
 
     void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
-
         if (host != null && port >= 0) {
-
-            // TODO (jrp) find a way to get the real host and port
             final ClientSessionKey key = new ClientSessionKey(host, port);
             // set with the session pointer from the found session
-            final ClientSessionInfo foundSessionPtr = clientSessions.remove(key);
+            final ClientSessionInfo foundSessionPtr = getCacheValue(key);
             if (foundSessionPtr != null) {
                 SSL.getInstance().invalidateSession(foundSessionPtr.session);
             }
             final long sessionPointer = SSL.getInstance().getSession(ssl);
-            clientSessions.put(key, new ClientSessionInfo(sessionPointer, sessionId));
+            addCacheEntry(key, new ClientSessionInfo(sessionPointer, sessionId, System.currentTimeMillis()));
             clientSessionCreated(ssl, sessionPointer, sessionId);
         }
     }
 
-    byte[] tryAttachClientSideSession(final long ssl, final String host, final int port) {
+    void tryAttachClientSideSession(final long ssl, final String host, final int port) {
         if (host != null && port >= 0) {
-            // TODO (jrp) find a way to get the real host and port
             final ClientSessionKey key = new ClientSessionKey(host, port);
             // set with the session pointer from the found session
-            final ClientSessionInfo foundSessionPtr = clientSessions.get(key);
+            final ClientSessionInfo foundSessionPtr = getCacheValue(key);
             if (foundSessionPtr != null) {
                 SSL.getInstance().setSession(ssl, foundSessionPtr.session);
-                return foundSessionPtr.sessionId;
             }
         }
-        return null;
+    }
+
+    private void purgeOld() {
+        if (maxCacheSize > 0) {
+            final int removeSize = (cache.size() - maxCacheSize);
+            if (removeSize > 0) {
+                // Remove each entry until there are either no more entries or the size matches
+                for (int i = 0; i < removeSize; i++) {
+                    final CacheEntry oldest = accessQueue.poll();
+                    if (oldest != null) {
+                        removeCacheEntry(oldest.key());
+                    } else {
+                        // No need to continue as there are no more entries
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void addCacheEntry(final ClientSessionKey key, final ClientSessionInfo newValue) {
+        CacheEntry value = cache.get(key);
+        if (value == null) {
+            value = new CacheEntry(key, newValue);
+            final CacheEntry result = cache.putIfAbsent(key, value);
+            if (result != null) {
+                value = result;
+                value.setValue(newValue);
+            }
+            bumpAccess(value);
+            if (maxCacheSize > 0 && cache.size() > maxCacheSize) {
+                // Remove the oldest entry
+                final CacheEntry oldest = accessQueue.poll();
+                if (oldest != value) {
+                    removeCacheEntry(oldest.key());
+                }
+            }
+        }
+    }
+
+    private ClientSessionInfo getCacheValue(final ClientSessionKey key) {
+        CacheEntry cacheEntry = cache.get(key);
+        if (cacheEntry == null) {
+            return null;
+        }
+        if (timeout > 0) {
+            long expires = cacheEntry.getTime() + (timeout * 1000);
+            if (System.currentTimeMillis() > expires) {
+                removeCacheEntry(key);
+                return null;
+            }
+        }
+
+        if (cacheEntry.hit() % 5 == 0) {
+            bumpAccess(cacheEntry);
+        }
+
+        return cacheEntry.getValue();
+    }
+
+    private ClientSessionInfo removeCacheEntry(final ClientSessionKey key) {
+        CacheEntry remove = cache.remove(key);
+        if (remove != null) {
+            Object old = remove.clearToken();
+            if (old != null) {
+                accessQueue.removeToken(old);
+            }
+            final ClientSessionInfo result =  remove.getValue();
+            if (result != null) {
+                SSL.getInstance().invalidateSession(result.session);
+            }
+            return result;
+        } else {
+            return null;
+        }
+    }
+
+    private void bumpAccess(final CacheEntry cacheEntry) {
+        final Object prevToken = cacheEntry.claimToken();
+        if (prevToken != Boolean.FALSE) {
+            if (prevToken != null) {
+                accessQueue.removeToken(prevToken);
+            }
+
+            Object token = null;
+            try {
+                token = accessQueue.offerLastAndReturnToken(cacheEntry);
+            } catch (Throwable t) {
+                // In case of disaster (OOME), we need to release the claim, so leave it as null
+            }
+
+            if (!cacheEntry.setToken(token) && token != null) { // Always set if null
+                accessQueue.removeToken(token);
+            }
+        }
     }
 
     private static class ClientSessionKey {
@@ -133,10 +225,80 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     private static final class ClientSessionInfo {
         final long session;
         final byte[] sessionId;
+        final long time;
 
-        private ClientSessionInfo(long session, byte[] sessionId) {
+        private ClientSessionInfo(long session, byte[] sessionId, final long time) {
             this.session = session;
             this.sessionId = sessionId;
+            this.time = time;
+        }
+    }
+
+    private static final class CacheEntry {
+
+        private static final Object CLAIM_TOKEN = new Object();
+
+        private static final AtomicIntegerFieldUpdater<CacheEntry> hitsUpdater = AtomicIntegerFieldUpdater.newUpdater(CacheEntry.class, "hits");
+
+        private static final AtomicReferenceFieldUpdater<CacheEntry, Object> tokenUpdater = AtomicReferenceFieldUpdater.newUpdater(CacheEntry.class, Object.class, "accessToken");
+
+        private final ClientSessionKey key;
+        private volatile ClientSessionInfo value;
+        private volatile int hits = 1;
+        private volatile Object accessToken;
+
+        private CacheEntry(ClientSessionKey key, ClientSessionInfo value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        void setValue(final ClientSessionInfo value) {
+            this.value = value;
+        }
+
+        ClientSessionInfo getValue() {
+            return value;
+        }
+
+        int hit() {
+            for (; ; ) {
+                int i = hits;
+
+                if (hitsUpdater.weakCompareAndSet(this, i, ++i)) {
+                    return i;
+                }
+
+            }
+        }
+
+        ClientSessionKey key() {
+            return key;
+        }
+
+        Object claimToken() {
+            for (; ; ) {
+                Object current = this.accessToken;
+                if (current == CLAIM_TOKEN) {
+                    return Boolean.FALSE;
+                }
+
+                if (tokenUpdater.compareAndSet(this, current, CLAIM_TOKEN)) {
+                    return current;
+                }
+            }
+        }
+
+        boolean setToken(Object token) {
+            return tokenUpdater.compareAndSet(this, CLAIM_TOKEN, token);
+        }
+
+        Object clearToken() {
+            Object old = tokenUpdater.getAndSet(this, null);
+            return old == CLAIM_TOKEN ? null : old;
+        }
+
+        long getTime() {
+            return value.time;
         }
     }
 }

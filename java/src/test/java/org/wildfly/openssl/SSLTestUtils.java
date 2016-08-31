@@ -42,6 +42,7 @@ public class SSLTestUtils {
 
     public static final String HOST = System.getProperty("org.wildfly.openssl.test.host", "localhost");
     public static final int PORT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.port", "7677"));
+    public static final int SECONDARY_PORT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.secondary.port", "7687"));
 
     private static KeyStore loadKeyStore(final String name) throws IOException {
         final InputStream stream = BasicOpenSSLEngineTest.class.getClassLoader().getResourceAsStream(name);
@@ -97,7 +98,11 @@ public class SSLTestUtils {
     }
 
     public static ServerSocket createServerSocket() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(PORT);
+        return createServerSocket(PORT);
+    }
+
+    public static ServerSocket createServerSocket(final int port) throws IOException {
+        ServerSocket serverSocket = new ServerSocket(port);
         serverSocket.setReuseAddress(true);
         return serverSocket;
     }
