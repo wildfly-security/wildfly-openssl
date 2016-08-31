@@ -357,14 +357,12 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public Socket createSocket(InetAddress host, int port) throws IOException {
-                // TODO (jrp) getCanonicalHostName() isn't a great idea here
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host.getCanonicalHostName(), port));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host.getHostName(), port));
             }
 
             @Override
             public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-                // TODO (jrp) getCanonicalHostName() isn't a great idea here
-                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, address.getCanonicalHostName(), port));
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, address.getHostName(), port));
             }
         };
     }
