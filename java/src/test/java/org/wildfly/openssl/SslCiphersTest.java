@@ -100,7 +100,9 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
             String cipherSuite = socket.getSession().getCipherSuite();
             SSLEngine sslEngine = engineRef.get();
             SSLSession session = sslEngine.getSession();
-            if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+            // SSL is an alias for TLS, Windows and IBM J9 seem to use SSL for simplicity we'll just replace SSL with
+            // TLS to match what we're expecting
+            if(cipherSuite.startsWith("SSL")) {
                 cipherSuite = cipherSuite.replace("SSL", "TLS");
             }
             Assert.assertEquals(session.getCipherSuite(), cipherSuite);
