@@ -26,11 +26,14 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 /**
  * Class that contains all native methods to interact with OpenSSL
  */
 public abstract class SSL {
+
+    private static final Logger logger = Logger.getLogger(SSL.class.getName());
 
     public static final String MAC_HOMEBREW_OPENSSL_PATH = "/usr/local/opt/openssl/lib/";
     private static SSL instance;
@@ -106,6 +109,11 @@ public abstract class SSL {
                         }
                     }
                     instance.initialize(path);
+                    long version = instance.version();
+                    logger.info("OpenSSL Version " + Long.toHexString(version));
+
+
+
                     init = true;
                 }
             }
@@ -409,7 +417,7 @@ public abstract class SSL {
     static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
     /* Return OpenSSL version number */
-    protected abstract int version();
+    protected abstract long version();
 
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.

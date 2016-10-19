@@ -34,9 +34,9 @@ public class SSLImpl extends SSL {
     }
 
     /* Return OpenSSL version number */
-    static native int version0();
+    static native long version0();
 
-    protected int version() {
+    protected long version() {
         return this.version0();
     }
 

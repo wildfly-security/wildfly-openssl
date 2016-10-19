@@ -476,8 +476,7 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
     }
     TCN_FREE_CSTRING(openSSLPath);
 
-    int version = ssl_methods.SSLeay();
-    printf("OpenSSL version %lx \n", OPENSSL_VERSION_NUMBER);
+    long version = ssl_methods.SSLeay();
     jclass clazz;
     jclass sClazz;
 
@@ -485,7 +484,8 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
     if (ssl_initialized++) {
         return 0;
     }
-    if (version < 0x0090700L) {
+    //require 1.0.1 or higher
+    if (version < 0x010001000L) {
         ssl_initialized = 0;
         return throwIllegalStateException(e, "Invalid OpenSSL Version");
     }
@@ -1629,7 +1629,7 @@ WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
 }
 
 
-WF_OPENSSL(jint, version)(JNIEnv *e)
+WF_OPENSSL(jlong, version)(JNIEnv *e)
 {
-    return OPENSSL_VERSION_NUMBER;
+    return ssl_methods.SSLeay();
 }
