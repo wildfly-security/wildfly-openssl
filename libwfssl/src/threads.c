@@ -99,13 +99,13 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
     #else
         value = malloc(sizeof(*value));
         if(value == NULL) {
-            printf("Failed to allocate memory for mutex");
+            fprintf(stderr, "Failed to allocate memory for mutex\n");
             return NULL;
         }
         int val = pthread_mutex_init(&(value->mutex), 0);
         if(val != 0) {
-                printf("Failed to create mutex, error %d", val);
-                return NULL;
+            fprintf(stderr, "Failed to create mutex, error %d\n", val);
+            return NULL;
         }
     #endif
     return value;

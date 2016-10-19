@@ -210,9 +210,9 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 
 #else
 
-#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) { printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) {throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
-#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {printf("Failed to find %s", #symb); throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 #define GET_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb);
 
 #endif
@@ -781,7 +781,6 @@ WF_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
                 c->certs[i] = NULL;
             }
             if (c->keys[i]) {
-                printf("b %d", i);
                 crypto_methods.EVP_PKEY_free(c->keys[i]);
                 c->keys[i] = NULL;
             }
