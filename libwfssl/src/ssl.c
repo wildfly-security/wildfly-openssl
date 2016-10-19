@@ -376,7 +376,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     GET_SSL_SYMBOL(TLS_client_method);
     GET_SSL_SYMBOL(TLS_server_method);
     GET_SSL_SYMBOL(TLS_method);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_set_client_CA_list);
 
     REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
@@ -922,66 +921,6 @@ cleanup:
     TCN_FREE_CSTRING(path);
     return rv;
 }
-
-WF_OPENSSL(jboolean, setCACertificate)(JNIEnv *e, jobject o,
-                                                           jlong ctx,
-                                                           jstring file,
-                                                           jstring path)
-{
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jboolean rv = JNI_TRUE;
-    TCN_ALLOC_CSTRING(file);
-    TCN_ALLOC_CSTRING(path);
-
-    UNREFERENCED(o);
-    TCN_ASSERT(ctx != 0);
-    if (file == NULL && path == NULL)
-        return JNI_FALSE;
-
-   /*
-     * Configure Client Authentication details
-     */
-    if (!ssl_methods.SSL_CTX_load_verify_locations(c->ctx,
-                                       J2S(file), J2S(path))) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
-        tcn_Throw(e, "Unable to configure locations "
-                  "for client authentication (%s)", err);
-        rv = JNI_FALSE;
-        goto cleanup;
-    }
-    c->store = ssl_methods.SSL_CTX_get_cert_store(c->ctx);
-    if (c->mode) {
-        STACK_OF(X509_NAME) *ca_certs;
-        c->ca_certs++;
-        ca_certs = ssl_methods.SSL_CTX_get_client_CA_list(c->ctx);
-        if (ca_certs == NULL) {
-            ssl_methods.SSL_load_client_CA_file(J2S(file));
-            if (ca_certs != NULL)
-                ssl_methods.SSL_CTX_set_client_CA_list(c->ctx, ca_certs);
-        }
-        else {
-            if (!ssl_methods.SSL_add_file_cert_subjects_to_stack(ca_certs, J2S(file)))
-                ca_certs = NULL;
-        }
-        if (ca_certs == NULL && c->verify_mode == SSL_CVERIFY_REQUIRE) {
-            /*
-             * Give a warning when no CAs were configured but client authentication
-             * should take place. This cannot work.
-             */
-            fprintf(stderr,
-                    "[WARN] Oops, you want to request client "
-                    "authentication, but no CAs are known for "
-                    "verification!?");
-
-        }
-    }
-cleanup:
-    TCN_FREE_CSTRING(file);
-    TCN_FREE_CSTRING(path);
-    return rv;
-}
-
 
 WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
                                                          jbyteArray javaCert, jbyteArray javaKey, jint idx)

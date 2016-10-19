@@ -952,32 +952,6 @@ public abstract class SSL {
     protected abstract void setSessionTicketKeys(long ctx, byte[] keys);
 
     /**
-     * Set File and Directory of concatenated PEM-encoded CA Certificates
-     * for Client Auth
-     * <br>
-     * This directive sets the all-in-one file where you can assemble the
-     * Certificates of Certification Authorities (CA) whose clients you deal with.
-     * These are used for Client Authentication. Such a file is simply the
-     * concatenation of the various PEM-encoded Certificate files, in order of
-     * preference. This can be used alternatively and/or additionally to
-     * path.
-     * <br>
-     * The files in this directory have to be PEM-encoded and are accessed through
-     * hash filenames. So usually you can't just place the Certificate files there:
-     * you also have to create symbolic links named hash-value.N. And you should
-     * always make sure this directory contains the appropriate symbolic links.
-     * Use the Makefile which comes with mod_ssl to accomplish this task.
-     *
-     * @param ctx  Server or Client context to use.
-     * @param file File of concatenated PEM-encoded CA Certificates for
-     *             Client Auth.
-     * @param path Directory of PEM-encoded CA Certificates for Client Auth.
-     */
-    protected abstract boolean setCACertificate(long ctx, String file,
-                                                String path)
-            throws Exception;
-
-    /**
      * When tc-native encounters a SNI extension in the TLS handshake it will
      * call this method to determine which OpenSSL SSLContext to use for the
      * connection.
