@@ -317,7 +317,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cipher_list);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_default_verify_paths);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_set_info_callback);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_session_id_context);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_timeout);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_verify);
@@ -362,7 +361,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_set_verify);
     REQUIRE_SSL_SYMBOL(SSL_set_verify_result);
     REQUIRE_SSL_SYMBOL(SSL_shutdown);
-    REQUIRE_SSL_SYMBOL(SSL_state);
+    REQUIRE_SSL_SYMBOL(SSL_set_info_callback);
     REQUIRE_SSL_SYMBOL(SSL_write);
     REQUIRE_SSL_SYMBOL(SSLv23_client_method);
     REQUIRE_SSL_SYMBOL(SSLv23_method);
@@ -1269,6 +1268,10 @@ static void ssl_info_callback(const SSL *ssl, int where, int ret) {
             ++(*handshakeCount);
         }
     }
+    if (0 != (where & SSL_CB_HANDSHAKE_DONE)) {
+        tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, 0);
+        con->handshake_done = 1;
+    }
 }
 
 WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */,
@@ -1299,9 +1302,6 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     *handshakeCount = 0;
     SSL_set_app_data3(ssl, handshakeCount);
 
-    /* Add callback to keep track of handshakes. */
-    ssl_methods.SSL_CTX_set_info_callback(c->ctx, ssl_info_callback);
-
     if (server) {
         ssl_methods.SSL_set_accept_state(ssl);
     } else {
@@ -1313,6 +1313,8 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);
     //TODO: do we need our seed? It seems the default seed should be more secure
     //SSL_rand_seed(c->rand_file);
+    /* Add callback to keep track of handshakes and the handshake state */
+    ssl_methods.SSL_set_info_callback(ssl, &ssl_info_callback);
 
     /* Store for later usage in SSL_callback_SSL_verify */
     SSL_set_app_data2(ssl, c);
@@ -1485,7 +1487,8 @@ WF_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "ssl is null");
         return 0;
     } else {
-        return (ssl_methods.SSL_state(ssl_) & SSL_ST_INIT) || ssl_methods.SSL_renegotiate_pending(ssl_);
+        tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
+        return con->handshake_done == 0 ? 1 : 0;
     }
 }
 

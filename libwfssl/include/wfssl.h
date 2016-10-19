@@ -318,6 +318,7 @@ typedef struct {
     X509           *peer;
     int             shutdown_type;
     jobject         alpn_selection_callback;
+    int             handshake_done;
     /* Track the handshake/renegotiation state for the connection so
      * that all client-initiated renegotiations can be rejected, as a
      * partial fix for CVE-2009-3555.
@@ -358,7 +359,6 @@ typedef struct {
     int (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *str);
     int (*SSL_CTX_set_default_verify_paths)(SSL_CTX *ctx);
     int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);
-    void (*SSL_CTX_set_info_callback)(SSL_CTX *ctx, void (*cb)(const SSL *ssl,int type,int val));
     int (*SSL_CTX_set_session_id_context)(SSL_CTX *ctx, const unsigned char *sid_ctx, unsigned int sid_ctx_len);
     long (*SSL_CTX_set_timeout)(SSL_CTX *ctx, long t);
     void (*SSL_CTX_set_verify)(SSL_CTX *ctx, int mode, int (*callback)(int, X509_STORE_CTX *));
@@ -402,7 +402,7 @@ typedef struct {
     void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
     void (*SSL_set_verify_result)(SSL *ssl, long v);
     int (*SSL_shutdown)(SSL *s);
-    int (*SSL_state)(const SSL *ssl);
+    int (*SSL_set_info_callback)(SSL *ssl, void (*callback)());
     int (*SSL_write)(SSL *ssl, const void *buf, int num);
     int (*SSL_get_error)(const SSL *ssl, int ret);
     const SSL_METHOD *(*SSLv23_client_method)(void);
