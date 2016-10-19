@@ -339,6 +339,21 @@ typedef struct {
 
 typedef struct {
     long(*SSLeay)(void) ;
+
+    /* 1.0 versions */
+    void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
+    int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);
+    int (*SSL_CTX_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
+    void *(*SSL_get_ex_data)(const SSL *ssl, int idx);
+    int (*SSL_set_ex_data)(SSL *ssl, int idx, void *data);
+    int (*SSL_get_ex_data_X509_STORE_CTX_idx)(void);
+    int (*SSL_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
+
+    /* 1.1 versions */
+    int (*CRYPTO_get_ex_new_index)(int class_index, long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
+    void *(*CRYPTO_get_ex_data)(const CRYPTO_EX_DATA *crypto, int idx);
+    int (*CRYPTO_set_ex_data)(CRYPTO_EX_DATA *crypto, int idx, void *data);
+
     const char *	(*SSL_CIPHER_get_name)(const SSL_CIPHER *c);
     int (*SSL_CTX_check_private_key)(const SSL_CTX *ctx);
     void	(*SSL_CTX_free)(SSL_CTX *);
@@ -351,14 +366,12 @@ typedef struct {
     void (*SSL_CTX_sess_set_new_cb)(SSL_CTX *ctx, int (*new_session_cb)(struct ssl_st *ssl,SSL_SESSION *sess));
     long (*SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
     long (*SSL_CTX_ctrl)(SSL_CTX *ctx, int cmd, long larg, void *parg);
-    void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
     void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
     int (*SSL_set_alpn_protos)(SSL *ssl, const unsigned char *protos, unsigned protos_len);
     void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg), void *arg);
     void (*SSL_CTX_set_cert_verify_callback)(SSL_CTX *ctx, int (*cb) (X509_STORE_CTX *, void *), void *arg);
     int (*SSL_CTX_set_cipher_list)(SSL_CTX *, const char *str);
     int (*SSL_CTX_set_default_verify_paths)(SSL_CTX *ctx);
-    int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);
     int (*SSL_CTX_set_session_id_context)(SSL_CTX *ctx, const unsigned char *sid_ctx, unsigned int sid_ctx_len);
     long (*SSL_CTX_set_timeout)(SSL_CTX *ctx, long t);
     void (*SSL_CTX_set_verify)(SSL_CTX *ctx, int mode, int (*callback)(int, X509_STORE_CTX *));
@@ -374,9 +387,6 @@ typedef struct {
     void (*SSL_get0_alpn_selected)(const SSL *ssl, const unsigned char **data, unsigned *len);
     STACK_OF(SSL_CIPHER) *(*SSL_get_ciphers)(const SSL *s);
     const SSL_CIPHER *(*SSL_get_current_cipher)(const SSL *s);
-    void *(*SSL_get_ex_data)(const SSL *ssl, int idx);
-    int (*SSL_get_ex_data_X509_STORE_CTX_idx)(void);
-    int (*SSL_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
     STACK_OF(X509) *(*SSL_get_peer_cert_chain)(const SSL *s);
     X509 *(*SSL_get_peer_certificate)(const SSL *s);
     SSL_SESSION *(*SSL_get_session)(const SSL *ssl);
@@ -398,7 +408,6 @@ typedef struct {
     void (*SSL_set_bio)(SSL *s, BIO *rbio, BIO *wbio);
     int (*SSL_set_cipher_list)(SSL *s, const char *str);
     void (*SSL_set_connect_state)(SSL *s);
-    int (*SSL_set_ex_data)(SSL *ssl, int idx, void *data);
     void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
     void (*SSL_set_verify_result)(SSL *ssl, long v);
     int (*SSL_shutdown)(SSL *s);
@@ -503,7 +512,8 @@ JavaVM * tcn_get_java_vm();
 
 jstring tcn_new_string(JNIEnv *env, const char *str);
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
-tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl);
+tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl);
+tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl);
 void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c);
 /*thread setup function*/
 void ssl_thread_setup();

@@ -46,10 +46,6 @@ crypto_dynamic_methods crypto_methods;
 static jclass    ssl_context_class;
 static jmethodID sni_java_callback;
 
-/* indexes for customer SSL data */
-static int SSL_app_data2_idx = -1;
-static int SSL_app_data3_idx = -1;
-
 /* Storage and initialization for DH parameters. */
 static struct dhparam {
     BIGNUM *(* prime)(BIGNUM *); /* function to generate... */
@@ -63,6 +59,105 @@ static struct dhparam {
     { 0, NULL, 1025 },
     { 0, NULL, 0 }
 };
+
+
+/* indexes for customer SSL data */
+static int SSL_app_data1_idx = -1; /* connection metadata */
+static int SSL_app_data2_idx = -1; /* context metadata */
+static int SSL_app_data3_idx = -1; /* handshake count */
+static int SSL_CTX_app_data1_idx = -1; /* context metadata */
+
+void init_app_data_idx(void)
+{
+    if (SSL_app_data1_idx > -1) {
+        return;
+    }
+
+    if(ssl_methods.SSL_get_ex_new_index != NULL) {
+        SSL_app_data1_idx = ssl_methods.SSL_get_ex_new_index(0, "First Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data2_idx = ssl_methods.SSL_get_ex_new_index(0, "Second Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data3_idx = ssl_methods.SSL_get_ex_new_index(0, "Third Application Data for SSL", NULL, NULL, NULL);
+        SSL_CTX_app_data1_idx = ssl_methods.SSL_CTX_get_ex_new_index(0, "First Application Data for SSL_CTX", NULL, NULL, NULL);
+    } else {
+        SSL_app_data1_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "First Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data2_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Second Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data3_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Third Application Data for SSL", NULL, NULL, NULL);
+        SSL_CTX_app_data1_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL_CTX, 0, "First Application Data for SSL_CTX", NULL, NULL, NULL);
+    }
+}
+/*the the SSL context structure associated with the context*/
+tcn_ssl_conn_t *SSL_get_app_data1(const SSL *ssl)
+{
+    if(ssl_methods.SSL_get_ex_data != NULL) {
+        return (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data1_idx);
+    } else {
+        return (tcn_ssl_conn_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data1_idx);
+    }
+}
+
+void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg)
+{
+    if(ssl_methods.SSL_set_ex_data != NULL) {
+        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data1_idx, (char *)arg);
+    } else {
+        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data1_idx, (char *)arg);
+    }
+}
+/*the the SSL context structure associated with the context*/
+tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl)
+{
+    if(ssl_methods.SSL_get_ex_data != NULL) {
+        return (tcn_ssl_ctxt_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data2_idx);
+    } else {
+        return (tcn_ssl_ctxt_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data2_idx);
+    }
+}
+
+void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg)
+{
+    if(ssl_methods.SSL_set_ex_data != NULL) {
+        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
+    } else {
+        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data2_idx, (char *)arg);
+    }
+}
+
+void *SSL_get_app_data3(const SSL *ssl)
+{
+    if(ssl_methods.SSL_get_ex_data != NULL) {
+        return (void *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data3_idx);
+    } else {
+        return (void *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data3_idx);
+    }
+}
+
+void SSL_set_app_data3(SSL *ssl, void *arg)
+{
+    if(ssl_methods.SSL_set_ex_data != NULL) {
+        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data3_idx, (char *)arg);
+    } else {
+        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data3_idx, (char *)arg);
+    }
+}
+
+
+tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl)
+{
+    if(ssl_methods.SSL_CTX_get_ex_data != NULL) {
+        return (tcn_ssl_ctxt_t *)ssl_methods.SSL_CTX_get_ex_data(ssl, SSL_CTX_app_data1_idx);
+    } else {
+        return (tcn_ssl_ctxt_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_CTX_app_data1_idx);
+    }
+}
+
+void SSL_CTX_set_app_data1(SSL_CTX *ssl, void *arg)
+{
+    if(ssl_methods.SSL_CTX_set_ex_data != NULL) {
+        ssl_methods.SSL_CTX_set_ex_data(ssl, SSL_CTX_app_data1_idx, (char *)arg);
+    } else {
+        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_CTX_app_data1_idx, (char *)arg);
+    }
+}
 
 /* Hand out the same DH structure though once generated as we leak
  * memory otherwise and freeing the structure up after use would be
@@ -117,53 +212,6 @@ void SSL_BIO_close(BIO *bi)
         crypto_methods.BIO_free(bi);
 }
 
-void init_app_data2_3_idx(void)
-{
-    int i;
-
-    if (SSL_app_data2_idx > -1) {
-        return;
-    }
-
-    /* we _do_ need to call this twice */
-    for (i = 0; i <= 1; i++) {
-        SSL_app_data2_idx =
-            ssl_methods.SSL_get_ex_new_index(0,
-                                 "Second Application Data for SSL",
-                                 NULL, NULL, NULL);
-    }
-
-    if (SSL_app_data3_idx > -1) {
-        return;
-    }
-
-    SSL_app_data3_idx =
-            ssl_methods.SSL_get_ex_new_index(0,
-                                 "Third Application Data for SSL",
-                                  NULL, NULL, NULL);
-}
-/*the the SSL context structure associated with the context*/
-tcn_ssl_ctxt_t *SSL_get_app_data2(SSL *ssl)
-{
-    return (tcn_ssl_ctxt_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data2_idx);
-}
-
-void SSL_set_app_data2(SSL *ssl, void *arg)
-{
-    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
-    return;
-}
-
-
-void *SSL_get_app_data3(const SSL *ssl)
-{
-    return ssl_methods.SSL_get_ex_data(ssl, SSL_app_data3_idx);
-}
-
-void SSL_set_app_data3(SSL *ssl, void *arg)
-{
-    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data3_idx, arg);
-}
 /* Callback used when OpenSSL receives a client hello with a Server Name
  * Indication extension.
  */
@@ -291,6 +339,20 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSLeay);
 #endif
 
+    GET_SSL_SYMBOL(SSL_CTX_get_ex_data);
+    if(ssl_methods.SSL_CTX_get_ex_data != NULL) {
+        REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
+        REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
+        REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
+        REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
+        REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
+        REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_new_index);
+    } else {
+        REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_new_index)
+        REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_data)
+        REQUIRE_SSL_SYMBOL(CRYPTO_set_ex_data)
+    }
+
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
     REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_CTX_check_private_key);
@@ -298,7 +360,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_free);
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_cert_store);
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_client_CA_list);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_get_timeout);
     REQUIRE_SSL_SYMBOL(SSL_CTX_load_verify_locations);
     REQUIRE_SSL_SYMBOL(SSL_CTX_new);
@@ -307,7 +368,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
     REQUIRE_SSL_SYMBOL(SSL_CTX_callback_ctrl);
     REQUIRE_SSL_SYMBOL(SSL_CTX_ctrl);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_sess_set_remove_cb);
     REQUIRE_SSL_SYMBOL(SSL_get_error);
     GET_SSL_SYMBOL(SSL_set_alpn_protos);
@@ -316,7 +376,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cert_verify_callback);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_cipher_list);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_default_verify_paths);
-    REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_session_id_context);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_timeout);
     REQUIRE_SSL_SYMBOL(SSL_CTX_set_verify);
@@ -331,9 +390,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_free);
     REQUIRE_SSL_SYMBOL(SSL_get_ciphers);
     REQUIRE_SSL_SYMBOL(SSL_get_current_cipher);
-    REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
-    REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
-    REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
     REQUIRE_SSL_SYMBOL(SSL_get_peer_cert_chain);
     REQUIRE_SSL_SYMBOL(SSL_get_peer_certificate);
     REQUIRE_SSL_SYMBOL(SSL_get_privatekey);
@@ -357,7 +413,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_set_bio);
     REQUIRE_SSL_SYMBOL(SSL_set_cipher_list);
     REQUIRE_SSL_SYMBOL(SSL_set_connect_state);
-    REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_set_verify);
     REQUIRE_SSL_SYMBOL(SSL_set_verify_result);
     REQUIRE_SSL_SYMBOL(SSL_shutdown);
@@ -495,7 +550,7 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
     crypto_methods.ERR_load_crypto_strings();
     ssl_methods.SSL_load_error_strings();
     ssl_methods.SSL_library_init();
-    init_app_data2_3_idx();
+    init_app_data_idx();
     crypto_methods.OPENSSL_add_all_algorithms_noconf();
     if(crypto_methods.ENGINE_load_builtin_engines != NULL) {
         crypto_methods.ENGINE_load_builtin_engines();
@@ -643,7 +698,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
 
 
     /** To get back the tomcat wrapper from CTX */
-    ssl_methods.SSL_CTX_set_ex_data(c->ctx,0,(char *)c);
+    SSL_CTX_set_app_data1(ctx, c);
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
     /*
@@ -1269,7 +1324,7 @@ static void ssl_info_callback(const SSL *ssl, int where, int ret) {
         }
     }
     if (0 != (where & SSL_CB_HANDSHAKE_DONE)) {
-        tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, 0);
+        tcn_ssl_conn_t *con = SSL_get_app_data1(ssl);
         con->handshake_done = 1;
     }
 }
@@ -1317,8 +1372,8 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     ssl_methods.SSL_set_info_callback(ssl, &ssl_info_callback);
 
     /* Store for later usage in SSL_callback_SSL_verify */
+    SSL_set_app_data1(ssl, con);
     SSL_set_app_data2(ssl, c);
-    ssl_methods.SSL_set_ex_data(ssl,0,(char *)con);
     return P2J(ssl);
 }
 
@@ -1332,7 +1387,7 @@ WF_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
         free(handshakeCount);
     }
 
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
+    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
     if(con->alpn_selection_callback != NULL) {
         (*e)->DeleteGlobalRef(e, con->alpn_selection_callback);
     }
@@ -1487,7 +1542,7 @@ WF_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "ssl is null");
         return 0;
     } else {
-        tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
+        tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
         return con->handshake_done == 0 ? 1 : 0;
     }
 }

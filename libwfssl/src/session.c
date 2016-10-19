@@ -278,7 +278,7 @@ int new_session_cb(SSL * ssl, SSL_SESSION * session) {
     return 1;
 }
 void remove_session_cb(SSL_CTX *ctx, SSL_SESSION * session) {
-     tcn_ssl_ctxt_t  *c = ssl_methods.SSL_CTX_get_ex_data(ctx,0);
+     tcn_ssl_ctxt_t  *c = SSL_CTX_get_app_data1(ctx);
     JavaVM *javavm = tcn_get_java_vm();
     JNIEnv *e;
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
