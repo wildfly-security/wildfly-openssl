@@ -16,20 +16,14 @@
 
 #ifdef __APPLE__
 #define LIBCRYPTO_NAME "libcrypto.dylib"
-#else
-#ifdef WIN32
-#define LIBCRYPTO_NAME "libeay32.dll"
-#else
-#define LIBCRYPTO_NAME "libcrypto.so"
-#endif
-#endif
-
-#ifdef __APPLE__
 #define LIBSSL_NAME "libssl.dylib"
 #else
 #ifdef WIN32
-#define LIBSSL_NAME "libssl32.dll"
+#define LIBCRYPTO_NAME "libeay32.dll"
+#define LIBSSL_NAME "ssleay32.dll"
+#define FALLBACK_LIBSSL_NAME "libssl32.dll"
 #else
+#define LIBCRYPTO_NAME "libcrypto.so"
 #define LIBSSL_NAME "libssl.so"
 #endif
 #endif
@@ -239,9 +233,22 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         ssl = LoadLibrary(full);
         free(full);
     }
+    if(ssl == NULL) {
+        if(path == NULL) {
+            ssl = LoadLibrary(FALLBACK_LIBSSL_NAME);
+        } else {
+            int pathLen = strlen(path);
+            int size = (strlen(FALLBACK_LIBSSL_NAME) + pathLen + 1);
+            char * full = malloc(sizeof(char) * size);
+            strncpy(full, path, size);
+            strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
+            ssl = LoadLibrary(full);
+            free(full);
+        }
+    }
 
     if( ssl == NULL ) {
-        throwIllegalStateException(e, "Could not load libssl32.dll");
+        throwIllegalStateException(e, "Could not load ssleay32.dll or libssl32.dll");
         return 1;
     }
 #else
