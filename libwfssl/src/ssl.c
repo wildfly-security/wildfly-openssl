@@ -46,21 +46,6 @@ crypto_dynamic_methods crypto_methods;
 static jclass    ssl_context_class;
 static jmethodID sni_java_callback;
 
-/* Storage and initialization for DH parameters. */
-static struct dhparam {
-    BIGNUM *(* prime)(BIGNUM *); /* function to generate... */
-    DH *dh;                           /* ...this, used for keys.... */
-    const unsigned int min;           /* ...of length >= this. */
-} dhparams[] = {
-    { 0, NULL, 6145 },
-    { 0, NULL, 4097 },
-    { 0, NULL, 3073 },
-    { 0, NULL, 2049 },
-    { 0, NULL, 1025 },
-    { 0, NULL, 0 }
-};
-
-
 /* indexes for customer SSL data */
 static int SSL_app_data1_idx = -1; /* connection metadata */
 static int SSL_app_data2_idx = -1; /* context metadata */
@@ -158,51 +143,6 @@ void SSL_CTX_set_app_data1(SSL_CTX *ssl, void *arg)
         ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_CTX_app_data1_idx, (char *)arg);
     }
 }
-
-/* Hand out the same DH structure though once generated as we leak
- * memory otherwise and freeing the structure up after use would be
- * hard to track and in fact is not needed at all as it is safe to
- * use the same parameters over and over again security wise (in
- * contrast to the keys itself) and code safe as the returned structure
- * is duplicated by OpenSSL anyway. Hence no modification happens
- * to our copy. */
-DH *SSL_get_dh_params(unsigned keylen)
-{
-    unsigned n;
-
-    for (n = 0; n < sizeof(dhparams)/sizeof(dhparams[0]); n++)
-        if (keylen >= dhparams[n].min)
-            return dhparams[n].dh;
-
-    return NULL; /* impossible to reach. */
-}
-
-/*
- * Hand out standard DH parameters, based on the authentication strength
- */
-DH *SSL_callback_tmp_DH(SSL *ssl, int export, int keylen)
-{
-    EVP_PKEY *pkey = ssl_methods.SSL_get_privatekey(ssl);
-    int type = pkey ? crypto_methods.EVP_PKEY_type(pkey->type) : EVP_PKEY_NONE;
-
-    /*
-     * OpenSSL will call us with either keylen == 512 or keylen == 1024
-     * (see the definition of SSL_EXPORT_PKEYLENGTH in ssl_locl.h).
-     * Adjust the DH parameter length according to the size of the
-     * RSA/DSA private key used for the current connection, and always
-     * use at least 1024-bit parameters.
-     * Note: This may cause interoperability issues with implementations
-     * which limit their DH support to 1024 bit - e.g. Java 7 and earlier.
-     * In this case, SSLCertificateFile can be used to specify fixed
-     * 1024-bit DH parameters (with the effect that OpenSSL skips this
-     * callback).
-     */
-    if ((type == EVP_PKEY_RSA) || (type == EVP_PKEY_DSA)) {
-        keylen = crypto_methods.EVP_PKEY_bits(pkey);
-    }
-    return SSL_get_dh_params(keylen);
-}
-
 
 void SSL_BIO_close(BIO *bi)
 {
@@ -492,26 +432,11 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(X509_get_serialNumber);
     REQUIRE_CRYPTO_SYMBOL(X509_get_subject_name);
     REQUIRE_CRYPTO_SYMBOL(d2i_X509);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc2409_prime_1024);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_2048);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_3072);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_4096);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_6144);
-    REQUIRE_CRYPTO_SYMBOL(get_rfc3526_prime_8192);
     REQUIRE_CRYPTO_SYMBOL(i2d_X509);
     REQUIRE_CRYPTO_SYMBOL(sk_num);
     REQUIRE_CRYPTO_SYMBOL(sk_value);
     REQUIRE_CRYPTO_SYMBOL(X509_free);
     GET_CRYPTO_SYMBOL(ENGINE_load_builtin_engines);
-    
-
-    dhparams[0].prime = crypto_methods.get_rfc3526_prime_8192;
-
-    dhparams[1].prime = crypto_methods.get_rfc3526_prime_6144;
-    dhparams[2].prime = crypto_methods.get_rfc3526_prime_4096;
-    dhparams[3].prime = crypto_methods.get_rfc3526_prime_3072;
-    dhparams[4].prime = crypto_methods.get_rfc3526_prime_2048;
-    dhparams[5].prime = crypto_methods.get_rfc2409_prime_1024;
 
     return 0;
 }
