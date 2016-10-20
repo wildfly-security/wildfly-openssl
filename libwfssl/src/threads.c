@@ -152,6 +152,10 @@ static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
 }
 void ssl_thread_setup()
 {
+    if(crypto_methods.CRYPTO_num_locks == NULL) {
+        /* OpenSSL 1.1 does not need any of this*/
+        return;
+    }
     int i;
     ssl_lock_num_locks = crypto_methods.CRYPTO_num_locks();
     ssl_lock_cs = malloc(ssl_lock_num_locks * sizeof(ssl_lock_type));
@@ -163,10 +167,6 @@ void ssl_thread_setup()
          pthread_mutex_init(&ssl_lock_cs[i], 0);
 #endif
     }
-
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L) || defined(OPENSSL_USE_DEPRECATED)
-    crypto_methods.CRYPTO_set_id_callback(ssl_thread_id);
-#endif
     crypto_methods.CRYPTO_set_locking_callback(ssl_thread_lock);
 
     /* Set up dynamic locking scaffolding for OpenSSL to use at its

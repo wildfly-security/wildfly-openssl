@@ -394,6 +394,7 @@ typedef struct {
     int (*SSL_get_shutdown)(const SSL *ssl);
     const char *(*SSL_get_version)(const SSL *s);
     int (*SSL_library_init)(void);
+    int (*OPENSSL_init_ssl)(uint64_t opts, const void *settings);
     STACK_OF(X509_NAME) *(*SSL_load_client_CA_file)(const char *file);
     void (*SSL_load_error_strings)(void);
     SSL *(*SSL_new)(SSL_CTX *ctx);
@@ -413,12 +414,6 @@ typedef struct {
     int (*SSL_set_info_callback)(SSL *ssl, void (*callback)());
     int (*SSL_write)(SSL *ssl, const void *buf, int num);
     int (*SSL_get_error)(const SSL *ssl, int ret);
-    const SSL_METHOD *(*SSLv23_client_method)(void);
-    const SSL_METHOD *(*SSLv23_method)(void);
-    const SSL_METHOD *(*SSLv23_server_method)(void);
-    const SSL_METHOD *(*SSLv3_client_method)(void);
-    const SSL_METHOD *(*SSLv3_method)(void);
-    const SSL_METHOD *(*SSLv3_server_method)(void);
     const SSL_METHOD *(*TLSv1_1_client_method)(void);
     const SSL_METHOD *(*TLSv1_1_method)(void);
     const SSL_METHOD *(*TLSv1_1_server_method)(void);

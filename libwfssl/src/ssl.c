@@ -198,9 +198,11 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 
 #else
 
-#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb); if(ssl_methods.symb == 0) {throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL_ALIAS(symb, alias) ssl_methods.alias = dlsym(ssl, #symb); if(ssl_methods.alias == 0) {throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL(symb) REQUIRE_SSL_SYMBOL_ALIAS(symb, symb);
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
-#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb); if(crypto_methods.symb == 0) {throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, alias) crypto_methods.alias = dlsym(crypto, #symb); if(crypto_methods.alias == 0) {throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define REQUIRE_CRYPTO_SYMBOL(symb) REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, symb);
 #define GET_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb);
 
 #endif
@@ -276,17 +278,20 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         throwIllegalStateException(e, "Could not load libcrypto");
         return 1;
     }
-    REQUIRE_SSL_SYMBOL(SSLeay);
+    GET_SSL_SYMBOL(SSLeay);
+    if(ssl_methods.SSLeay == NULL) {
+        REQUIRE_SSL_SYMBOL_ALIAS(OpenSSL_version, SSLeay);
+    }
 #endif
 
-    GET_SSL_SYMBOL(SSL_CTX_get_ex_data);
-    if(ssl_methods.SSL_CTX_get_ex_data != NULL) {
+    GET_SSL_SYMBOL(SSL_CTX_get_ex_new_index);
+    if(ssl_methods.SSL_CTX_get_ex_new_index != NULL) {
         REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
         REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
         REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
         REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
         REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
-        REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_new_index);
+        REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     } else {
         REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_new_index)
         REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_data)
@@ -339,9 +344,15 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_set_session);
     REQUIRE_SSL_SYMBOL(SSL_get_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_get_version);
-    REQUIRE_SSL_SYMBOL(SSL_library_init);
+
+    GET_SSL_SYMBOL(SSL_library_init);
+    if(ssl_methods.SSL_library_init == NULL) {
+        REQUIRE_SSL_SYMBOL(OPENSSL_init_ssl);
+    } else {
+        REQUIRE_SSL_SYMBOL(SSL_load_error_strings);
+    }
+
     REQUIRE_SSL_SYMBOL(SSL_load_client_CA_file);
-    REQUIRE_SSL_SYMBOL(SSL_load_error_strings);
     REQUIRE_SSL_SYMBOL(SSL_new);
     REQUIRE_SSL_SYMBOL(SSL_pending);
     REQUIRE_SSL_SYMBOL(SSL_set_read_ahead);
@@ -358,12 +369,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_set_info_callback);
     REQUIRE_SSL_SYMBOL(SSL_write);
-    REQUIRE_SSL_SYMBOL(SSLv23_client_method);
-    REQUIRE_SSL_SYMBOL(SSLv23_method);
-    REQUIRE_SSL_SYMBOL(SSLv23_server_method);
-    REQUIRE_SSL_SYMBOL(SSLv3_client_method);
-    REQUIRE_SSL_SYMBOL(SSLv3_method);
-    REQUIRE_SSL_SYMBOL(SSLv3_server_method);
     GET_SSL_SYMBOL(TLSv1_1_client_method);
     GET_SSL_SYMBOL(TLSv1_1_method);
     GET_SSL_SYMBOL(TLSv1_1_server_method);
@@ -389,29 +394,29 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(BIO_s_mem);
     REQUIRE_CRYPTO_SYMBOL(BIO_write);
     REQUIRE_CRYPTO_SYMBOL(CRYPTO_free);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_num_locks);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_create_callback);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_destroy_callback);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_dynlock_lock_callback);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_id_callback);
-    REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_locking_callback);
+    GET_CRYPTO_SYMBOL(CRYPTO_num_locks);
+    GET_CRYPTO_SYMBOL(CRYPTO_set_dynlock_create_callback);
+    GET_CRYPTO_SYMBOL(CRYPTO_set_dynlock_destroy_callback);
+    GET_CRYPTO_SYMBOL(CRYPTO_set_dynlock_lock_callback);
+    GET_CRYPTO_SYMBOL(CRYPTO_set_id_callback);
+    GET_CRYPTO_SYMBOL(CRYPTO_set_locking_callback);
     REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_mem_functions);
     REQUIRE_CRYPTO_SYMBOL(ERR_error_string);
     REQUIRE_CRYPTO_SYMBOL(ERR_get_error);
-    REQUIRE_CRYPTO_SYMBOL(ERR_load_crypto_strings);
+    GET_CRYPTO_SYMBOL(ERR_load_crypto_strings);
+    GET_CRYPTO_SYMBOL(OPENSSL_add_all_algorithms_noconf);
     REQUIRE_CRYPTO_SYMBOL(EVP_Digest);
     REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_bits);
     REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_free);
     REQUIRE_CRYPTO_SYMBOL(EVP_PKEY_type);
     REQUIRE_CRYPTO_SYMBOL(EVP_sha1);
-    REQUIRE_CRYPTO_SYMBOL(OPENSSL_add_all_algorithms_noconf);
     REQUIRE_CRYPTO_SYMBOL(OPENSSL_load_builtin_modules);
     REQUIRE_CRYPTO_SYMBOL(PEM_read_bio_PrivateKey);
     REQUIRE_CRYPTO_SYMBOL(X509_CRL_verify);
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_ctrl);
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_file);
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_hash_dir);
-    REQUIRE_CRYPTO_SYMBOL(X509_OBJECT_free_contents);
+    //REQUIRE_CRYPTO_SYMBOL(X509_OBJECT_free_contents);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_cleanup);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_current_cert);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_error);
@@ -421,7 +426,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_set_error);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_add_lookup);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_free);
-    REQUIRE_CRYPTO_SYMBOL(X509_STORE_get_by_subject);
+    //REQUIRE_CRYPTO_SYMBOL(X509_STORE_get_by_subject);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_new);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_set_flags);
     REQUIRE_CRYPTO_SYMBOL(X509_cmp_current_time);
@@ -432,8 +437,15 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_CRYPTO_SYMBOL(X509_get_subject_name);
     REQUIRE_CRYPTO_SYMBOL(d2i_X509);
     REQUIRE_CRYPTO_SYMBOL(i2d_X509);
-    REQUIRE_CRYPTO_SYMBOL(sk_num);
-    REQUIRE_CRYPTO_SYMBOL(sk_value);
+    GET_CRYPTO_SYMBOL(sk_num);
+    if(crypto_methods.sk_num == NULL) {
+        REQUIRE_CRYPTO_SYMBOL_ALIAS(OPENSSL_sk_num, sk_num)
+    }
+    GET_CRYPTO_SYMBOL(sk_value);
+    if(crypto_methods.sk_value == NULL) {
+        REQUIRE_CRYPTO_SYMBOL_ALIAS(OPENSSL_sk_value, sk_value)
+    }
+
     REQUIRE_CRYPTO_SYMBOL(X509_free);
     GET_CRYPTO_SYMBOL(ENGINE_load_builtin_engines);
 
@@ -471,11 +483,16 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
      * code can successfully test the SSL environment.
      */
     crypto_methods.CRYPTO_set_mem_functions(malloc, realloc, free);
-    crypto_methods.ERR_load_crypto_strings();
-    ssl_methods.SSL_load_error_strings();
-    ssl_methods.SSL_library_init();
+    if(ssl_methods.SSL_library_init != NULL) {
+        /*OpenSSL 1.0.x */
+        ssl_methods.SSL_load_error_strings();
+        crypto_methods.ERR_load_crypto_strings();
+        ssl_methods.SSL_library_init();
+        crypto_methods.OPENSSL_add_all_algorithms_noconf();
+    } else {
+        ssl_methods.OPENSSL_init_ssl(0, NULL);
+    }
     init_app_data_idx();
-    crypto_methods.OPENSSL_add_all_algorithms_noconf();
     if(crypto_methods.ENGINE_load_builtin_engines != NULL) {
         crypto_methods.ENGINE_load_builtin_engines();
     }
@@ -544,12 +561,8 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         else
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_method());
     } else if (protocol == SSL_PROTOCOL_SSLV3) {
-        if (mode == SSL_MODE_CLIENT)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_client_method());
-        else if (mode == SSL_MODE_SERVER)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_server_method());
-        else
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv3_method());
+        throwIllegalStateException(e, "SSLV3 not supported");
+        goto init_failed;
     } else if (protocol == SSL_PROTOCOL_SSLV2) {
         /* requested but not supported */
         throwIllegalStateException(e, "SSLV2 not supported");
@@ -563,12 +576,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "TLSV1_1 not supported");
         goto init_failed;
     } else if (ssl_methods.TLS_server_method == NULL) {
-        if (mode == SSL_MODE_CLIENT)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_client_method());
-        else if (mode == SSL_MODE_SERVER)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_server_method());
-        else
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
+        throwIllegalStateException(e, "TLS not supported"); /*this should never happen, as all supported openssl versions should have this*/
     } else {
         if (mode == SSL_MODE_CLIENT)
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_client_method());
