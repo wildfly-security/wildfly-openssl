@@ -86,9 +86,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                     final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
                     try {
-                        final long sslCtx = SSL.getInstance().makeSSLContext(SSL.getInstance().SSL_PROTOCOL_ALL, SSL.getInstance().SSL_MODE_SERVER);
+                        final long sslCtx = SSL.getInstance().makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
                         try {
-                            SSL.getInstance().setSSLContextOptions(sslCtx, SSL.getInstance().SSL_OP_ALL);
+                            SSL.getInstance().setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
                             SSL.getInstance().setCipherSuite(sslCtx, "ALL");
                             final long ssl = SSL.getInstance().newSSL(sslCtx, true);
                             try {
@@ -116,11 +116,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     OpenSSLContextSPI(final int value) throws SSLException {
-        SSL.getInstance().init();
+        SSL.init();
         try {
             // Create SSL Context
             try {
-                ctx = SSL.getInstance().makeSSLContext(value, SSL.getInstance().SSL_MODE_COMBINED);
+                ctx = SSL.getInstance().makeSSLContext(value, SSL.SSL_MODE_COMBINED);
             } catch (Exception e) {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
@@ -129,16 +129,16 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
             try {
                 //disable unsafe renegotiation
-                SSL.getInstance().clearSSLContextOptions(ctx, SSL.getInstance().SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+                SSL.getInstance().clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
             }
             // Disable compression
             boolean disableCompressionSupported = false;
             try {
-                disableCompressionSupported = SSL.getInstance().hasOp(SSL.getInstance().SSL_OP_NO_COMPRESSION);
+                disableCompressionSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_COMPRESSION);
                 if (disableCompressionSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.getInstance().SSL_OP_NO_COMPRESSION);
+                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -150,9 +150,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Disable TLS Session Tickets (RFC4507) to protect perfect forward secrecy
             boolean disableSessionTicketsSupported = false;
             try {
-                disableSessionTicketsSupported = SSL.getInstance().hasOp(SSL.getInstance().SSL_OP_NO_TICKET);
+                disableSessionTicketsSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_TICKET);
                 if (disableSessionTicketsSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.getInstance().SSL_OP_NO_TICKET);
+                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -202,7 +202,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     StringBuilder sb = new StringBuilder(BEGIN_CERT);
                     sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
                     sb.append(END_CERT);
-                    SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.getInstance().SSL_AIDX_RSA : SSL.getInstance().SSL_AIDX_DSA);
+                    SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                 }
             }
 
@@ -424,28 +424,28 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     public static final class OpenSSLTLSContextSpi extends OpenSSLContextSPI {
 
         public OpenSSLTLSContextSpi() throws SSLException {
-            super(SSL.getInstance().SSL_PROTOCOL_ALL);
+            super(SSL.SSL_PROTOCOL_ALL);
         }
     }
 
     public static final class OpenSSLTLS_1_0_ContextSpi extends OpenSSLContextSPI {
 
         public OpenSSLTLS_1_0_ContextSpi() throws SSLException {
-            super(SSL.getInstance().SSL_PROTOCOL_TLSV1);
+            super(SSL.SSL_PROTOCOL_TLSV1);
         }
     }
 
     public static final class OpenSSLTLS_1_1_ContextSpi extends OpenSSLContextSPI {
 
         public OpenSSLTLS_1_1_ContextSpi() throws SSLException {
-            super(SSL.getInstance().SSL_PROTOCOL_TLSV1_1);
+            super(SSL.SSL_PROTOCOL_TLSV1_1);
         }
     }
 
     public static final class OpenSSLTLS_1_2_ContextSpi extends OpenSSLContextSPI {
 
         public OpenSSLTLS_1_2_ContextSpi() throws SSLException {
-            super(SSL.getInstance().SSL_PROTOCOL_TLSV1_2);
+            super(SSL.SSL_PROTOCOL_TLSV1_2);
         }
     }
 }

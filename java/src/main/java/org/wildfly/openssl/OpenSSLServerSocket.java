@@ -65,7 +65,7 @@ public class OpenSSLServerSocket extends SSLServerSocket {
 
     @Override
     public String[] getSupportedCipherSuites() {
-        return openSSLContextSPI.getAvailableCipherSuites();
+        return OpenSSLContextSPI.getAvailableCipherSuites();
     }
 
     @Override

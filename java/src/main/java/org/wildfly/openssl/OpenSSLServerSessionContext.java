@@ -56,12 +56,12 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
     }
 
     public void setSessionCacheEnabled(boolean enabled) {
-        long mode = enabled ? SSL.getInstance().SSL_SESS_CACHE_SERVER : SSL.getInstance().SSL_SESS_CACHE_OFF;
+        long mode = enabled ? SSL.SSL_SESS_CACHE_SERVER : SSL.SSL_SESS_CACHE_OFF;
         SSL.getInstance().setSessionCacheMode(context, mode);
     }
 
     public boolean isSessionCacheEnabled() {
-        return SSL.getInstance().getSessionCacheMode(context) == SSL.getInstance().SSL_SESS_CACHE_SERVER;
+        return SSL.getInstance().getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_SERVER;
     }
 
     /**
