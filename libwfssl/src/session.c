@@ -155,7 +155,7 @@ WF_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArr
     jbyte* b;
 
     if ((*e)->GetArrayLength(e, keys) != TICKET_KEYS_SIZE) {
-        fprintf(stderr, "[ERROR] Session ticket keys provided were wrong size.");
+        fprintf(stderr, "org.wildfly.openssl [ERROR] Session ticket keys provided were wrong size.");
         exit(1);
     }
 
@@ -206,7 +206,7 @@ WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session)
     }
     int r = ssl_methods.SSL_set_session(ssl_, session_);
     if (r == 0) {
-        fprintf(stderr, "[ERROR] %s", crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), NULL));
+        fprintf(stderr, "org.wildfly.openssl [ERROR] %s", crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), NULL));
     }
 }
 
