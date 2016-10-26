@@ -56,12 +56,12 @@ public final class OpenSSLEngine extends SSLEngine {
     protected static final int VERIFY_DEPTH = 10;
 
     private static final String[] SUPPORTED_PROTOCOLS = {
-            SSL.getInstance().SSL_PROTO_SSLv2Hello,
-            SSL.getInstance().SSL_PROTO_SSLv2,
-            SSL.getInstance().SSL_PROTO_SSLv3,
-            SSL.getInstance().SSL_PROTO_TLSv1,
-            SSL.getInstance().SSL_PROTO_TLSv1_1,
-            SSL.getInstance().SSL_PROTO_TLSv1_2
+            SSL.SSL_PROTO_SSLv2Hello,
+            SSL.SSL_PROTO_SSLv2,
+            SSL.SSL_PROTO_SSLv3,
+            SSL.SSL_PROTO_TLSv1,
+            SSL.SSL_PROTO_TLSv1_1,
+            SSL.SSL_PROTO_TLSv1_2
     };
     private static final Set<String> SUPPORTED_PROTOCOLS_SET = new HashSet<>(Arrays.asList(SUPPORTED_PROTOCOLS));
 
@@ -125,7 +125,6 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private String host;
     private int port;
-    private boolean reusedClientSideSession = false;
 
     /**
      * Creates a new instance
@@ -517,7 +516,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (lastPrimingReadResult <= 0) {
             // Check for OpenSSL errors caused by the priming read
             long error = SSL.getInstance().getLastErrorNumber();
-            if (error != SSL.getInstance().SSL_ERROR_NONE) {
+            if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getInstance().getErrorString(error);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Read from SSL failed error: (" + error + ") read result:(" + lastPrimingReadResult + ") error string: " + err);
@@ -579,7 +578,7 @@ public final class OpenSSLEngine extends SSLEngine {
         }
 
         // Check to see if we received a close_notify message from the peer
-        if (!receivedShutdown && (SSL.getInstance().getShutdown(ssl) & SSL.getInstance().SSL_RECEIVED_SHUTDOWN) == SSL.getInstance().SSL_RECEIVED_SHUTDOWN) {
+        if (!receivedShutdown && (SSL.getInstance().getShutdown(ssl) & SSL.SSL_RECEIVED_SHUTDOWN) == SSL.SSL_RECEIVED_SHUTDOWN) {
             receivedShutdown = true;
             closeOutbound();
             closeInbound();
@@ -630,7 +629,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
         if (accepted != 0 && destroyed == 0) {
             int mode = SSL.getInstance().getShutdown(ssl);
-            if ((mode & SSL.getInstance().SSL_SENT_SHUTDOWN) != SSL.getInstance().SSL_SENT_SHUTDOWN) {
+            if ((mode & SSL.SSL_SENT_SHUTDOWN) != SSL.SSL_SENT_SHUTDOWN) {
                 SSL.getInstance().shutdownSSL(ssl);
             }
         } else {
@@ -715,22 +714,22 @@ public final class OpenSSLEngine extends SSLEngine {
         initSsl();
         List<String> enabled = new ArrayList<>();
         // Seems like there is no way to explict disable SSLv2Hello in openssl so it is always enabled
-        enabled.add(SSL.getInstance().SSL_PROTO_SSLv2Hello);
+        enabled.add(SSL.SSL_PROTO_SSLv2Hello);
         int opts = SSL.getInstance().getOptions(ssl);
-        if ((opts & SSL.getInstance().SSL_OP_NO_TLSv1) == 0) {
-            enabled.add(SSL.getInstance().SSL_PROTO_TLSv1);
+        if ((opts & SSL.SSL_OP_NO_TLSv1) == 0) {
+            enabled.add(SSL.SSL_PROTO_TLSv1);
         }
-        if ((opts & SSL.getInstance().SSL_OP_NO_TLSv1_1) == 0) {
-            enabled.add(SSL.getInstance().SSL_PROTO_TLSv1_1);
+        if ((opts & SSL.SSL_OP_NO_TLSv1_1) == 0) {
+            enabled.add(SSL.SSL_PROTO_TLSv1_1);
         }
-        if ((opts & SSL.getInstance().SSL_OP_NO_TLSv1_2) == 0) {
-            enabled.add(SSL.getInstance().SSL_PROTO_TLSv1_2);
+        if ((opts & SSL.SSL_OP_NO_TLSv1_2) == 0) {
+            enabled.add(SSL.SSL_PROTO_TLSv1_2);
         }
-        if ((opts & SSL.getInstance().SSL_OP_NO_SSLv2) == 0) {
-            enabled.add(SSL.getInstance().SSL_PROTO_SSLv2);
+        if ((opts & SSL.SSL_OP_NO_SSLv2) == 0) {
+            enabled.add(SSL.SSL_PROTO_SSLv2);
         }
-        if ((opts & SSL.getInstance().SSL_OP_NO_SSLv3) == 0) {
-            enabled.add(SSL.getInstance().SSL_PROTO_SSLv3);
+        if ((opts & SSL.SSL_OP_NO_SSLv3) == 0) {
+            enabled.add(SSL.SSL_PROTO_SSLv3);
         }
         int size = enabled.size();
         if (size == 0) {
@@ -756,35 +755,35 @@ public final class OpenSSLEngine extends SSLEngine {
             if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
                 throw new IllegalArgumentException("Unsupported protocol " + p);
             }
-            if (p.equals(SSL.getInstance().SSL_PROTO_SSLv2)) {
+            if (p.equals(SSL.SSL_PROTO_SSLv2)) {
                 sslv2 = true;
-            } else if (p.equals(SSL.getInstance().SSL_PROTO_SSLv3)) {
+            } else if (p.equals(SSL.SSL_PROTO_SSLv3)) {
                 sslv3 = true;
-            } else if (p.equals(SSL.getInstance().SSL_PROTO_TLSv1)) {
+            } else if (p.equals(SSL.SSL_PROTO_TLSv1)) {
                 tlsv1 = true;
-            } else if (p.equals(SSL.getInstance().SSL_PROTO_TLSv1_1)) {
+            } else if (p.equals(SSL.SSL_PROTO_TLSv1_1)) {
                 tlsv1_1 = true;
-            } else if (p.equals(SSL.getInstance().SSL_PROTO_TLSv1_2)) {
+            } else if (p.equals(SSL.SSL_PROTO_TLSv1_2)) {
                 tlsv1_2 = true;
             }
         }
         // Enable all and then disable what we not want
-        SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_ALL);
+        SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
 
         if (!sslv2) {
-            SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_NO_SSLv2);
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv2);
         }
         if (!sslv3) {
-            SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_NO_SSLv3);
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv3);
         }
         if (!tlsv1) {
-            SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_NO_TLSv1);
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1);
         }
         if (!tlsv1_1) {
-            SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_NO_TLSv1_1);
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_1);
         }
         if (!tlsv1_2) {
-            SSL.getInstance().setOptions(ssl, SSL.getInstance().SSL_OP_NO_TLSv1_2);
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
         }
     }
 
@@ -910,7 +909,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (code <= 0) {
             // Check for OpenSSL errors caused by the handshake
             long error = SSL.getInstance().getLastErrorNumber();
-            if (error != SSL.getInstance().SSL_ERROR_NONE) {
+            if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getInstance().getErrorString(error);
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Renegotiation failure " + err);
@@ -1050,13 +1049,13 @@ public final class OpenSSLEngine extends SSLEngine {
             }
             switch (mode) {
                 case NONE:
-                    SSL.getInstance().setSSLVerify(ssl, SSL.getInstance().SSL_CVERIFY_NONE, VERIFY_DEPTH);
+                    SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
                     break;
                 case REQUIRE:
-                    SSL.getInstance().setSSLVerify(ssl, SSL.getInstance().SSL_CVERIFY_REQUIRE, VERIFY_DEPTH);
+                    SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_REQUIRE, VERIFY_DEPTH);
                     break;
                 case OPTIONAL:
-                    SSL.getInstance().setSSLVerify(ssl, SSL.getInstance().SSL_CVERIFY_OPTIONAL, VERIFY_DEPTH);
+                    SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_OPTIONAL, VERIFY_DEPTH);
                     break;
             }
             clientAuth = mode;
@@ -1135,12 +1134,12 @@ public final class OpenSSLEngine extends SSLEngine {
         // client's)
         boolean orderCiphersSupported = false;
         try {
-            orderCiphersSupported = SSL.getInstance().hasOp(SSL.getInstance().SSL_OP_CIPHER_SERVER_PREFERENCE);
+            orderCiphersSupported = SSL.getInstance().hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
             if (orderCiphersSupported) {
                 if (sslParameters.getUseCipherSuitesOrder()) {
-                    SSL.getInstance().setSSLOptions(ssl, SSL.getInstance().SSL_OP_CIPHER_SERVER_PREFERENCE);
+                    SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 } else {
-                    SSL.getInstance().setSSLOptions(ssl, SSL.getInstance().SSL_OP_CIPHER_SERVER_PREFERENCE);
+                    SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 }
             }
         } catch (UnsatisfiedLinkError e) {
@@ -1153,11 +1152,11 @@ public final class OpenSSLEngine extends SSLEngine {
 
         int value = 0;
         if (sslParameters.getNeedClientAuth()) {
-            value = SSL.getInstance().SSL_CVERIFY_REQUIRE;
+            value = SSL.SSL_CVERIFY_REQUIRE;
         } else if (sslParameters.getWantClientAuth()) {
-            value = SSL.getInstance().SSL_CVERIFY_OPTIONAL;
+            value = SSL.SSL_CVERIFY_OPTIONAL;
         } else {
-            value = SSL.getInstance().SSL_CVERIFY_NONE;
+            value = SSL.SSL_CVERIFY_NONE;
         }
         SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
 

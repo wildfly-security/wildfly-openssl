@@ -30,14 +30,14 @@ public class SSLImpl extends SSL {
     static native void initialize0(String openSSLPath);
 
     protected void initialize(String openSSLPath) {
-        this.initialize0(openSSLPath);
+        SSLImpl.initialize0(openSSLPath);
     }
 
     /* Return OpenSSL version number */
     static native long version0();
 
     protected long version() {
-        return this.version0();
+        return SSLImpl.version0();
     }
 
     /**
@@ -54,7 +54,7 @@ public class SSLImpl extends SSL {
     static native boolean hasOp0(int op);
 
     protected boolean hasOp(int op) {
-        return this.hasOp0(op);
+        return SSLImpl.hasOp0(op);
     }
 
     /**
@@ -68,7 +68,7 @@ public class SSLImpl extends SSL {
     static native long newSSL0(long ctx, boolean server);
 
     protected long newSSL(long ctx, boolean server) {
-        return this.newSSL0(ctx, server);
+        return SSLImpl.newSSL0(ctx, server);
     }
 
     /**
@@ -79,7 +79,7 @@ public class SSLImpl extends SSL {
     static native int pendingWrittenBytesInBIO0(long bio);
 
     protected int pendingWrittenBytesInBIO(long bio) {
-        return this.pendingWrittenBytesInBIO0(bio);
+        return SSLImpl.pendingWrittenBytesInBIO0(bio);
     }
 
     /**
@@ -90,7 +90,7 @@ public class SSLImpl extends SSL {
     static native int pendingReadableBytesInSSL0(long ssl);
 
     protected int pendingReadableBytesInSSL(long ssl) {
-        return this.pendingReadableBytesInSSL0(ssl);
+        return SSLImpl.pendingReadableBytesInSSL0(ssl);
     }
 
     /**
@@ -103,7 +103,7 @@ public class SSLImpl extends SSL {
     static native int writeToBIO0(long bio, long wbuf, int wlen);
 
     protected int writeToBIO(long bio, long wbuf, int wlen) {
-        return this.writeToBIO0(bio, wbuf, wlen);
+        return SSLImpl.writeToBIO0(bio, wbuf, wlen);
     }
 
     /**
@@ -116,7 +116,7 @@ public class SSLImpl extends SSL {
     static native int readFromBIO0(long bio, long rbuf, int rlen);
 
     protected int readFromBIO(long bio, long rbuf, int rlen) {
-        return this.readFromBIO0(bio, rbuf, rlen);
+        return SSLImpl.readFromBIO0(bio, rbuf, rlen);
     }
 
     /**
@@ -129,7 +129,7 @@ public class SSLImpl extends SSL {
     static native int writeToSSL0(long ssl, long wbuf, int wlen);
 
     protected int writeToSSL(long ssl, long wbuf, int wlen) {
-        return this.writeToSSL0(ssl, wbuf, wlen);
+        return SSLImpl.writeToSSL0(ssl, wbuf, wlen);
     }
 
     /**
@@ -142,7 +142,7 @@ public class SSLImpl extends SSL {
     static native int readFromSSL0(long ssl, long rbuf, int rlen);
 
     protected int readFromSSL(long ssl, long rbuf, int rlen) {
-        return this.readFromSSL0(ssl, rbuf, rlen);
+        return SSLImpl.readFromSSL0(ssl, rbuf, rlen);
     }
 
     /**
@@ -153,7 +153,7 @@ public class SSLImpl extends SSL {
     static native int getShutdown0(long ssl);
 
     protected int getShutdown(long ssl) {
-        return this.getShutdown0(ssl);
+        return SSLImpl.getShutdown0(ssl);
     }
 
     /**
@@ -164,7 +164,7 @@ public class SSLImpl extends SSL {
     static native void freeSSL0(long ssl);
 
     protected void freeSSL(long ssl) {
-        this.freeSSL0(ssl);
+        SSLImpl.freeSSL0(ssl);
     }
 
     /**
@@ -181,7 +181,7 @@ public class SSLImpl extends SSL {
     static native long makeNetworkBIO0(long ssl);
 
     protected long makeNetworkBIO(long ssl) {
-        return this.makeNetworkBIO0(ssl);
+        return SSLImpl.makeNetworkBIO0(ssl);
     }
 
     /**
@@ -192,7 +192,7 @@ public class SSLImpl extends SSL {
     static native void freeBIO0(long bio);
 
     protected void freeBIO(long bio) {
-        this.freeBIO0(bio);
+        SSLImpl.freeBIO0(bio);
     }
 
     /**
@@ -203,7 +203,7 @@ public class SSLImpl extends SSL {
     static native int shutdownSSL0(long ssl);
 
     protected int shutdownSSL(long ssl) {
-        return this.shutdownSSL0(ssl);
+        return SSLImpl.shutdownSSL0(ssl);
     }
 
     /**
@@ -213,7 +213,7 @@ public class SSLImpl extends SSL {
     static native int getLastErrorNumber0();
 
     protected int getLastErrorNumber() {
-        return this.getLastErrorNumber0();
+        return SSLImpl.getLastErrorNumber0();
     }
 
     /**
@@ -224,7 +224,7 @@ public class SSLImpl extends SSL {
     static native String getCipherForSSL0(long ssl);
 
     protected String getCipherForSSL(long ssl) {
-        return this.getCipherForSSL0(ssl);
+        return SSLImpl.getCipherForSSL0(ssl);
     }
 
     /**
@@ -235,7 +235,7 @@ public class SSLImpl extends SSL {
     static native String getVersion0(long ssl);
 
     protected String getVersion(long ssl) {
-        return this.getVersion0(ssl);
+        return SSLImpl.getVersion0(ssl);
     }
 
     /**
@@ -246,13 +246,13 @@ public class SSLImpl extends SSL {
     static native int doHandshake0(long ssl);
 
     protected int doHandshake(long ssl) {
-        return this.doHandshake0(ssl);
+        return SSLImpl.doHandshake0(ssl);
     }
 
     static native int getSSLError0(long ssl, int code);
 
     protected int getSSLError(long ssl, int code) {
-        return this.getSSLError0(ssl, code);
+        return SSLImpl.getSSLError0(ssl, code);
     }
 
     /**
@@ -263,7 +263,7 @@ public class SSLImpl extends SSL {
     static native int renegotiate0(long ssl);
 
     protected int renegotiate(long ssl) {
-        return this.renegotiate0(ssl);
+        return SSLImpl.renegotiate0(ssl);
     }
 
     /**
@@ -274,7 +274,7 @@ public class SSLImpl extends SSL {
     static native int isInInit0(long SSL);
 
     protected int isInInit(long SSL) {
-        return this.isInInit0(SSL);
+        return SSLImpl.isInInit0(SSL);
     }
 
     /**
@@ -285,7 +285,7 @@ public class SSLImpl extends SSL {
     static native String getAlpnSelected0(long ssl);
 
     protected String getAlpnSelected(long ssl) {
-        return this.getAlpnSelected0(ssl);
+        return SSLImpl.getAlpnSelected0(ssl);
     }
 
     /**
@@ -294,7 +294,7 @@ public class SSLImpl extends SSL {
     static native void enableAlpn0(long ssl);
 
     protected void enableAlpn(long ssl) {
-        this.enableAlpn0(ssl);
+        SSLImpl.enableAlpn0(ssl);
     }
 
     static native boolean isAlpnSupported0();
@@ -309,7 +309,7 @@ public class SSLImpl extends SSL {
     static native byte[][] getPeerCertChain0(long ssl);
 
     protected byte[][] getPeerCertChain(long ssl) {
-        return this.getPeerCertChain0(ssl);
+        return SSLImpl.getPeerCertChain0(ssl);
     }
 
     /**
@@ -318,7 +318,7 @@ public class SSLImpl extends SSL {
     static native byte[] getPeerCertificate0(long ssl);
 
     protected byte[] getPeerCertificate(long ssl) {
-        return this.getPeerCertificate0(ssl);
+        return SSLImpl.getPeerCertificate0(ssl);
     }
 
     /*
@@ -327,7 +327,7 @@ public class SSLImpl extends SSL {
     static native String getErrorString0(long errorNumber);
 
     protected String getErrorString(long errorNumber) {
-        return this.getErrorString0(errorNumber);
+        return SSLImpl.getErrorString0(errorNumber);
     }
 
     /**
@@ -339,7 +339,7 @@ public class SSLImpl extends SSL {
     static native long getTime0(long ssl);
 
     protected long getTime(long ssl) {
-        return this.getTime0(ssl);
+        return SSLImpl.getTime0(ssl);
     }
 
     /**
@@ -379,7 +379,7 @@ public class SSLImpl extends SSL {
     static native void setSSLVerify0(long ssl, int level, int depth);
 
     protected void setSSLVerify(long ssl, int level, int depth) {
-        this.setSSLVerify0(ssl, level, depth);
+        SSLImpl.setSSLVerify0(ssl, level, depth);
     }
 
     /**
@@ -391,7 +391,7 @@ public class SSLImpl extends SSL {
     static native void setOptions0(long ssl, int options);
 
     protected void setOptions(long ssl, int options) {
-        this.setOptions0(ssl, options);
+        SSLImpl.setOptions0(ssl, options);
     }
 
     /**
@@ -403,7 +403,7 @@ public class SSLImpl extends SSL {
     static native int getOptions0(long ssl);
 
     protected int getOptions(long ssl) {
-        return this.getOptions0(ssl);
+        return SSLImpl.getOptions0(ssl);
     }
 
     /**
@@ -415,7 +415,7 @@ public class SSLImpl extends SSL {
     static native String[] getCiphers0(long ssl);
 
     protected String[] getCiphers(long ssl) {
-        return this.getCiphers0(ssl);
+        return SSLImpl.getCiphers0(ssl);
     }
 
     @Override
@@ -434,14 +434,14 @@ public class SSLImpl extends SSL {
 
     @Override
     protected long getSession(final long ssl) {
-        return this.getSession0(ssl);
+        return SSLImpl.getSession0(ssl);
     }
 
     static native void setSession0(final long ssl, final long session);
 
     @Override
     protected void setSession(final long ssl, final long session) {
-        this.setSession0(ssl, session);
+        SSLImpl.setSession0(ssl, session);
     }
 
     /**
@@ -471,19 +471,19 @@ public class SSLImpl extends SSL {
     static native byte[] getSessionId0(long ssl);
 
     protected byte[] getSessionId(long ssl) {
-        return this.getSessionId0(ssl);
+        return SSLImpl.getSessionId0(ssl);
     }
 
     static native long getSessionPointer0(long ssl);
 
     protected long getSessionPointer(long ssl) {
-        return this.getSessionPointer0(ssl);
+        return SSLImpl.getSessionPointer0(ssl);
     }
 
     static native long bufferAddress0(ByteBuffer buffer);
 
     protected long bufferAddress(ByteBuffer buffer) {
-        return this.bufferAddress0(buffer);
+        return SSLImpl.bufferAddress0(buffer);
     }
 
     @Override
@@ -526,7 +526,7 @@ public class SSLImpl extends SSL {
     static native int freeSSLContext0(long ctx);
 
     protected int freeSSLContext(long ctx) {
-        return this.freeSSLContext0(ctx);
+        return SSLImpl.freeSSLContext0(ctx);
     }
 
     /**
@@ -538,7 +538,7 @@ public class SSLImpl extends SSL {
     static native void setSSLContextOptions0(long ctx, int options);
 
     protected void setSSLContextOptions(long ctx, int options) {
-        this.setSSLContextOptions0(ctx, options);
+        SSLImpl.setSSLContextOptions0(ctx, options);
     }
 
     /**
@@ -550,7 +550,7 @@ public class SSLImpl extends SSL {
     static native void clearSSLContextOptions0(long ctx, int options);
 
     protected void clearSSLContextOptions(long ctx, int options) {
-        this.clearSSLContextOptions0(ctx, options);
+        SSLImpl.clearSSLContextOptions0(ctx, options);
     }
 
     /**
@@ -562,7 +562,7 @@ public class SSLImpl extends SSL {
     static native void setSSLOptions0(long ssl, int options);
 
     protected void setSSLOptions(long ssl, int options) {
-        this.setSSLOptions0(ssl, options);
+        SSLImpl.setSSLOptions0(ssl, options);
     }
 
     /**
@@ -574,7 +574,7 @@ public class SSLImpl extends SSL {
     static native void clearSSLOptions0(long ssl, int options);
 
     protected void clearSSLOptions(long ssl, int options) {
-        this.clearSSLOptions0(ssl, options);
+        SSLImpl.clearSSLOptions0(ssl, options);
     }
 
     @Override
@@ -664,7 +664,7 @@ public class SSLImpl extends SSL {
     static native long setSessionCacheSize0(long ctx, long size);
 
     protected long setSessionCacheSize(long ctx, long size) {
-        return this.setSessionCacheSize0(ctx, size);
+        return SSLImpl.setSessionCacheSize0(ctx, size);
     }
 
     /**
@@ -674,7 +674,7 @@ public class SSLImpl extends SSL {
     static native long getSessionCacheSize0(long ctx);
 
     protected long getSessionCacheSize(long ctx) {
-        return this.getSessionCacheSize0(ctx);
+        return SSLImpl.getSessionCacheSize0(ctx);
     }
 
     /**
@@ -684,7 +684,7 @@ public class SSLImpl extends SSL {
     static native long setSessionCacheTimeout0(long ctx, long timeoutSeconds);
 
     protected long setSessionCacheTimeout(long ctx, long timeoutSeconds) {
-        return this.setSessionCacheTimeout0(ctx, timeoutSeconds);
+        return SSLImpl.setSessionCacheTimeout0(ctx, timeoutSeconds);
     }
 
     /**
@@ -694,7 +694,7 @@ public class SSLImpl extends SSL {
     static native long getSessionCacheTimeout0(long ctx);
 
     protected long getSessionCacheTimeout(long ctx) {
-        return this.getSessionCacheTimeout0(ctx);
+        return SSLImpl.getSessionCacheTimeout0(ctx);
     }
 
     /**
@@ -703,7 +703,7 @@ public class SSLImpl extends SSL {
     static native long setSessionCacheMode0(long ctx, long mode);
 
     protected long setSessionCacheMode(long ctx, long mode) {
-        return this.setSessionCacheMode0(ctx, mode);
+        return SSLImpl.setSessionCacheMode0(ctx, mode);
     }
 
     /**
@@ -712,7 +712,7 @@ public class SSLImpl extends SSL {
     static native long getSessionCacheMode0(long ctx);
 
     protected long getSessionCacheMode(long ctx) {
-        return this.getSessionCacheMode0(ctx);
+        return SSLImpl.getSessionCacheMode0(ctx);
     }
 
     /**
@@ -722,73 +722,73 @@ public class SSLImpl extends SSL {
     static native long sessionAccept0(long ctx);
 
     protected long sessionAccept(long ctx) {
-        return this.sessionAccept0(ctx);
+        return SSLImpl.sessionAccept0(ctx);
     }
 
     static native long sessionAcceptGood0(long ctx);
 
     protected long sessionAcceptGood(long ctx) {
-        return this.sessionAcceptGood0(ctx);
+        return SSLImpl.sessionAcceptGood0(ctx);
     }
 
     static native long sessionAcceptRenegotiate0(long ctx);
 
     protected long sessionAcceptRenegotiate(long ctx) {
-        return this.sessionAcceptRenegotiate0(ctx);
+        return SSLImpl.sessionAcceptRenegotiate0(ctx);
     }
 
     static native long sessionCacheFull0(long ctx);
 
     protected long sessionCacheFull(long ctx) {
-        return this.sessionCacheFull0(ctx);
+        return SSLImpl.sessionCacheFull0(ctx);
     }
 
     static native long sessionCbHits0(long ctx);
 
     protected long sessionCbHits(long ctx) {
-        return this.sessionCbHits0(ctx);
+        return SSLImpl.sessionCbHits0(ctx);
     }
 
     static native long sessionConnect0(long ctx);
 
     protected long sessionConnect(long ctx) {
-        return this.sessionConnect0(ctx);
+        return SSLImpl.sessionConnect0(ctx);
     }
 
     static native long sessionConnectGood0(long ctx);
 
     protected long sessionConnectGood(long ctx) {
-        return this.sessionConnectGood0(ctx);
+        return SSLImpl.sessionConnectGood0(ctx);
     }
 
     static native long sessionConnectRenegotiate0(long ctx);
 
     protected long sessionConnectRenegotiate(long ctx) {
-        return this.sessionConnectRenegotiate0(ctx);
+        return SSLImpl.sessionConnectRenegotiate0(ctx);
     }
 
     static native long sessionHits0(long ctx);
 
     protected long sessionHits(long ctx) {
-        return this.sessionHits0(ctx);
+        return SSLImpl.sessionHits0(ctx);
     }
 
     static native long sessionMisses0(long ctx);
 
     protected long sessionMisses(long ctx) {
-        return this.sessionMisses0(ctx);
+        return SSLImpl.sessionMisses0(ctx);
     }
 
     static native long sessionNumber0(long ctx);
 
     protected long sessionNumber(long ctx) {
-        return this.sessionNumber0(ctx);
+        return SSLImpl.sessionNumber0(ctx);
     }
 
     static native long sessionTimeouts0(long ctx);
 
     protected long sessionTimeouts(long ctx) {
-        return this.sessionTimeouts0(ctx);
+        return SSLImpl.sessionTimeouts0(ctx);
     }
 
     /**
@@ -797,7 +797,7 @@ public class SSLImpl extends SSL {
     static native void setSessionTicketKeys0(long ctx, byte[] keys);
 
     protected void setSessionTicketKeys(long ctx, byte[] keys) {
-        this.setSessionTicketKeys0(ctx, keys);
+        SSLImpl.setSessionTicketKeys0(ctx, keys);
     }
 
     /**
@@ -806,13 +806,13 @@ public class SSLImpl extends SSL {
     static native void invalidateSession0(long ctx);
 
     protected void invalidateSession(long ctx) {
-        this.invalidateSession0(ctx);
+        SSLImpl.invalidateSession0(ctx);
     }
 
     static native void registerSessionContext0(long context, OpenSSLServerSessionContext openSSLServerSessionContext);
 
     protected void registerSessionContext(long context, OpenSSLServerSessionContext openSSLServerSessionContext) {
-        this.registerSessionContext0(context, openSSLServerSessionContext);
+        SSLImpl.registerSessionContext0(context, openSSLServerSessionContext);
     }
 
     /**
@@ -826,7 +826,7 @@ public class SSLImpl extends SSL {
     static native void setCertVerifyCallback0(long ctx, CertificateVerifier verifier);
 
     protected void setCertVerifyCallback(long ctx, CertificateVerifier verifier) {
-        this.setCertVerifyCallback0(ctx, verifier);
+        SSLImpl.setCertVerifyCallback0(ctx, verifier);
     }
 
     /**
@@ -840,7 +840,7 @@ public class SSLImpl extends SSL {
     static native void setAlpnProtos0(long ssl, String[] alpnProtos);
 
     protected void setAlpnProtos(long ssl, String[] alpnProtos) {
-        this.setAlpnProtos0(ssl, alpnProtos);
+        SSLImpl.setAlpnProtos0(ssl, alpnProtos);
     }
 
     /**
@@ -852,7 +852,7 @@ public class SSLImpl extends SSL {
     static native void setServerALPNCallback0(long ssl, ServerALPNCallback callback);
 
     protected void setServerALPNCallback(long ssl, ServerALPNCallback callback) {
-        this.setServerALPNCallback0(ssl, callback);
+        SSLImpl.setServerALPNCallback0(ssl, callback);
     }
 
     /**
@@ -867,6 +867,6 @@ public class SSLImpl extends SSL {
     static native boolean setSessionIdContext0(long ctx, byte[] sidCtx);
 
     protected boolean setSessionIdContext(long ctx, byte[] sidCtx) {
-        return this.setSessionIdContext0(ctx, sidCtx);
+        return SSLImpl.setSessionIdContext0(ctx, sidCtx);
     }
 }
