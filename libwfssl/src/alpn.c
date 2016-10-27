@@ -65,10 +65,10 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
                     break;
                 }
             }
-            // Write the length of the protocol and then increment before memcpy the protocol itself.
+            // Write the length of the protocol and then increment before memmove the protocol itself.
             *p_data = proto_chars_len;
             ++p_data;
-            memcpy(p_data, proto_chars, proto_chars_len);
+            memmove(p_data, proto_chars, proto_chars_len);
             p_data += proto_chars_len;
          }
 

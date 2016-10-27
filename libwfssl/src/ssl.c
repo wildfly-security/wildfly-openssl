@@ -869,8 +869,8 @@ WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx,
     buf = malloc(len * sizeof(char *));
     if (buf == NULL)
         return JNI_FALSE;
-    memcpy(buf, SSL_CIPHERS_ALWAYS_DISABLED, strlen(SSL_CIPHERS_ALWAYS_DISABLED));
-    memcpy(buf + strlen(SSL_CIPHERS_ALWAYS_DISABLED), J2S(ciphers), strlen(J2S(ciphers)));
+    memmove(buf, SSL_CIPHERS_ALWAYS_DISABLED, strlen(SSL_CIPHERS_ALWAYS_DISABLED));
+    memmove(buf + strlen(SSL_CIPHERS_ALWAYS_DISABLED), J2S(ciphers), strlen(J2S(ciphers)));
     buf[len - 1] = '\0';
     if (!ssl_methods.SSL_CTX_set_cipher_list(c->ctx, buf)) {
 #else
@@ -944,13 +944,13 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
     jbyte* bufferPtr = (*e)->GetByteArrayElements(e, javaKey, NULL);
     jsize lengthOfKey = (*e)->GetArrayLength(e, javaKey);
     unsigned char* key = malloc(lengthOfKey);
-    memcpy(key, bufferPtr, lengthOfKey);
+    memmove(key, bufferPtr, lengthOfKey);
     (*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
 
     bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
     jsize lengthOfCert = (*e)->GetArrayLength(e, javaCert);
     unsigned char* cert = malloc(lengthOfCert);
-    memcpy(cert, bufferPtr, lengthOfCert);
+    memmove(cert, bufferPtr, lengthOfCert);
     (*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
 
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
