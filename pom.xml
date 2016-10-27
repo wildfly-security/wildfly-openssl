@@ -27,7 +27,7 @@
 
     <groupId>org.wildfly.openssl</groupId>
     <artifactId>wildfly-openssl-parent</artifactId>
-    <version>1.0.0.Alpha3</version>
+    <version>1.0.0.Alpha4-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
