@@ -185,21 +185,21 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 #ifdef WIN32
 
 #define REQUIRE_SYMBOL(handle, symb, target) target = (void*)GetProcAddress(handle, #symb); if(target == 0) { throwIllegalStateException(e, "Could not load required symbol from" #handle " " #symb); return 1;}
-#define REQUIRE_SSL_SYMBOL(symb) ssl_methods.symb = (void*)GetProcAddress(ssl, #symb); if(ssl_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
+#define REQUIRE_SSL_SYMBOL_ALIAS(symb, alias) ssl_methods.alias = (void*)GetProcAddress(ssl, #symb); if(ssl_methods.alias == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = (void*)GetProcAddress(ssl, #symb);
-#define REQUIRE_CRYPTO_SYMBOL(symb) crypto_methods.symb = (void*)GetProcAddress(crypto, #symb); if(crypto_methods.symb == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
+#define REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, alias) crypto_methods.alias = (void*)GetProcAddress(crypto, #symb); if(crypto_methods.alias == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
 #define GET_CRYPTO_SYMBOL(symb)  crypto_methods.symb = (void*)GetProcAddress(crypto, #symb);
 
 #else
 
 #define REQUIRE_SSL_SYMBOL_ALIAS(symb, alias) ssl_methods.alias = dlsym(ssl, #symb); if(ssl_methods.alias == 0) {throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
-#define REQUIRE_SSL_SYMBOL(symb) REQUIRE_SSL_SYMBOL_ALIAS(symb, symb);
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = dlsym(ssl, #symb);
 #define REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, alias) crypto_methods.alias = dlsym(crypto, #symb); if(crypto_methods.alias == 0) {throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
-#define REQUIRE_CRYPTO_SYMBOL(symb) REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, symb);
 #define GET_CRYPTO_SYMBOL(symb) crypto_methods.symb = dlsym(crypto, #symb);
-
 #endif
+
+#define REQUIRE_SSL_SYMBOL(symb) REQUIRE_SSL_SYMBOL_ALIAS(symb, symb);
+#define REQUIRE_CRYPTO_SYMBOL(symb) REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, symb);
 
 int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 
