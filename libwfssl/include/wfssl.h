@@ -51,6 +51,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/conf.h>
+#include <stdint.h>
 
 /* Debugging code */
 #if defined(_DEBUG) || defined(DEBUG)

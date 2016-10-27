@@ -84,6 +84,7 @@ public abstract class SSL {
                         }
                     } else {
                         Runtime.getRuntime().load(libPath);
+                        instance = new SSLImpl();
                     }
                     String path = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
 
