@@ -78,7 +78,6 @@ public abstract class SSL {
                                 instance = (SSL) sslClass.newInstance();
 
                             } catch (Exception e1) {
-                                e1.printStackTrace();
                                 throw new RuntimeException(e1);
                             }
                         }
