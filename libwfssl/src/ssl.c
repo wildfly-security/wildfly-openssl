@@ -376,15 +376,11 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     REQUIRE_SSL_SYMBOL(SSL_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_set_info_callback);
     REQUIRE_SSL_SYMBOL(SSL_write);
-    GET_SSL_SYMBOL(TLSv1_1_client_method);
-    GET_SSL_SYMBOL(TLSv1_1_method);
     GET_SSL_SYMBOL(TLSv1_1_server_method);
-    GET_SSL_SYMBOL(TLSv1_2_client_method);
-    GET_SSL_SYMBOL(TLSv1_2_method);
     GET_SSL_SYMBOL(TLSv1_2_server_method);
-    GET_SSL_SYMBOL(TLSv1_client_method);
-    GET_SSL_SYMBOL(TLSv1_method);
-    GET_SSL_SYMBOL(TLSv1_server_method);
+    GET_SSL_SYMBOL(SSLv23_client_method);
+    GET_SSL_SYMBOL(SSLv23_method);
+    GET_SSL_SYMBOL(SSLv23_server_method);
     GET_SSL_SYMBOL(TLS_client_method);
     GET_SSL_SYMBOL(TLS_server_method);
     GET_SSL_SYMBOL(TLS_method);
@@ -535,62 +531,20 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         throwIllegalStateException(e, "No SSL protocols requested");
         goto init_failed;
     }
-
-    if (protocol == SSL_PROTOCOL_TLSV1_2) {
-        if(ssl_methods.TLSv1_2_server_method != NULL) {
-            if (mode == SSL_MODE_CLIENT)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_client_method());
-            else if (mode == SSL_MODE_SERVER)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_server_method());
-            else
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_2_method());
-        } else {
-            throwIllegalStateException(e, "TLSV1_2 not supported");
-            goto init_failed;
-        }
-    } else if (protocol == SSL_PROTOCOL_TLSV1_1) {
-        if(ssl_methods.TLSv1_1_server_method != NULL) {
-            if (mode == SSL_MODE_CLIENT)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_client_method());
-            else if (mode == SSL_MODE_SERVER)
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_server_method());
-            else
-                ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_1_method());
-        } else {
-            throwIllegalStateException(e, "TLSV1_1 not supported");
-            goto init_failed;
-        }
-    } else if (protocol == SSL_PROTOCOL_TLSV1) {
-        if (mode == SSL_MODE_CLIENT)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_client_method());
-        else if (mode == SSL_MODE_SERVER)
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_server_method());
-        else
-            ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLSv1_method());
-    } else if (protocol == SSL_PROTOCOL_SSLV3) {
-        throwIllegalStateException(e, "SSLV3 not supported");
-        goto init_failed;
-    } else if (protocol == SSL_PROTOCOL_SSLV2) {
-        /* requested but not supported */
-        throwIllegalStateException(e, "SSLV2 not supported");
-        goto init_failed;
-    } else if (protocol & SSL_PROTOCOL_TLSV1_2 && ssl_methods.TLSv1_2_server_method == NULL) {
-        /* requested but not supported */
-        throwIllegalStateException(e, "TLSV1_2 not supported");
-        goto init_failed;
-    } else if (protocol & SSL_PROTOCOL_TLSV1_1 && ssl_methods.TLSv1_1_server_method == NULL) {
-        /* requested but not supported */
-        throwIllegalStateException(e, "TLSV1_1 not supported");
-        goto init_failed;
-    } else if (ssl_methods.TLS_server_method == NULL) {
-        throwIllegalStateException(e, "TLS not supported"); /*this should never happen, as all supported openssl versions should have this*/
-    } else {
+    if (ssl_methods.TLS_server_method != NULL) {
         if (mode == SSL_MODE_CLIENT)
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_client_method());
         else if (mode == SSL_MODE_SERVER)
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_server_method());
         else
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.TLS_method());
+    } else {
+        if (mode == SSL_MODE_CLIENT)
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_client_method());
+        else if (mode == SSL_MODE_SERVER)
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_server_method());
+        else
+            ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
     }
     if (!ctx) {
         char err[256];
