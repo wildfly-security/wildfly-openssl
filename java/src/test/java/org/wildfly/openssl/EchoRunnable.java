@@ -109,7 +109,9 @@ class EchoRunnable implements Runnable {
                                 throw new RuntimeException(result.toString());
                             }
                         }
-                        sessionID.set(engine.getSession().getId());
+                        if(engine.getSession() != null) {
+                            sessionID.set(engine.getSession().getId());
+                        }
                         while (true) {
                             in.clear();
                             out.clear();

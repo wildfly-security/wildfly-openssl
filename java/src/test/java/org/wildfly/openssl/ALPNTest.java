@@ -57,7 +57,6 @@ public class ALPNTest extends AbstractOpenSSLTest {
             int read = socket.getInputStream().read(data);
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
             Assert.assertEquals("server side", "h2", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertEquals("client side", "h2", socket.getSelectedApplicationProtocol());
             serverSocket.close();
@@ -86,7 +85,6 @@ public class ALPNTest extends AbstractOpenSSLTest {
             int read = socket.getInputStream().read(data);
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
             Assert.assertNull("server side", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertNull("client side", socket.getSelectedApplicationProtocol());
             serverSocket.close();
