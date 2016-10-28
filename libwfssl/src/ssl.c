@@ -67,75 +67,42 @@ void init_app_data_idx(void)
 /*the the SSL context structure associated with the context*/
 tcn_ssl_conn_t *SSL_get_app_data1(const SSL *ssl)
 {
-    if(ssl_methods.SSL_get_ex_data != NULL) {
-        return (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data1_idx);
-    } else {
-        return (tcn_ssl_conn_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data1_idx);
-    }
+    return (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data1_idx);
 }
 
 void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg)
 {
-    if(ssl_methods.SSL_set_ex_data != NULL) {
-        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data1_idx, (char *)arg);
-    } else {
-        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data1_idx, (char *)arg);
-    }
+    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data1_idx, (char *)arg);
 }
 /*the the SSL context structure associated with the context*/
 tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl)
 {
-    if(ssl_methods.SSL_get_ex_data != NULL) {
-        return (tcn_ssl_ctxt_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data2_idx);
-    } else {
-        return (tcn_ssl_ctxt_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data2_idx);
-    }
+    return (tcn_ssl_ctxt_t *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data2_idx);
 }
 
 void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg)
 {
-    if(ssl_methods.SSL_set_ex_data != NULL) {
-        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
-    } else {
-        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data2_idx, (char *)arg);
-    }
+    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data2_idx, (char *)arg);
 }
 
 void *SSL_get_app_data3(const SSL *ssl)
 {
-    if(ssl_methods.SSL_get_ex_data != NULL) {
-        return (void *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data3_idx);
-    } else {
-        return (void *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data3_idx);
-    }
+    return (void *)ssl_methods.SSL_get_ex_data(ssl, SSL_app_data3_idx);
 }
 
 void SSL_set_app_data3(SSL *ssl, void *arg)
 {
-    if(ssl_methods.SSL_set_ex_data != NULL) {
-        ssl_methods.SSL_set_ex_data(ssl, SSL_app_data3_idx, (char *)arg);
-    } else {
-        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_app_data3_idx, (char *)arg);
-    }
+    ssl_methods.SSL_set_ex_data(ssl, SSL_app_data3_idx, (char *)arg);
 }
-
 
 tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl)
 {
-    if(ssl_methods.SSL_CTX_get_ex_data != NULL) {
-        return (tcn_ssl_ctxt_t *)ssl_methods.SSL_CTX_get_ex_data(ssl, SSL_CTX_app_data1_idx);
-    } else {
-        return (tcn_ssl_ctxt_t *)ssl_methods.CRYPTO_get_ex_data((CRYPTO_EX_DATA*)ssl, SSL_CTX_app_data1_idx);
-    }
+    return (tcn_ssl_ctxt_t *)ssl_methods.SSL_CTX_get_ex_data(ssl, SSL_CTX_app_data1_idx);
 }
 
 void SSL_CTX_set_app_data1(SSL_CTX *ssl, void *arg)
 {
-    if(ssl_methods.SSL_CTX_set_ex_data != NULL) {
-        ssl_methods.SSL_CTX_set_ex_data(ssl, SSL_CTX_app_data1_idx, (char *)arg);
-    } else {
-        ssl_methods.CRYPTO_set_ex_data((CRYPTO_EX_DATA*)ssl, SSL_CTX_app_data1_idx, (char *)arg);
-    }
+    ssl_methods.SSL_CTX_set_ex_data(ssl, SSL_CTX_app_data1_idx, (char *)arg);
 }
 
 void SSL_BIO_close(BIO *bi)
@@ -252,20 +219,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         return 1;
     }
 #else
-    void * ssl;
-    if(path == NULL) {
-        ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
-    } else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
-        ssl = dlopen(full, RTLD_LAZY);
-        free(full);
-    }
+    void *ssl, *crypto;
 
-    void * crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
     if(path == NULL) {
         crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
     } else {
@@ -277,6 +232,22 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         crypto = dlopen(full, RTLD_LAZY);
         free(full);
     }
+
+    if(path == NULL) {
+        ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
+    } else {
+        int pathLen = strlen(path);
+        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
+        char * full = malloc(sizeof(char) * size);
+        strncpy(full, path, size);
+        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
+        ssl = dlopen(full, RTLD_LAZY);
+        if(ssl == NULL) {
+            printf(dlerror());
+        }
+        free(full);
+    }
+
     if( ssl == NULL ) {
         throwIllegalStateException(e, "Could not load libssl");
         return 1;
@@ -292,17 +263,15 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 #endif
 
     GET_SSL_SYMBOL(SSL_CTX_get_ex_new_index);
+    REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
+    REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
+    REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     if(ssl_methods.SSL_CTX_get_ex_new_index != NULL) {
-        REQUIRE_SSL_SYMBOL(SSL_CTX_set_ex_data);
-        REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
-        REQUIRE_SSL_SYMBOL(SSL_get_ex_data_X509_STORE_CTX_idx);
         REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
-        REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
-        REQUIRE_SSL_SYMBOL(SSL_CTX_get_ex_data);
     } else {
         REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_new_index)
-        REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_data)
-        REQUIRE_SSL_SYMBOL(CRYPTO_set_ex_data)
     }
 
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);
@@ -451,6 +420,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 
     REQUIRE_CRYPTO_SYMBOL(X509_free);
     GET_CRYPTO_SYMBOL(ENGINE_load_builtin_engines);
+    GET_CRYPTO_SYMBOL(X509_STORE_CTX_get0_untrusted);
 
     return 0;
 }
@@ -978,7 +948,7 @@ cleanup:
  * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
  */
 const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
-    switch (cipher->algorithm_mkey)
+    switch (1)
         {
     case SSL_kRSA:
         return SSL_TXT_RSA;
@@ -1035,15 +1005,21 @@ static const char* SSL_authentication_method(const SSL* ssl) {
 /* Android end */
 
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
+
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = crypto_methods.X509_STORE_CTX_get_ex_data(ctx, ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
 
 
     // Get a stack of all certs in the chain
-    STACK_OF(X509) *sk = ctx->untrusted;
+    STACK_OF(X509) *sk;
+    if(crypto_methods.X509_STORE_CTX_get0_untrusted == NULL) {
+        sk = ctx->untrusted;
+    } else {
+        sk = crypto_methods.X509_STORE_CTX_get0_untrusted(ctx);
+    }
 
-    int len = crypto_methods.sk_num(sk);;
+    int len = crypto_methods.sk_num(sk);
     unsigned i;
     X509 *cert;
     int length;
@@ -1061,6 +1037,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
+
         cert = (X509*) crypto_methods.sk_value(sk, i);
 
         buf = NULL;
@@ -1082,8 +1059,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         crypto_methods.CRYPTO_free(buf);
     }
 
-    authMethod = SSL_authentication_method(ssl);
-    authMethodString = (*e)->NewStringUTF(e, authMethod);
+    authMethodString = (*e)->NewStringUTF(e, "");
 
     result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
             authMethodString);

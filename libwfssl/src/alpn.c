@@ -95,7 +95,7 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl, 0);
+    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl);
 
     if(con->alpn_selection_callback == NULL) {
         return SSL_TLSEXT_ERR_NOACK;
@@ -236,6 +236,7 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 }
 
 WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
+    printf("a\n");
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
@@ -245,7 +246,7 @@ WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject
         throwIllegalStateException(e, "ssl is null");
         return;
     }
-    tcn_ssl_conn_t *con = (tcn_ssl_conn_t *)ssl_methods.SSL_get_ex_data(ssl_, 0);
+    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
 
     con->alpn_selection_callback = (*e)->NewGlobalRef(e, callback);
 }

@@ -341,19 +341,18 @@ typedef struct {
 typedef struct {
     long(*SSLeay)(void) ;
 
-    /* 1.0 versions */
     void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
     int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);
-    int (*SSL_CTX_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
     void *(*SSL_get_ex_data)(const SSL *ssl, int idx);
     int (*SSL_set_ex_data)(SSL *ssl, int idx, void *data);
     int (*SSL_get_ex_data_X509_STORE_CTX_idx)(void);
+
+    /* 1.0 versions */
+    int (*SSL_CTX_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
     int (*SSL_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
 
     /* 1.1 versions */
     int (*CRYPTO_get_ex_new_index)(int class_index, long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
-    void *(*CRYPTO_get_ex_data)(const CRYPTO_EX_DATA *crypto, int idx);
-    int (*CRYPTO_set_ex_data)(CRYPTO_EX_DATA *crypto, int idx, void *data);
 
     const char *	(*SSL_CIPHER_get_name)(const SSL_CIPHER *c);
     int (*SSL_CTX_check_private_key)(const SSL_CTX *ctx);
@@ -493,6 +492,7 @@ typedef struct {
     X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
     int (*i2d_X509)(X509 *a, unsigned char **out);
     void (*ENGINE_load_builtin_engines)(void);
+    STACK_OF(X509)* (*X509_STORE_CTX_get0_untrusted)(X509_STORE_CTX *ctx);
 } crypto_dynamic_methods;
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
@@ -503,6 +503,7 @@ JavaVM * tcn_get_java_vm();
 
 jstring tcn_new_string(JNIEnv *env, const char *str);
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
+tcn_ssl_conn_t *SSL_get_app_data1(const SSL *ssl);
 tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl);
 tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl);
 void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c);
