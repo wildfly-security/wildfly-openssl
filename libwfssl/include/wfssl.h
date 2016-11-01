@@ -340,6 +340,7 @@ typedef struct {
 
 typedef struct {
     long(*SSLeay)(void) ;
+    char*(*SSLeay_version)(int t) ;
 
     void *(*SSL_CTX_get_ex_data)(const SSL_CTX *ssl, int idx);
     int (*SSL_CTX_set_ex_data)(SSL_CTX *ssl, int idx, void *data);

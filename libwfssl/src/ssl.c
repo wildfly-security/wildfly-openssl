@@ -152,6 +152,8 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 #ifdef WIN32
 
 #define REQUIRE_SYMBOL(handle, symb, target) target = (void*)GetProcAddress(handle, #symb); if(target == 0) { throwIllegalStateException(e, "Could not load required symbol from" #handle " " #symb); return 1;}
+#define GET_SYMBOL(handle, symb, target) target = (void*)GetProcAddress(handle, #symb);
+
 #define REQUIRE_SSL_SYMBOL_ALIAS(symb, alias) ssl_methods.alias = (void*)GetProcAddress(ssl, #symb); if(ssl_methods.alias == 0) { throwIllegalStateException(e, "Could not load required symbol from libssl: " #symb); return 1;}
 #define GET_SSL_SYMBOL(symb) ssl_methods.symb = (void*)GetProcAddress(ssl, #symb);
 #define REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, alias) crypto_methods.alias = (void*)GetProcAddress(crypto, #symb); if(crypto_methods.alias == 0) { throwIllegalStateException(e, "Could not load required symbol from libcrypto: " #symb); return 1;}
@@ -188,7 +190,12 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         throwIllegalStateException(e, "Could not load libeay32.dll");
         return 1;
     }
-    REQUIRE_SYMBOL(crypto, SSLeay, ssl_methods.SSLeay);
+    GET_SYMBOL(crypto, SSLeay, ssl_methods.SSLeay);
+    GET_SYMBOL(crypto, SSLeay_version, ssl_methods.SSLeay_version);
+    if(ssl_methods.SSLeay == null) {
+        REQUIRE_SYMBOL(crypto, OpenSSL_version_num, ssl_methods.SSLeay);
+        REQUIRE_SYMBOL(crypto, OpenSSL_version, ssl_methods.SSLeay_version);
+    }
     if(path == NULL) {
 	    ssl = LoadLibrary(LIBSSL_NAME);
 	} else {
@@ -243,7 +250,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
         ssl = dlopen(full, RTLD_LAZY);
         if(ssl == NULL) {
-            printf(dlerror());
+            printf("%s", dlerror());
         }
         free(full);
     }
@@ -257,8 +264,10 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         return 1;
     }
     GET_SSL_SYMBOL(SSLeay);
+    GET_SSL_SYMBOL(SSLeay_version);
     if(ssl_methods.SSLeay == NULL) {
         REQUIRE_SSL_SYMBOL_ALIAS(OpenSSL_version_num, SSLeay);
+        REQUIRE_SSL_SYMBOL_ALIAS(OpenSSL_version, SSLeay_version);
     }
 #endif
 
@@ -1495,7 +1504,8 @@ WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
 }
 
 
-WF_OPENSSL(jlong, version)(JNIEnv *e)
+WF_OPENSSL(jstring, version)(JNIEnv *e)
 {
-    return ssl_methods.SSLeay();
+    char * version = ssl_methods.SSLeay_version(SSLEAY_VERSION);
+    return (*e)->NewStringUTF(e, version);
 }

@@ -109,8 +109,8 @@ public abstract class SSL {
                         }
                     }
                     instance.initialize(path);
-                    long version = instance.version();
-                    logger.info("OpenSSL Version " + Long.toHexString(version));
+                    String version = instance.version();
+                    logger.info("OpenSSL Version " + version);
 
 
 
@@ -417,7 +417,7 @@ public abstract class SSL {
     static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
 
     /* Return OpenSSL version number */
-    protected abstract long version();
+    protected abstract String version();
 
     /**
      * Return true if all the requested SSL_OP_* are supported by OpenSSL.
