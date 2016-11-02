@@ -236,7 +236,6 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 }
 
 WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
-    printf("a\n");
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
