@@ -122,7 +122,7 @@ public abstract class SSL {
 
     private static final class LibraryClassLoader extends ClassLoader {
 
-        public LibraryClassLoader(ClassLoader parent) {
+        LibraryClassLoader(ClassLoader parent) {
             super(parent);
         }
 

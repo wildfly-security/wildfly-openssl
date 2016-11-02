@@ -27,7 +27,7 @@ class OpenSSLInputStream extends InputStream {
 
     private final OpenSSLSocket socket;
 
-    public OpenSSLInputStream(OpenSSLSocket socket) {
+    OpenSSLInputStream(OpenSSLSocket socket) {
         this.socket = socket;
     }
 

@@ -37,11 +37,11 @@ class EchoRunnable implements Runnable {
     private final AtomicReference<byte[]> sessionID;
     private final EngineCustomizer engineCustomizer;
 
-    public EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID) {
+    EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID) {
         this(serverSocket, sslContext, sessionID, null);
     }
 
-    public EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer) {
+    EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer) {
         this.serverSocket = serverSocket;
         this.sslContext = sslContext;
         this.sessionID = sessionID;

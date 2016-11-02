@@ -66,7 +66,7 @@ class DefaultByteBufferPool {
      * @param direct     If this implementation should use direct buffers
      * @param bufferSize The buffer size to use
      */
-    public DefaultByteBufferPool(boolean direct, int bufferSize) {
+    DefaultByteBufferPool(boolean direct, int bufferSize) {
         this(direct, bufferSize, -1, 12, 0);
     }
 
@@ -76,7 +76,7 @@ class DefaultByteBufferPool {
      * @param maximumPoolSize      The maximum pool size, in number of buffers, it does not include buffers in thread local caches
      * @param threadLocalCacheSize The maximum number of buffers that can be stored in a thread local cache
      */
-    public DefaultByteBufferPool(boolean direct, int bufferSize, int maximumPoolSize, int threadLocalCacheSize, int leakDecetionPercent) {
+    DefaultByteBufferPool(boolean direct, int bufferSize, int maximumPoolSize, int threadLocalCacheSize, int leakDecetionPercent) {
         this.direct = direct;
         this.bufferSize = bufferSize;
         this.maximumPoolSize = maximumPoolSize;
@@ -91,7 +91,7 @@ class DefaultByteBufferPool {
      * @param maximumPoolSize      The maximum pool size, in number of buffers, it does not include buffers in thread local caches
      * @param threadLocalCacheSize The maximum number of buffers that can be stored in a thread local cache
      */
-    public DefaultByteBufferPool(boolean direct, int bufferSize, int maximumPoolSize, int threadLocalCacheSize) {
+    DefaultByteBufferPool(boolean direct, int bufferSize, int maximumPoolSize, int threadLocalCacheSize) {
         this(direct, bufferSize, maximumPoolSize, threadLocalCacheSize, 0);
     }
 
