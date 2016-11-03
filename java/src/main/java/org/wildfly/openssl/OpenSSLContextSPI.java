@@ -97,7 +97,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                     if (c == null || c.length() == 0 || availableCipherSuites.contains(c)) {
                                         continue;
                                     }
-                                    availableCipherSuites.add(CipherSuiteConverter.toJava(c, "ALL"));
+                                    availableCipherSuites.add(CipherSuiteConverter.toJava(c, "TLS"));
                                 }
                             } finally {
                                 SSL.getInstance().freeSSL(ssl);
