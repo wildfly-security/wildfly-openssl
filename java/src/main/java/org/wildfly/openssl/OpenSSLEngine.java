@@ -336,7 +336,6 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public synchronized SSLEngineResult wrap(final ByteBuffer[] srcs, final int offset, final int length, final ByteBuffer dst) throws SSLException {
-
         // Check to make sure the engine has not been closed
         if (destroyed != 0) {
             return new SSLEngineResult(SSLEngineResult.Status.CLOSED, SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING, 0, 0);
@@ -695,7 +694,6 @@ public final class OpenSSLEngine extends SSLEngine {
             throw new IllegalArgumentException("Empty cypher suite list");
         }
         buf.setLength(buf.length() - 1);
-
         final String cipherSuiteSpec = buf.toString();
         try {
             SSL.getInstance().setCipherSuites(ssl, cipherSuiteSpec);
@@ -1137,8 +1135,6 @@ public final class OpenSSLEngine extends SSLEngine {
             orderCiphersSupported = SSL.getInstance().hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
             if (orderCiphersSupported) {
                 if (sslParameters.getUseCipherSuitesOrder()) {
-                    SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                } else {
                     SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
                 }
             }
