@@ -559,10 +559,8 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
      * Configure additional context ingredients
      */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_DH_USE),NULL);
-//TODO: what do we do with these defines?
-#ifdef HAVE_ECC
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_ECDH_USE),NULL);
-#endif
+//TODO: what do we do with these defines?
 #ifdef SSL_OP_NO_COMPRESSION
     /* Disable SSL compression to be safe */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_COMPRESSION),NULL);
@@ -607,6 +605,8 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         sni_java_callback = (*e)->GetStaticMethodID(e, ssl_context_class,
                                                     "sniCallBack", "(JLjava/lang/String;)J");
     }
+
+    ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SET_ECDH_AUTO,1,NULL);
 
     /* Set up OpenSSL call back if SNI is provided by the client */
     ssl_methods.SSL_CTX_callback_ctrl(c->ctx,SSL_CTRL_SET_TLSEXT_SERVERNAME_CB,(void (*)(void))ssl_callback_ServerNameIndication);
