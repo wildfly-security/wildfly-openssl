@@ -192,7 +192,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
     }
     GET_SYMBOL(crypto, SSLeay, ssl_methods.SSLeay);
     GET_SYMBOL(crypto, SSLeay_version, ssl_methods.SSLeay_version);
-    if(ssl_methods.SSLeay == null) {
+    if(ssl_methods.SSLeay == NULL) {
         REQUIRE_SYMBOL(crypto, OpenSSL_version_num, ssl_methods.SSLeay);
         REQUIRE_SYMBOL(crypto, OpenSSL_version, ssl_methods.SSLeay_version);
     }
