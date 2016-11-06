@@ -176,7 +176,7 @@ public abstract class SSL {
                     out.write(buf, 0, r);
                 }
                 byte[] data = out.toByteArray();
-                return defineClass(name, data, 0, data.length);
+                return defineClass(name, data, 0, data.length, SSL.class.getProtectionDomain());
             } catch (IOException e) {
                 throw new ClassNotFoundException(e.getMessage());
             }
