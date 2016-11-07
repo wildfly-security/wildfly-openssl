@@ -45,6 +45,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #include <jni.h>
+#include <stdint.h>
 #include <openssl/crypto.h>
 #include <openssl/pkcs12.h>
 #include <openssl/evp.h>
