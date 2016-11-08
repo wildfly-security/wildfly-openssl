@@ -57,8 +57,6 @@ public abstract class SSL {
         if (!init) {
             synchronized (SSL.class) {
                 if (!init) {
-
-
                     String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
                     if (libPath == null || libPath.isEmpty()) {
                         try {
@@ -128,38 +126,30 @@ public abstract class SSL {
 
         @Override
         protected String findLibrary(String libname) {
-            String os = System.getProperty("os.name").toLowerCase();
-            String file;
-            if (os.contains("mac")) {
-                file = "lib" + libname + ".dylib";
-            } else if (os.contains("win")) {
-                file = libname + ".dll";
-            } else {
-                file = "lib" + libname + ".so";
-            }
-            try {
-                try (InputStream resource = SSL.class.getClassLoader().getResourceAsStream(file)) {
-                    if (resource != null) {
-                        File temp = File.createTempFile("tmp-", "openssl");
-                        temp.delete();
-                        temp.mkdir();
-                        File result = new File(temp, file);
-                        try (FileOutputStream out = new FileOutputStream(result)) {
-                            byte[] buf = new byte[1000];
-                            int r;
-                            while ((r = resource.read(buf)) > 0) {
-                                out.write(buf, 0, r);
+            final String mapped = System.mapLibraryName(libname);
+            for(String path : Identification.NATIVE_SEARCH_PATHS) {
+                String complete = path + File.separator + mapped;
+                try {
+                    try (final InputStream resource = SSL.class.getClassLoader().getResourceAsStream(complete)) {
+                        if (resource != null) {
+                            File temp = File.createTempFile("tmp-", "openssl");
+                            temp.delete();
+                            temp.mkdir();
+                            File result = new File(temp, mapped);
+                            try (FileOutputStream out = new FileOutputStream(result)) {
+                                byte[] buf = new byte[1000];
+                                int r;
+                                while ((r = resource.read(buf)) > 0) {
+                                    out.write(buf, 0, r);
+                                }
                             }
+                            return result.getAbsolutePath();
                         }
-                        return result.getAbsolutePath();
                     }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
-
-
-            System.out.println("" + libname);
             return super.findLibrary(libname);
         }
 

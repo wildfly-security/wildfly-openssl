@@ -2,17 +2,16 @@
 SRC = alpn.c clientcert.c options.c session.c ssl.c threads.c util.c
 OBJ = $(patsubst %.c, target/%.o, $(SRC))
 
-default: target/classes/libwfssl.dylib
+default: target/classes/macosx-x86_64/libwfssl.dylib
 
 clean:
 	rm -rf target
 
-target/classes:
-	mkdir -p target/classes
-	
+target/classes/macosx-x86_64:
+	mkdir -p target/classes/macosx-x86_64
 
-target/%.o : ../libwfssl/src/%.c target/classes
+target/%.o : ../libwfssl/src/%.c target/classes/macosx-x86_64
 	cc -c $< -o $@ -I../libwfssl/include -I/usr/local/opt/openssl/include
 
-target/classes/libwfssl.dylib: $(OBJ)
+target/classes/macosx-x86_64/libwfssl.dylib: $(OBJ)
 	cc -dynamiclib $(OBJ) -o $@
