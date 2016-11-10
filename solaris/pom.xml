@@ -60,7 +60,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>make</executable>
+                    <executable>gmake</executable>
                 </configuration>
             </plugin>
         </plugins>

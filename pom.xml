@@ -125,6 +125,17 @@
             </modules>
         </profile>
         <profile>
+            <id>solaris</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                </os>
+            </activation>
+            <modules>
+                <module>solaris</module>
+            </modules>
+        </profile>
+        <profile>
             <id>windows</id>
             <activation>
                 <os>

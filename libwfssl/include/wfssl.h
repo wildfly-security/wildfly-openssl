@@ -514,4 +514,9 @@ void ssl_thread_setup();
 void alpn_init(JNIEnv *e);
 void session_init(JNIEnv *e);
 
+#ifndef SSL_CTRL_SET_ECDH_AUTO
+//older openssl version may not have this
+#define SSL_CTRL_SET_ECDH_AUTO  94
+#endif
+
 #endif

@@ -166,7 +166,7 @@
             <id>solaris</id>
             <activation>
                 <os>
-                    <family>solaris</family>
+                    <family>unix</family>
                 </os>
             </activation>
             <dependencies>
