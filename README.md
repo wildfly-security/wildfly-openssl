@@ -10,6 +10,33 @@ align with JSSE and to support dynamic linking.
 Usage
 =====
 
+Maven artifact
+--------------
+
+There are two Maven artifacts to choose between, which one you use will depend on your use case:
+
+
+        <dependency>
+            <groupId>org.wildfly.openssl</groupId>
+            <artifactId>wildfly-openssl-java</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.wildfly.openssl</groupId>
+            <artifactId>wildfly-openssl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+The `wildfly-openssl-java` artifact does not contain any native code. To use it you will need to either place the native library
+somewhere that it can be found by `System.loadLibrary`, or include a maven artifact that has the library packaged (such as one of
+the platform specific artifacts built by this project).
+
+The `wildfly-openssl` artifact contains binaries for Max, Linux and Windows (all for x86_64). If no other version of these
+ native libraries is found then these will be extracted to a temporary directory and loaded. This should allow it to run without
+ having to worry about how to deal with the native code.
+
+
 Registering the provider
 ------------------------
 
@@ -21,6 +48,9 @@ this as a default provider you will need to sign the jar yourself.
 
 Installing the native library
 -----------------------------
+
+If you are running on x86_64 Mac, Windows or Linux then you can use the out of the box support provided by the `wildfly-openssl`
+artifact.
 
 There are two different native libraries that must be loaded, the `libwfssl` binary provided by this project, and OpenSSL
 itself. `libwfssl` is loaded through a standard java.lang.System.loadLibrary() invocation, so should be located somewhere

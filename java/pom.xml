@@ -123,6 +123,8 @@
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-mac</artifactId>
                     <version>${project.version}</version>
+                    <classifier>x86_64</classifier>
+                    <scope>test</scope>
                 </dependency>
             </dependencies>
         </profile>
@@ -138,6 +140,8 @@
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux</artifactId>
                     <version>${project.version}</version>
+                    <classifier>x86_64</classifier>
+                    <scope>test</scope>
                 </dependency>
             </dependencies>
         </profile>
@@ -153,6 +157,8 @@
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows</artifactId>
                     <version>${project.version}</version>
+                    <classifier>x86_64</classifier>
+                    <scope>test</scope>
                 </dependency>
             </dependencies>
         </profile>

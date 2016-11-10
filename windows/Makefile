@@ -9,7 +9,6 @@ OBJECTS = target\alpn.obj target\clientcert.obj target\options.obj target\sessio
 target:
   mkdir target
 
-
 target\classes: target
   mkdir target\classes
 
