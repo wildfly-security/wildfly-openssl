@@ -27,7 +27,7 @@
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
-    <artifactId>wildfly-openssl-mac</artifactId>
+    <artifactId>wildfly-openssl-windows-x86_64</artifactId>
     <version>1.0.0.Alpha5-SNAPSHOT</version>
 
     <packaging>jar</packaging>
@@ -60,7 +60,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>make</executable>
+                    <executable>nmake</executable>
                 </configuration>
             </plugin>
         </plugins>

@@ -121,9 +121,8 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-mac</artifactId>
+                    <artifactId>wildfly-openssl-macosx-x86_64</artifactId>
                     <version>${project.version}</version>
-                    <classifier>x86_64</classifier>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -138,9 +137,14 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-linux</artifactId>
+                    <artifactId>wildfly-openssl-linux-i686</artifactId>
                     <version>${project.version}</version>
-                    <classifier>x86_64</classifier>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-linux-x86_64</artifactId>
+                    <version>${project.version}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -155,9 +159,8 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-windows</artifactId>
+                    <artifactId>wildfly-openssl-windows-x86_64</artifactId>
                     <version>${project.version}</version>
-                    <classifier>x86_64</classifier>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -172,9 +175,8 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris</artifactId>
+                    <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
                     <version>${project.version}</version>
-                    <classifier>x86_64</classifier>
                     <scope>test</scope>
                 </dependency>
             </dependencies>

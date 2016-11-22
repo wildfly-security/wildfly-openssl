@@ -121,7 +121,8 @@
                 </os>
             </activation>
             <modules>
-                <module>linux</module>
+                <module>linux-x86_64</module>
+                <module>linux-i686</module>
             </modules>
         </profile>
         <profile>
