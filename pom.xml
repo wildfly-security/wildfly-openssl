@@ -110,7 +110,7 @@
                 </os>
             </activation>
             <modules>
-                <module>mac</module>
+                <module>macosx-x86_64</module>
             </modules>
         </profile>
         <profile>
@@ -133,7 +133,7 @@
                 </os>
             </activation>
             <modules>
-                <module>solaris</module>
+                <module>solaris-x86_64</module>
             </modules>
         </profile>
         <profile>
@@ -148,7 +148,7 @@
                 <make.exe>nmake</make.exe>
             </properties>
             <modules>
-                <module>windows</module>
+                <module>windows-x86_64</module>
             </modules>
         </profile>
     </profiles>
