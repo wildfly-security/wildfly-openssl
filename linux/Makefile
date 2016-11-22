@@ -10,7 +10,7 @@ clean:
 target/classes/linux-x86_64:
 	mkdir -p target/classes/linux-x86_64
 
-target/%.o : ../libwfssl/src/%.c target/classes
+target/%.o : ../libwfssl/src/%.c target/classes/linux-x86_64
 	cc -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
 
 target/classes/linux-x86_64/libwfssl.so: $(OBJ)

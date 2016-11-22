@@ -128,7 +128,7 @@
             <id>solaris</id>
             <activation>
                 <os>
-                    <family>unix</family>
+                    <name>sunos</name>
                 </os>
             </activation>
             <modules>
