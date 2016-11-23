@@ -15,5 +15,5 @@ target\classes: target
 target\classes\windows-x86_64: target\classes
   mkdir target\classes\windows-x86_64
 
-target\classes\windows-x86_64\wfssl.dll: target\classes $(OBJECTS)
+target\classes\windows-x86_64\wfssl.dll: target\classes\windows-x86_64 $(OBJECTS)
    link $(OBJECTS)  /machine:AMD64 /DLL -out:target\classes\windows-x86_64\wfssl.dll
