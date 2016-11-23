@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -39,7 +41,12 @@ public abstract class SSL {
     private static SSL instance;
 
     public static final String ORG_WILDFLY_OPENSSL_PATH = "org.wildfly.openssl.path";
+    public static final String ORG_WILDFLY_OPENSSL_PATH_LIBSSL = "org.wildfly.openssl.path.ssl";
+    public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
+
+    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "crypto", "libeay32"};
+    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "ssl", "ssleay32", "libssl32"};
 
     public SSL() {
     }
@@ -106,7 +113,41 @@ public abstract class SSL {
                             }
                         }
                     }
-                    instance.initialize(path);
+                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
+                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
+                    if(path != null) {
+                        List<String> attempted = new ArrayList<>();
+                        if(sslPath == null) {
+                            for (String ssl : LIBSSL_NAMES) {
+                                String lib = System.mapLibraryName(ssl);
+                                File file = new File(path, lib);
+                                if (file.exists()) {
+                                    sslPath = file.getAbsolutePath();
+                                    break;
+                                }
+                                attempted.add(file.getAbsolutePath());
+                            }
+                            if (sslPath == null) {
+                                throw new RuntimeException("Could not find libssl, please make sure -D" + ORG_WILDFLY_OPENSSL_PATH + " is set correctly. Attempted to find it at " + attempted);
+                            }
+                        }
+                        attempted.clear();
+                        if(cryptoPath == null) {
+                            for (String crypto : LIBCRYPTO_NAMES) {
+                                String lib = System.mapLibraryName(crypto);
+                                File file = new File(path, lib);
+                                if (file.exists()) {
+                                    cryptoPath = file.getAbsolutePath();
+                                    break;
+                                }
+                                attempted.add(file.getAbsolutePath());
+                            }
+                            if (cryptoPath == null) {
+                                throw new RuntimeException("Could not find libcrypto, please make sure -D" + ORG_WILDFLY_OPENSSL_PATH + " is set correctly. Attempted to find it at " + attempted);
+                            }
+                        }
+                    }
+                    instance.initialize(cryptoPath, sslPath);
                     String version = instance.version();
                     logger.info("OpenSSL Version " + version);
 
@@ -179,7 +220,7 @@ public abstract class SSL {
         }
     }
 
-    protected abstract void initialize(String openSSLPath);
+    protected abstract void initialize(String libCryptoPath, String libSslPath);
 
     /**
      * JSSE and OpenSSL protocol names

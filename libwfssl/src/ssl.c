@@ -170,21 +170,15 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
 #define REQUIRE_SSL_SYMBOL(symb) REQUIRE_SSL_SYMBOL_ALIAS(symb, symb);
 #define REQUIRE_CRYPTO_SYMBOL(symb) REQUIRE_CRYPTO_SYMBOL_ALIAS(symb, symb);
 
-int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
+int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const char * libSSLPath) {
 
 #ifdef WIN32
 	HMODULE crypto, ssl;
 
-    if(path == NULL) {
+    if(libCryptoPath == NULL) {
 	    crypto = LoadLibrary(LIBCRYPTO_NAME);
 	} else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
-        crypto = LoadLibrary(full);
-        free(full);
+        crypto = LoadLibrary(libCryptoPath);
 	}
     if( crypto == NULL ) {
         throwIllegalStateException(e, "Could not load libeay32.dll");
@@ -196,31 +190,14 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
         REQUIRE_SYMBOL(crypto, OpenSSL_version_num, ssl_methods.SSLeay);
         REQUIRE_SYMBOL(crypto, OpenSSL_version, ssl_methods.SSLeay_version);
     }
-    if(path == NULL) {
+    if(libSSLPath == NULL) {
 	    ssl = LoadLibrary(LIBSSL_NAME);
-	} else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
-        ssl = LoadLibrary(full);
-        free(full);
-    }
-    if(ssl == NULL) {
-        if(path == NULL) {
+        if(ssl == NULL) {
             ssl = LoadLibrary(FALLBACK_LIBSSL_NAME);
-        } else {
-            int pathLen = strlen(path);
-            int size = (strlen(FALLBACK_LIBSSL_NAME) + pathLen + 1);
-            char * full = malloc(sizeof(char) * size);
-            strncpy(full, path, size);
-            strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
-            ssl = LoadLibrary(full);
-            free(full);
         }
+	} else {
+        ssl = LoadLibrary(libSSLPath);
     }
-
     if( ssl == NULL ) {
         throwIllegalStateException(e, "Could not load ssleay32.dll or libssl32.dll");
         return 1;
@@ -228,34 +205,20 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 #else
     void *ssl, *crypto;
 
-    if(path == NULL) {
+    if(libCryptoPath == NULL) {
         crypto = dlopen(LIBCRYPTO_NAME, RTLD_LAZY);
     } else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBCRYPTO_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBCRYPTO_NAME, size - pathLen);
-        crypto = dlopen(full, RTLD_LAZY);
-        free(full);
+        crypto = dlopen(libCryptoPath, RTLD_LAZY);
     }
 
-    if(path == NULL) {
+    if(libSSLPath == NULL) {
         ssl = dlopen(LIBSSL_NAME, RTLD_LAZY);
     } else {
-        int pathLen = strlen(path);
-        int size = (strlen(LIBSSL_NAME) + pathLen + 1);
-        char * full = malloc(sizeof(char) * size);
-        strncpy(full, path, size);
-        strncpy(full + pathLen, LIBSSL_NAME, size - pathLen);
-        ssl = dlopen(full, RTLD_LAZY);
-        if(ssl == NULL) {
-            printf("%s", dlerror());
-        }
-        free(full);
+        ssl = dlopen(libSSLPath, RTLD_LAZY);
     }
 
     if( ssl == NULL ) {
+        printf("%s", dlerror());
         throwIllegalStateException(e, "Could not load libssl");
         return 1;
     }
@@ -435,18 +398,24 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * path) {
 }
 
 
-WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring openSSLPath) {
-    const char * path = NULL;
-    TCN_ALLOC_CSTRING(openSSLPath);
-    if(openSSLPath != NULL) {
-        path = J2S(openSSLPath);
+WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) {
+    const char * cPath = NULL;
+    const char * sPath = NULL;
+    TCN_ALLOC_CSTRING(libCryptoPath);
+    if(libCryptoPath != NULL) {
+        cPath = J2S(libCryptoPath);
     }
-
-    if(load_openssl_dynamic_methods(e, path) != 0) {
-        TCN_FREE_CSTRING(openSSLPath);
+    TCN_ALLOC_CSTRING(libSSLPath);
+    if(libSSLPath != NULL) {
+        sPath = J2S(libSSLPath);
+    }
+    if(load_openssl_dynamic_methods(e, cPath, sPath) != 0) {
+        TCN_FREE_CSTRING(libCryptoPath);
+        TCN_FREE_CSTRING(libSSLPath);
         return 0;
     }
-    TCN_FREE_CSTRING(openSSLPath);
+    TCN_FREE_CSTRING(libCryptoPath);
+    TCN_FREE_CSTRING(libSSLPath);
 
     long version = ssl_methods.SSLeay();
     jclass clazz;
