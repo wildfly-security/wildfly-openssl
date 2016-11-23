@@ -128,7 +128,7 @@ public abstract class SSL {
         protected String findLibrary(String libname) {
             final String mapped = System.mapLibraryName(libname);
             for(String path : Identification.NATIVE_SEARCH_PATHS) {
-                String complete = path + File.separator + mapped;
+                String complete = path + "/" + mapped;
                 try {
                     try (final InputStream resource = SSL.class.getClassLoader().getResourceAsStream(complete)) {
                         if (resource != null) {
