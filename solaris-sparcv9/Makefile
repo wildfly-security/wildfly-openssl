@@ -1,0 +1,34 @@
+
+SRC = alpn.c clientcert.c options.c session.c ssl.c threads.c util.c
+OBJ = $(patsubst %.c, target/%.o, $(SRC))
+
+default: target/classes/solaris-sparkv9/libwfssl.so
+
+clean:
+	rm -rf target
+target/classes/solaris-sparkv9:
+	mkdir -p target/classes/solaris-sparkv9
+
+target/alpn.o : ../libwfssl/src/alpn.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/clientcert.o : ../libwfssl/src/clientcert.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/options.o : ../libwfssl/src/options.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/session.o : ../libwfssl/src/session.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/ssl.o : ../libwfssl/src/ssl.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/threads.o : ../libwfssl/src/threads.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/util.o : ../libwfssl/src/util.c target/classes/solaris-sparkv9
+	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
+
+target/classes/solaris-sparkv9/libwfssl.so: $(OBJ)
+	gcc -m64 -shared $(OBJ) -o $@ -Wl,--no-as-needed -ldl

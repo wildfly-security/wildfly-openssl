@@ -126,14 +126,27 @@
             </modules>
         </profile>
         <profile>
-            <id>solaris</id>
+            <id>solaris-x64</id>
             <activation>
                 <os>
                     <name>sunos</name>
+                    <arch>x64</arch>
                 </os>
             </activation>
             <modules>
                 <module>solaris-x86_64</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>solaris-sparcv9</id>
+            <activation>
+                <os>
+                    <name>sunos</name>
+                    <arch>sparcv9</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>solaris-sparcv9</module>
             </modules>
         </profile>
         <profile>
