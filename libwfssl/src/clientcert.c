@@ -239,6 +239,7 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
 
 WF_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint depth)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c;
     int verify;
     SSL *ssl_ = J2P(ssl, SSL *);

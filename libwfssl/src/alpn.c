@@ -184,6 +184,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
 WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray alpn_protos)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
@@ -203,6 +204,7 @@ WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray al
 WF_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 {
 
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
@@ -217,6 +219,7 @@ WF_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 
 
 WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     const unsigned char *proto;
     unsigned int proto_len;
@@ -236,6 +239,7 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 }
 
 WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
@@ -251,5 +255,6 @@ WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject
 }
 
 WF_OPENSSL(jboolean, isAlpnSupported)(JNIEnv *e, jobject o) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     return ssl_methods.SSL_set_alpn_protos != NULL;
 }

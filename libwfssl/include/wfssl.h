@@ -102,7 +102,7 @@
 #define UNREFERENCED(V) (V) = (V)
 #define UNREFERENCED_STDARGS (e) = (e);(o) = (o);
 
-#define WF_OPENSSL(type, name) JNIEXPORT  type JNICALL Java_org_wildfly_openssl_SSLImpl_##name##0
+#define WF_OPENSSL(type, name) JNIEXPORT type JNICALL Java_org_wildfly_openssl_SSLImpl_##name##0
 
 #define AJP_TO_JSTRING(V)   (*e)->NewStringUTF((e), (V))
 

@@ -156,6 +156,7 @@ static const jint supported_ssl_opts = 0
 
 WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
@@ -170,6 +171,7 @@ WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
 
 WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
@@ -191,5 +193,6 @@ WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
 
 WF_OPENSSL(jboolean, hasOp)(JNIEnv *e, jobject o, jint op)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     return op == (op & supported_ssl_opts) ? JNI_TRUE : JNI_FALSE;
 }

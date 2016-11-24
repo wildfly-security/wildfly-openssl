@@ -73,15 +73,9 @@ The SSLContext can then be used as normal, and should provide a drop in replacem
 Building
 ========
 
-The java side of the project uses maven and can be build as normal (`mvn install`). The native code uses cmake to provide
-a platform independent build. To build the native code cd into the `libwfssl` directory and issue the following commands:
+The java side of the project uses maven and can be build as normal (`mvn install`). The native code should be build
+as part of the standard build process.
 
-    cmake CMakeLists.txt
-    make
-
-For the windows build the actual command to use will depend on the compiler you wish to use, but for visual studio it
-will probably be:
-
-     cmake CMakeLists.txt -G "Visual Studio 14 2015"
-
-See the complete list of cmake generators at https://cmake.org/cmake/help/v3.1/manual/cmake-generators.7.html .
+To do the Windows build you need to run the build from a visual studio native tools command prompt. If you want to build
+the 32 bit natives you must use the 32 bit prompt (and have JAVA_HOME pointed to a 32 bit JVM), otherwise both the prompt
+and the JVM must be 64 bit.

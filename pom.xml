@@ -150,18 +150,36 @@
             </modules>
         </profile>
         <profile>
-            <id>windows</id>
+            <id>windows-x64</id>
             <activation>
                 <os>
                     <family>windows</family>
                 </os>
+                <property>
+                    <name>sun.arch.data.model</name>
+                    <value>64</value>
+                </property>
             </activation>
-            <properties>
-                <cmake.generator>NMake Makefiles</cmake.generator>
-                <make.exe>nmake</make.exe>
-            </properties>
             <modules>
                 <module>windows-x86_64</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>windows-x86</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+                <property>
+                    <name>sun.arch.data.model</name>
+                    <value>32</value>
+                </property>
+            </activation>
+            <properties>
+                <openssl.path>C:\OpenSSL-Win32\bin</openssl.path>
+            </properties>
+            <modules>
+                <module>windows-i686</module>
             </modules>
         </profile>
     </profiles>

@@ -45,8 +45,8 @@ public abstract class SSL {
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
 
-    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "crypto", "libeay32"};
-    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "ssl", "ssleay32", "libssl32"};
+    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32"};
+    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "ssl", "ssleay32", "libssl32"};
 
     public SSL() {
     }
@@ -184,6 +184,8 @@ public abstract class SSL {
                                     out.write(buf, 0, r);
                                 }
                             }
+                            result.deleteOnExit();
+                            temp.deleteOnExit();
                             return result.getAbsolutePath();
                         }
                     }

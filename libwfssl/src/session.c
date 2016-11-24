@@ -21,18 +21,21 @@ void session_init(JNIEnv *e) {
 
 WF_OPENSSL(jlong, setSessionCacheMode)(JNIEnv *e, jobject o, jlong ctx, jlong mode)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     return ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SET_SESS_CACHE_MODE,mode,NULL);
 }
 
 WF_OPENSSL(jlong, getSessionCacheMode)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     return ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_GET_SESS_CACHE_MODE,0,NULL);
 }
 
 WF_OPENSSL(jlong, setSessionCacheTimeout)(JNIEnv *e, jobject o, jlong ctx, jlong timeout)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_set_timeout(c->ctx, timeout);
     return rv;
@@ -40,12 +43,14 @@ WF_OPENSSL(jlong, setSessionCacheTimeout)(JNIEnv *e, jobject o, jlong ctx, jlong
 
 WF_OPENSSL(jlong, getSessionCacheTimeout)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     return ssl_methods.SSL_CTX_get_timeout(c->ctx);
 }
 
 WF_OPENSSL(jlong, setSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx, jlong size)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = 0;
 
@@ -60,12 +65,14 @@ WF_OPENSSL(jlong, setSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx, jlong si
 
 WF_OPENSSL(jlong, getSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     return ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_GET_SESS_CACHE_SIZE,0,NULL);
 }
 
 WF_OPENSSL(jlong, sessionNumber)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_NUMBER,0,NULL);
     return rv;
@@ -73,6 +80,7 @@ WF_OPENSSL(jlong, sessionNumber)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionConnect)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_sess_connect(c->ctx);
     return rv;
@@ -80,6 +88,7 @@ WF_OPENSSL(jlong, sessionConnect)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionConnectGood)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_sess_connect_good(c->ctx);
     return rv;
@@ -87,6 +96,7 @@ WF_OPENSSL(jlong, sessionConnectGood)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionConnectRenegotiate)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_sess_connect_renegotiate(c->ctx);
     return rv;
@@ -94,6 +104,7 @@ WF_OPENSSL(jlong, sessionConnectRenegotiate)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionAccept)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_sess_accept(c->ctx);
     return rv;
@@ -101,6 +112,7 @@ WF_OPENSSL(jlong, sessionAccept)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionAcceptGood)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_sess_accept_good(c->ctx);
     return rv;
@@ -108,6 +120,7 @@ WF_OPENSSL(jlong, sessionAcceptGood)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionAcceptRenegotiate)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_ACCEPT_RENEGOTIATE,0,NULL);
     return rv;
@@ -115,6 +128,7 @@ WF_OPENSSL(jlong, sessionAcceptRenegotiate)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionHits)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_HIT,0,NULL);
     return rv;
@@ -122,6 +136,7 @@ WF_OPENSSL(jlong, sessionHits)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionCbHits)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_CB_HIT,0,NULL);
     return rv;
@@ -129,6 +144,7 @@ WF_OPENSSL(jlong, sessionCbHits)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionMisses)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_CB_HIT,0,NULL);
     return rv;
@@ -136,6 +152,7 @@ WF_OPENSSL(jlong, sessionMisses)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionTimeouts)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_TIMEOUTS,0,NULL);
     return rv;
@@ -143,6 +160,7 @@ WF_OPENSSL(jlong, sessionTimeouts)(JNIEnv *e, jobject o, jlong ctx)
 
 WF_OPENSSL(jlong, sessionCacheFull)(JNIEnv *e, jobject o, jlong ctx)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_CACHE_FULL,0,NULL);
     return rv;
@@ -151,6 +169,7 @@ WF_OPENSSL(jlong, sessionCacheFull)(JNIEnv *e, jobject o, jlong ctx)
 #define TICKET_KEYS_SIZE 48
 WF_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArray keys)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jbyte* b;
 
@@ -182,6 +201,7 @@ jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session) {
 
 WF_OPENSSL(jlong, getSession)(JNIEnv *e, jobject o, jlong ssl)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
     SSL_SESSION *session;
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -195,6 +215,7 @@ WF_OPENSSL(jlong, getSession)(JNIEnv *e, jobject o, jlong ssl)
 
 WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
     SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
     if (session_ == NULL) {
@@ -212,6 +233,7 @@ WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session)
 
 WF_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
     SSL_SESSION *session;
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -224,6 +246,7 @@ WF_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl)
 }
 WF_OPENSSL(jlong, getSessionPointer)(JNIEnv *e, jobject o, jlong ssl)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
     SSL_SESSION *session;
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -237,6 +260,7 @@ WF_OPENSSL(jlong, getSessionPointer)(JNIEnv *e, jobject o, jlong ssl)
 
 
 WF_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ses) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL_SESSION *session = J2P(ses, SSL_SESSION *);
     if (session == NULL) {
         throwIllegalStateException(e, "ssl is null");
@@ -248,6 +272,7 @@ WF_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ses) {
 
 WF_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl)
 {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
   UNREFERENCED(o);
   SSL_SESSION *session;
   SSL *ssl_ = J2P(ssl, SSL *);
@@ -260,6 +285,7 @@ WF_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl)
 }
 
 WF_OPENSSL(void, registerSessionContext)(JNIEnv *e, jobject o, jlong ctx, jobject context) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     c->session_context = (*e)->NewGlobalRef(e, context);
 }
