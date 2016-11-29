@@ -28,11 +28,21 @@ public class Messages {
 
     private static final String CODE = "WFOPENSSL";
 
-    public static Messages INSTANCE = new Messages();
+    public static Messages MESSAGES = new Messages();
 
     private static final String MSG1 = formatCode(1);
     private static final String MSG2 = formatCode(2);
     private static final String MSG3 = formatCode(3);
+    private static final String MSG4 = formatCode(4);
+    private static final String MSG5 = formatCode(5);
+    private static final String MSG6 = formatCode(6);
+    private static final String MSG7 = formatCode(7);
+    private static final String MSG8 = formatCode(8);
+    private static final String MSG9 = formatCode(9);
+    private static final String MSG10 = formatCode(10);
+    private static final String MSG11 = formatCode(11);
+    private static final String MSG12 = formatCode(12);
+    private static final String MSG13 = formatCode(13);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -42,6 +52,13 @@ public class Messages {
 
     private Messages() {
         properties = ResourceBundle.getBundle("org.wildfly.openssl.OpenSSLMessages");
+    }
+
+    private String interpolate(String messageid, Object ... arguments) {
+        StringBuilder sb = new StringBuilder(messageid);
+        sb.append(' ');
+        new Formatter(sb).format(properties.getString(messageid), (Object[]) arguments);
+        return sb.toString();
     }
 
     public String couldNotFindLibSSL(String systemProperty, String attempted) {
@@ -56,11 +73,43 @@ public class Messages {
         return interpolate(MSG3, systemProperty, attempted);
     }
 
+    public String noSslContext() {
+        return interpolate(MSG4);
+    }
 
-    private String interpolate(String messageid, String ... arguments) {
-        StringBuilder sb = new StringBuilder(messageid);
-        sb.append(' ');
-        new Formatter(sb).format(properties.getString(messageid), (Object[]) arguments);
-        return sb.toString();
+    public String sslWriteFailed(int sslWrote) {
+        return interpolate(MSG5, sslWrote);
+    }
+
+    public String bufferIsNull() {
+        return interpolate(MSG6);
+    }
+
+    public String invalidOffset(int offset, int length, int arrayLength) {
+        return interpolate(MSG7, offset, length, arrayLength);
+    }
+
+    public String readFromSSLFailed(long error, int lastPrimingReadResult, String err) {
+        return interpolate(MSG8, error, lastPrimingReadResult, err);
+    }
+
+    public String inboundIsClosed() {
+        return interpolate(MSG9);
+    }
+
+    public String nullCipherSuites() {
+        return interpolate(MSG10);
+    }
+
+    public String emptyCipherSuiteList() {
+        return interpolate(MSG11);
+    }
+
+    public String failedCipherSuite(String cipherSuiteSpec) {
+        return interpolate(MSG12, cipherSuiteSpec);
+    }
+
+    public String unsupportedProtocol(String p) {
+        return interpolate(MSG13, p);
     }
 }

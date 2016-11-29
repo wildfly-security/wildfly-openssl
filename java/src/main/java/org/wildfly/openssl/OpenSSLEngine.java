@@ -16,6 +16,8 @@
  */
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.Messages.MESSAGES;
+
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.ArrayList;
@@ -142,7 +144,7 @@ public final class OpenSSLEngine extends SSLEngine {
     OpenSSLEngine(long sslCtx,
                   boolean clientMode, OpenSSLContextSPI openSSLContextSPI, String host, int port) {
         if (sslCtx == 0) {
-            throw new IllegalStateException("No SSL Context");
+            throw new IllegalStateException(MESSAGES.noSslContext());
         }
         this.sslCtx = sslCtx;
         this.clientMode = clientMode;
@@ -221,7 +223,7 @@ public final class OpenSSLEngine extends SSLEngine {
             }
         }
 
-        throw new IllegalStateException("Write to SSL failed. Error code " + sslWrote);
+        throw new IllegalStateException(MESSAGES.sslWriteFailed(sslWrote));
     }
 
     /**
@@ -343,14 +345,14 @@ public final class OpenSSLEngine extends SSLEngine {
 
         // Throw required runtime exceptions
         if (srcs == null) {
-            throw new IllegalArgumentException("Buffer is null");
+            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
         }
         if (dst == null) {
-            throw new IllegalArgumentException("Buffer is null");
+            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
         }
 
         if (offset + length > srcs.length) {
-            throw new IndexOutOfBoundsException("Invalid offest (" + offset + ") and length (" + length + ") into buffer array of length (" + srcs.length + ")");
+            throw new IndexOutOfBoundsException(MESSAGES.invalidOffset(offset, length, srcs.length));
         }
 
         if (dst.isReadOnly()) {
@@ -405,7 +407,7 @@ public final class OpenSSLEngine extends SSLEngine {
         for (int i = offset; i < endOffset; ++i) {
             final ByteBuffer src = srcs[i];
             if (src == null) {
-                throw new IllegalArgumentException("Buffer is null");
+                throw new IllegalArgumentException(MESSAGES.bufferIsNull());
             }
             while (src.hasRemaining()) {
 
@@ -448,15 +450,15 @@ public final class OpenSSLEngine extends SSLEngine {
         }
         initSsl();
 
-        // Throw requried runtime exceptions
+        // Throw required runtime exceptions
         if (src == null) {
-            throw new IllegalArgumentException("Buffer is null");
+            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
         }
         if (dsts == null) {
-            throw new IllegalArgumentException("Buffer is null");
+            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
         }
         if (offset >= dsts.length || offset + length > dsts.length) {
-            throw new IndexOutOfBoundsException("Invalid offest (" + offset + ") and length (" + length + ") into buffer array of length (" + dsts.length + ")");
+            throw new IndexOutOfBoundsException(MESSAGES.invalidOffset(offset, length, dsts.length));
         }
 
         int capacity = 0;
@@ -464,7 +466,7 @@ public final class OpenSSLEngine extends SSLEngine {
         for (int i = offset; i < endOffset; i++) {
             ByteBuffer dst = dsts[i];
             if (dst == null) {
-                throw new IllegalArgumentException("Buffer is null");
+                throw new IllegalArgumentException(MESSAGES.bufferIsNull());
             }
             if (dst.isReadOnly()) {
                 throw new ReadOnlyBufferException();
@@ -518,7 +520,7 @@ public final class OpenSSLEngine extends SSLEngine {
             if (error != SSL.SSL_ERROR_NONE) {
                 String err = SSL.getInstance().getErrorString(error);
                 if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Read from SSL failed error: (" + error + ") read result:(" + lastPrimingReadResult + ") error string: " + err);
+                    LOG.fine(MESSAGES.readFromSSLFailed(error, lastPrimingReadResult, err));
                 }
                 // There was an internal error -- shutdown
                 shutdown();
@@ -608,7 +610,7 @@ public final class OpenSSLEngine extends SSLEngine {
         shutdown();
 
         if (accepted != 0 && !receivedShutdown) {
-            throw new SSLException("Inbound is closed");
+            throw new SSLException(MESSAGES.inboundIsClosed());
         }
     }
 
@@ -667,7 +669,7 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public void setEnabledCipherSuites(String[] cipherSuites) {
         if (cipherSuites == null) {
-            throw new IllegalArgumentException("Null cypher suites");
+            throw new IllegalArgumentException(MESSAGES.nullCipherSuites());
         }
         initSsl();
         final StringBuilder buf = new StringBuilder();
@@ -691,14 +693,14 @@ public final class OpenSSLEngine extends SSLEngine {
         }
 
         if (buf.length() == 0) {
-            throw new IllegalArgumentException("Empty cypher suite list");
+            throw new IllegalArgumentException(MESSAGES.emptyCipherSuiteList());
         }
         buf.setLength(buf.length() - 1);
         final String cipherSuiteSpec = buf.toString();
         try {
             SSL.getInstance().setCipherSuites(ssl, cipherSuiteSpec);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed cypher suite " + cipherSuiteSpec, e);
+            throw new IllegalStateException(MESSAGES.failedCipherSuite(cipherSuiteSpec), e);
         }
     }
 
@@ -751,7 +753,7 @@ public final class OpenSSLEngine extends SSLEngine {
         boolean tlsv1_2 = false;
         for (String p : protocols) {
             if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
-                throw new IllegalArgumentException("Unsupported protocol " + p);
+                throw new IllegalArgumentException(MESSAGES.unsupportedProtocol(p));
             }
             if (p.equals(SSL.SSL_PROTO_SSLv2)) {
                 sslv2 = true;

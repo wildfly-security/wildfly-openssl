@@ -128,7 +128,7 @@ public abstract class SSL {
                                 attempted.add(file.getAbsolutePath());
                             }
                             if (sslPath == null) {
-                                throw new RuntimeException(Messages.INSTANCE.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH , attempted.toString()));
+                                throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH , attempted.toString()));
                             }
                         }
                         attempted.clear();
@@ -143,13 +143,13 @@ public abstract class SSL {
                                 attempted.add(file.getAbsolutePath());
                             }
                             if (cryptoPath == null) {
-                                throw new RuntimeException(Messages.INSTANCE.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attempted.toString()));
+                                throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attempted.toString()));
                             }
                         }
                     }
                     instance.initialize(cryptoPath, sslPath);
                     String version = instance.version();
-                    logger.info(Messages.INSTANCE.openSSLVersion(version));
+                    logger.info(Messages.MESSAGES.openSSLVersion(version));
 
 
 
