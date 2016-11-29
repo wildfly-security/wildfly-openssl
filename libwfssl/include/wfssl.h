@@ -24,7 +24,8 @@
 #define __UTSSL__
 
 #define _GNU_SOURCE
-
+#include <string.h>
+#include <stdlib.h>
 /* platform dependent code */
 #ifdef _WIN32
 #include <windows.h>
@@ -45,12 +46,6 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #include <jni.h>
-#include <openssl/crypto.h>
-#include <openssl/pkcs12.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
 #include <stdint.h>
 
 /* Debugging code */
@@ -108,6 +103,28 @@
 
 #define SSL_CIPHERS_ALWAYS_DISABLED         ("!aNULL:!eNULL:!EXP:")
 
+///////////
+//OpenSSL definitions
+///////////
+
+#define SHA_DIGEST_LENGTH 20
+#define SSL_TLSEXT_ERR_OK 0
+#define SSL_TLSEXT_ERR_ALERT_WARNING 1
+#define SSL_TLSEXT_ERR_ALERT_FATAL 2
+#define SSL_TLSEXT_ERR_NOACK 3
+
+
+#define SSL_VERIFY_NONE                 0x00
+#define SSL_VERIFY_PEER                 0x01
+#define SSL_VERIFY_FAIL_IF_NO_PEER_CERT 0x02
+#define SSL_VERIFY_CLIENT_ONCE          0x04
+
+#define X509_V_OK 0
+#define X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT 18
+#define X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN 19
+#define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY 20
+#define X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE 21
+#define X509_V_ERR_CERT_UNTRUSTED 27
 
 #define SSL_VERIFY_ERROR_IS_OPTIONAL(errnum) \
    ((errnum == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) \
@@ -116,6 +133,69 @@
     || (errnum == X509_V_ERR_CERT_UNTRUSTED) \
     || (errnum == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE))
 
+
+#define SSL_SESS_CACHE_OFF                      0x0000
+#define SSL_SESS_CACHE_CLIENT                   0x0001
+#define SSL_SESS_CACHE_SERVER                   0x0002
+#define SSL_SESS_CACHE_BOTH     (SSL_SESS_CACHE_CLIENT|SSL_SESS_CACHE_SERVER)
+
+#define SSL_CTRL_SESS_NUMBER                    20
+#define SSL_CTRL_SESS_CONNECT                   21
+#define SSL_CTRL_SESS_CONNECT_GOOD              22
+#define SSL_CTRL_SESS_CONNECT_RENEGOTIATE       23
+#define SSL_CTRL_SESS_ACCEPT                    24
+#define SSL_CTRL_SESS_ACCEPT_GOOD               25
+#define SSL_CTRL_SESS_ACCEPT_RENEGOTIATE        26
+#define SSL_CTRL_SESS_HIT                       27
+#define SSL_CTRL_SESS_CB_HIT                    28
+#define SSL_CTRL_SESS_MISSES                    29
+#define SSL_CTRL_SESS_TIMEOUTS                  30
+#define SSL_CTRL_SESS_CACHE_FULL                31
+#define SSL_CTRL_OPTIONS                        32
+#define SSL_CTRL_SET_SESS_CACHE_SIZE            42
+#define SSL_CTRL_GET_SESS_CACHE_SIZE            43
+#define SSL_CTRL_SET_SESS_CACHE_MODE            44
+#define SSL_CTRL_GET_SESS_CACHE_MODE            45
+#define SSL_CTRL_SET_TLSEXT_SERVERNAME_CB       53
+#define SSL_CTRL_SET_TLSEXT_SERVERNAME_ARG      54
+#define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
+#define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
+#define SSL_CTRL_CLEAR_OPTIONS                  77
+
+#define SSL_TXT_DH              "DH"
+#define SSL_TXT_DHE             "DHE"/* alias for EDH */
+#define SSL_TXT_RSA             "RSA"
+#define SSL_TXT_ECDSA           "ECDSA"
+#define SSL_TXT_KRB5            "KRB5"
+#define SSL_TXT_DSS             "DSS"
+#define SSL_TXT_ECDH            "ECDH"
+
+#define CRYPTO_EX_INDEX_SSL             1
+#define CRYPTO_EX_INDEX_SSL_CTX         2
+#define CRYPTO_EX_INDEX_SSL_SESSION     3
+
+#define TLSEXT_NAMETYPE_host_name 0
+
+#define SSL_OP_ALL                                      0x80000BFFL
+#define SSL_OP_NO_SSLv2                                 0x01000000L
+#define SSL_OP_NO_SSLv3                                 0x02000000L
+#define SSL_OP_NO_TLSv1                                 0x04000000L
+#define SSL_OP_NO_TLSv1_2                               0x08000000L
+#define SSL_OP_NO_TLSv1_1                               0x10000000L
+#define SSL_OP_SINGLE_ECDH_USE                          0x00080000L
+#define SSL_OP_SINGLE_DH_USE                            0x00100000L
+
+#define X509_FILETYPE_PEM       1
+#define X509_L_FILE_LOAD        1
+#define X509_L_ADD_DIR          2
+
+#define SSL_CB_HANDSHAKE_START          0x10
+#define SSL_CB_HANDSHAKE_DONE           0x20
+
+#define CRYPTO_LOCK             1
+///////////
+//End OpenSSL definitions
+///////////
 
 /*
  * Adapted from OpenSSL:
@@ -256,6 +336,51 @@
 // Use "weak" to redeclare optional features
 #define weak __attribute__((weak))
 
+typedef void SSL_CTX;
+typedef void X509_STORE;
+typedef void SSL_SESSION;
+typedef void X509;
+typedef void EVP_PKEY;
+typedef void SSL;
+typedef void CRYPTO_EX_new;
+typedef void SSL_CIPHER;
+typedef void STACK_OF_X509;
+typedef void STACK_OF_X509_NAME;
+typedef void STACK_OF_SSL_CIPHER;
+typedef void SSL_METHOD;
+typedef void BIO;
+typedef void BIO_METHOD;
+typedef void CRYPTO_EX_dup;
+typedef void ssl_st;
+typedef void X509_LOOKUP_METHOD;
+typedef void X509_LOOKUP;
+typedef void X509_CRL;
+typedef void pem_password_cb;
+typedef void EVP_MD;
+typedef void ENGINE;
+typedef void ASN1_INTEGER;
+typedef void CRYPTO_EX_free;
+typedef void ssl_ctx_st;
+typedef void evp_pkey_st;
+typedef void X509_OBJECT;
+typedef void ASN1_TIME;
+typedef void X509_NAME;
+typedef void BIGNUM;
+typedef void X509_LU_CRL;
+
+//This is a 'fake' definition, that matches the definition used in the 1.0.x branch
+//1.1. does not use this, as additional functions were added to allow it to be used
+//as an opaque type.
+//we only need access to the 'untrusted' member
+typedef struct {
+    X509_STORE *unused1;
+    int unused2;
+    X509 *unused3;
+    STACK_OF_X509 *untrusted;
+} X509_STORE_CTX;
+
+
+struct CRYPTO_dynlock_value;
 
 #define TCN_MAX_METHODS 8
 
@@ -359,14 +484,14 @@ typedef struct {
     int (*SSL_CTX_check_private_key)(const SSL_CTX *ctx);
     void	(*SSL_CTX_free)(SSL_CTX *);
     X509_STORE *(*SSL_CTX_get_cert_store)(const SSL_CTX *);
-    STACK_OF(X509_NAME) *(*SSL_CTX_get_client_CA_list)(const SSL_CTX *s);
+    STACK_OF_X509_NAME *(*SSL_CTX_get_client_CA_list)(const SSL_CTX *s);
     long (*SSL_CTX_get_timeout)(const SSL_CTX *ctx);
     int (*SSL_CTX_load_verify_locations)(SSL_CTX *ctx, const char *CAfile, const char *CApath);
     SSL_CTX *(*SSL_CTX_new)(const SSL_METHOD *meth);
-    void (*SSL_CTX_sess_set_new_cb)(SSL_CTX *ctx, int (*new_session_cb)(struct ssl_st *ssl,SSL_SESSION *sess));
+    void (*SSL_CTX_sess_set_new_cb)(SSL_CTX *ctx, int (*new_session_cb)(ssl_st *ssl,SSL_SESSION *sess));
     long (*SSL_CTX_callback_ctrl)(SSL_CTX *, int, void (*)(void));
     long (*SSL_CTX_ctrl)(SSL_CTX *ctx, int cmd, long larg, void *parg);
-    void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(struct ssl_ctx_st *ctx,SSL_SESSION *sess));
+    void (*SSL_CTX_sess_set_remove_cb)(SSL_CTX *ctx, void (*remove_session_cb)(ssl_ctx_st *ctx,SSL_SESSION *sess));
     int (*SSL_set_alpn_protos)(SSL *ssl, const unsigned char *protos, unsigned protos_len);
     void (*SSL_CTX_set_alpn_select_cb)(SSL_CTX *ctx, int (*cb) (SSL *ssl, const unsigned char **out, unsigned char *outlen, const unsigned char *in, unsigned int inlen, void *arg), void *arg);
     void (*SSL_CTX_set_cert_verify_callback)(SSL_CTX *ctx, int (*cb) (X509_STORE_CTX *, void *), void *arg);
@@ -380,14 +505,14 @@ typedef struct {
     void (*SSL_SESSION_free)(SSL_SESSION *ses);
     const unsigned char *(*SSL_SESSION_get_id)(const SSL_SESSION *s, unsigned int *len);
     long (*SSL_SESSION_get_time)(const SSL_SESSION *s);
-    int	(*SSL_add_file_cert_subjects_to_stack)(STACK_OF(X509_NAME) *stackCAs, const char *file);
+    int	(*SSL_add_file_cert_subjects_to_stack)(STACK_OF_X509_NAME *stackCAs, const char *file);
     long (*SSL_ctrl)(SSL *ssl, int cmd, long larg, void *parg);
     int (*SSL_do_handshake)(SSL *s);
     void (*SSL_free)(SSL *ssl);
     void (*SSL_get0_alpn_selected)(const SSL *ssl, const unsigned char **data, unsigned *len);
-    STACK_OF(SSL_CIPHER) *(*SSL_get_ciphers)(const SSL *s);
+    STACK_OF_SSL_CIPHER *(*SSL_get_ciphers)(const SSL *s);
     const SSL_CIPHER *(*SSL_get_current_cipher)(const SSL *s);
-    STACK_OF(X509) *(*SSL_get_peer_cert_chain)(const SSL *s);
+    STACK_OF_X509 *(*SSL_get_peer_cert_chain)(const SSL *s);
     X509 *(*SSL_get_peer_certificate)(const SSL *s);
     SSL_SESSION *(*SSL_get_session)(const SSL *ssl);
     SSL_SESSION *(*SSL_get1_session)(SSL *ssl);
@@ -396,7 +521,7 @@ typedef struct {
     const char *(*SSL_get_version)(const SSL *s);
     int (*SSL_library_init)(void);
     int (*OPENSSL_init_ssl)(uint64_t opts, const void *settings);
-    STACK_OF(X509_NAME) *(*SSL_load_client_CA_file)(const char *file);
+    STACK_OF_X509_NAME *(*SSL_load_client_CA_file)(const char *file);
     void (*SSL_load_error_strings)(void);
     SSL *(*SSL_new)(SSL_CTX *ctx);
     int (*SSL_pending)(const SSL *s);
@@ -423,7 +548,7 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_server_method)(void);
     const SSL_METHOD *(*SSLv23_client_method)(void);
     const SSL_METHOD *(*SSLv23_method)(void);
-    struct evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
+    evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
 } ssl_dynamic_methods;
 
@@ -469,8 +594,10 @@ typedef struct {
     int (*X509_STORE_CTX_get_error)(X509_STORE_CTX *ctx);
     int (*X509_STORE_CTX_get_error_depth)(X509_STORE_CTX *ctx);
     void *(*X509_STORE_CTX_get_ex_data)(X509_STORE_CTX *ctx, int idx);
-    int (*X509_STORE_CTX_init)(X509_STORE_CTX *ctx, X509_STORE *store, X509 *x509, STACK_OF(X509) *chain);
+    int (*X509_STORE_CTX_init)(X509_STORE_CTX *ctx, X509_STORE *store, X509 *x509, STACK_OF_X509 *chain);
     void (*X509_STORE_CTX_set_error)(X509_STORE_CTX *ctx, int s);
+    X509_STORE_CTX *(*X509_STORE_CTX_new)(void);
+    X509_STORE_CTX *(*X509_STORE_CTX_free)(void);
     X509_LOOKUP *(*X509_STORE_add_lookup)(X509_STORE *v, X509_LOOKUP_METHOD *m);
     void (*X509_STORE_free)(X509_STORE *v);
     int (*X509_STORE_get_by_subject)(X509_STORE_CTX *vs, int type, X509_NAME *name, X509_OBJECT *ret);
@@ -493,7 +620,7 @@ typedef struct {
     X509 *(*d2i_X509)(X509 **a, const unsigned char **in, long len);
     int (*i2d_X509)(X509 *a, unsigned char **out);
     void (*ENGINE_load_builtin_engines)(void);
-    STACK_OF(X509)* (*X509_STORE_CTX_get0_untrusted)(X509_STORE_CTX *ctx);
+    STACK_OF_X509* (*X509_STORE_CTX_get0_untrusted)(X509_STORE_CTX *ctx);
 } crypto_dynamic_methods;
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);

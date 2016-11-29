@@ -368,6 +368,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_ex_data);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_init);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_set_error);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_new);
+    REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_free);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_add_lookup);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_free);
     //REQUIRE_CRYPTO_SYMBOL(X509_STORE_get_by_subject);
@@ -596,7 +598,7 @@ init_failed:
 WF_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-    STACK_OF(SSL_CIPHER) *sk;
+    STACK_OF_SSL_CIPHER *sk;
     int len;
     jobjectArray array;
     SSL_CIPHER *cipher;
@@ -933,66 +935,6 @@ cleanup:
     return rv;
 }
 
-/*
- * Adapted from Android:
- * https://android.googlesource.com/platform/external/openssl/+/master/patches/0003-jsse.patch
- */
-const char* SSL_CIPHER_authentication_method(const SSL_CIPHER* cipher){
-    switch (1)
-        {
-    case SSL_kRSA:
-        return SSL_TXT_RSA;
-    case SSL_kDHr:
-        return SSL_TXT_DH "_" SSL_TXT_RSA;
-    case SSL_kDHd:
-        return SSL_TXT_DH "_" SSL_TXT_DSS;
-    case SSL_kEDH:
-        switch (cipher->algorithm_auth)
-            {
-        case SSL_aDSS:
-            return "DHE_" SSL_TXT_DSS;
-        case SSL_aRSA:
-            return "DHE_" SSL_TXT_RSA;
-        case SSL_aNULL:
-            return SSL_TXT_DH "_anon";
-        default:
-            return "UNKNOWN";
-            }
-    case SSL_kKRB5:
-        return SSL_TXT_KRB5;
-    case SSL_kECDHr:
-        return SSL_TXT_ECDH "_" SSL_TXT_RSA;
-    case SSL_kECDHe:
-        return SSL_TXT_ECDH "_" SSL_TXT_ECDSA;
-    case SSL_kEECDH:
-        switch (cipher->algorithm_auth)
-            {
-        case SSL_aECDSA:
-            return "ECDHE_" SSL_TXT_ECDSA;
-        case SSL_aRSA:
-            return "ECDHE_" SSL_TXT_RSA;
-        case SSL_aNULL:
-            return SSL_TXT_ECDH "_anon";
-        default:
-            return "UNKNOWN";
-            }
-    default:
-        return "UNKNOWN";
-    }
-}
-
-static const char* SSL_authentication_method(const SSL* ssl) {
-{
-    switch (ssl->version)
-        {
-        case SSL2_VERSION:
-            return SSL_TXT_RSA;
-        default:
-            return SSL_CIPHER_authentication_method(ssl->s3->tmp.new_cipher);
-        }
-    }
-}
-/* Android end */
 
 static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
@@ -1002,7 +944,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
 
     // Get a stack of all certs in the chain
-    STACK_OF(X509) *sk;
+    STACK_OF_X509 *sk;
     if(crypto_methods.X509_STORE_CTX_get0_untrusted == NULL) {
         sk = ctx->untrusted;
     } else {
@@ -1405,7 +1347,7 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
                                                   jlong ssl /* SSL * */)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-    STACK_OF(X509) *sk;
+    STACK_OF_X509 *sk;
     int len;
     int i;
     X509 *cert;
@@ -1513,6 +1455,6 @@ WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o,
 WF_OPENSSL(jstring, version)(JNIEnv *e)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-    char * version = ssl_methods.SSLeay_version(SSLEAY_VERSION);
+    char * version = ssl_methods.SSLeay_version(0);
     return (*e)->NewStringUTF(e, version);
 }

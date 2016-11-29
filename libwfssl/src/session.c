@@ -82,7 +82,7 @@ WF_OPENSSL(jlong, sessionConnect)(JNIEnv *e, jobject o, jlong ctx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jlong rv = ssl_methods.SSL_CTX_sess_connect(c->ctx);
+    jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx, SSL_CTRL_SESS_CONNECT,0,NULL);
     return rv;
 }
 
@@ -90,7 +90,7 @@ WF_OPENSSL(jlong, sessionConnectGood)(JNIEnv *e, jobject o, jlong ctx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jlong rv = ssl_methods.SSL_CTX_sess_connect_good(c->ctx);
+    jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_CONNECT_GOOD,0,NULL);
     return rv;
 }
 
@@ -98,7 +98,7 @@ WF_OPENSSL(jlong, sessionConnectRenegotiate)(JNIEnv *e, jobject o, jlong ctx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jlong rv = ssl_methods.SSL_CTX_sess_connect_renegotiate(c->ctx);
+    jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_CONNECT_RENEGOTIATE,0,NULL);
     return rv;
 }
 
@@ -106,7 +106,7 @@ WF_OPENSSL(jlong, sessionAccept)(JNIEnv *e, jobject o, jlong ctx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jlong rv = ssl_methods.SSL_CTX_sess_accept(c->ctx);
+    jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_ACCEPT,0,NULL);
     return rv;
 }
 
@@ -114,7 +114,7 @@ WF_OPENSSL(jlong, sessionAcceptGood)(JNIEnv *e, jobject o, jlong ctx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
-    jlong rv = ssl_methods.SSL_CTX_sess_accept_good(c->ctx);
+    jlong rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SESS_ACCEPT_GOOD,0,NULL);
     return rv;
 }
 
@@ -281,7 +281,7 @@ WF_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl)
       return 0;
   }
   session = ssl_methods.SSL_get_session(ssl_);
-  return ssl_methods.SSL_get_time(session);
+  return ssl_methods.SSL_SESSION_get_time(session);
 }
 
 WF_OPENSSL(void, registerSessionContext)(JNIEnv *e, jobject o, jlong ctx, jobject context) {

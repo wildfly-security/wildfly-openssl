@@ -4,7 +4,7 @@ all: target\classes\win-x86_64\wfssl.dll
 OBJECTS = target\alpn.obj target\clientcert.obj target\options.obj target\session.obj target\ssl.obj target\threads.obj target\util.obj
 
 {../libwfssl/src}.c{target}.obj:
-    cl $<  /machine:AMD64 /Fo$@ -I..\libwfssl\include -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" -IC:\OpenSSL-Win64\include /LD /c
+    cl $<  /machine:AMD64 /Fo$@ -I..\libwfssl\include -I"$(JAVA_HOME)\include" -I"$(JAVA_HOME)\include\win32" /LD /c
 
 target:
   mkdir target

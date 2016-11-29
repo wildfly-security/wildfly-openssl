@@ -166,7 +166,7 @@ WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
         return 0;
     }
 
-    return ssl_methods.SSL_get_options(ssl_);
+    return ssl_methods.SSL_ctrl(ssl_,SSL_CTRL_OPTIONS,0,NULL);
 }
 
 WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
@@ -187,7 +187,7 @@ WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
         opt &= ~0x00040000;
     }
 #endif
-    ssl_methods.SSL_set_options(ssl_, opt);
+    ssl_methods.SSL_ctrl(ssl_,SSL_CTRL_OPTIONS,opt,NULL);
 }
 
 

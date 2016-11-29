@@ -11,7 +11,7 @@ target/classes/macosx-x86_64:
 	mkdir -p target/classes/macosx-x86_64
 
 target/%.o : ../libwfssl/src/%.c target/classes/macosx-x86_64
-	cc -c $< -o $@ -I../libwfssl/include -I/usr/local/opt/openssl/include
+	cc -c $< -o $@ -I../libwfssl/include
 
 target/classes/macosx-x86_64/libwfssl.dylib: $(OBJ)
 	cc -dynamiclib $(OBJ) -o $@
