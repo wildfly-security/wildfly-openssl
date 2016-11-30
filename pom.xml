@@ -130,7 +130,7 @@
             <activation>
                 <os>
                     <name>sunos</name>
-                    <arch>x64</arch>
+                    <arch>amd64</arch>
                 </os>
             </activation>
             <modules>
