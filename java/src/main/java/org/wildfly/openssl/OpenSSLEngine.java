@@ -169,9 +169,6 @@ public final class OpenSSLEngine extends SSLEngine {
     public synchronized void shutdown() {
         if (DESTROYED_UPDATER.compareAndSet(this, 0, 1)) {
             if(ssl != 0) {
-                if(clientMode) {
-                    openSSLContextSPI.engineGetClientSessionContext().remove(SSL.getInstance().getSessionId(ssl));
-                }
                 SSL.getInstance().freeSSL(ssl);
                 SSL.getInstance().freeBIO(networkBIO);
             }

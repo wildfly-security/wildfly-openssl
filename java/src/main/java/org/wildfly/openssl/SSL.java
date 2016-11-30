@@ -779,8 +779,6 @@ public abstract class SSL {
      */
     protected abstract byte[] getSessionId(long ssl);
 
-    protected abstract long getSessionPointer(long ssl);
-
     protected abstract long bufferAddress(ByteBuffer buffer);
 
 

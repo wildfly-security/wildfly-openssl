@@ -88,6 +88,8 @@ class OpenSSlSession implements SSLSession {
     public void invalidate() {
         if (valid) {
             SSL.getInstance().invalidateSession(sessionPointer);
+            sessionContext.remove(sessionId);
+            sessionPointer = 0;
             valid = false;
         }
     }

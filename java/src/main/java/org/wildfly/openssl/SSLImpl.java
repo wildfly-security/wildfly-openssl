@@ -474,12 +474,6 @@ public class SSLImpl extends SSL {
         return SSLImpl.getSessionId0(ssl);
     }
 
-    static native long getSessionPointer0(long ssl);
-
-    protected long getSessionPointer(long ssl) {
-        return SSLImpl.getSessionPointer0(ssl);
-    }
-
     static native long bufferAddress0(ByteBuffer buffer);
 
     protected long bufferAddress(ByteBuffer buffer) {

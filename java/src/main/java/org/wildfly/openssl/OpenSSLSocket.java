@@ -303,6 +303,7 @@ public class OpenSSLSocket extends SSLSocket {
         } else if (autoclose) {
             delegate.close();
         }
+        sslEngine.shutdown();
     }
 
     private void runHandshake() throws IOException {

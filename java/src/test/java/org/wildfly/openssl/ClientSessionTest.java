@@ -97,6 +97,32 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
     }
 
     @Test
+    public void testSessionInvalidation() throws Exception {
+        final int port = SSLTestUtils.PORT;
+        final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
+
+        try (ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port)) {
+
+            final Thread acceptThread1 = startServer(serverSocket1);
+            final FutureSessionId future = new FutureSessionId();
+            try (final SSLSocket socket = (SSLSocket) context.getSocketFactory().createSocket()) {
+                socket.connect(new InetSocketAddress(SSLTestUtils.HOST, port));
+                socket.addHandshakeCompletedListener(new FutureHandshakeCompletedListener(future));
+                socket.getOutputStream().write(HELLO_WORLD);
+                socket.getSession().invalidate();
+                socket.getOutputStream().flush();
+            }
+            byte[] invalided = future.get();
+            byte[] newSession = connectAndWrite(context, port);
+
+            Assert.assertFalse(Arrays.equals(invalided, newSession));
+
+            serverSocket1.close();
+            acceptThread1.join();
+        }
+    }
+
+    @Test
     public void testSessionSize() throws Exception {
         final int port1 = SSLTestUtils.PORT;
         final int port2 = SSLTestUtils.SECONDARY_PORT;
