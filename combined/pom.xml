@@ -157,7 +157,7 @@
             </dependencies>
         </profile>
         <profile>
-            <id>solaris-sparkv9</id>
+            <id>solaris-sparcv9</id>
             <activation>
                 <os>
                     <name>sunos</name>
@@ -167,7 +167,7 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-sparkv9</artifactId>
+                    <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
                     <version>${project.version}</version>
                 </dependency>
             </dependencies>
@@ -223,7 +223,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-sparkv9</artifactId>
+                    <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
                     <version>${project.version}</version>
                 </dependency>
             </dependencies>

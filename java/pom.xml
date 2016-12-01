@@ -217,7 +217,7 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-sparkv9</artifactId>
+                    <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
                     <version>${project.version}</version>
                     <scope>test</scope>
                 </dependency>
