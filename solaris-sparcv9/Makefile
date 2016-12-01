@@ -27,7 +27,7 @@ target/ssl.o : ../libwfssl/src/ssl.c target/classes/solaris-sparcv9
 target/threads.o : ../libwfssl/src/threads.c target/classes/solaris-sparcv9
 	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
 
-target/util.o : ../libwfssl/src/util.c target/classes/solaris-sparc v9
+target/util.o : ../libwfssl/src/util.c target/classes/solaris-sparcv9
 	gcc -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
 
 target/classes/solaris-sparcv9/libwfssl.so: $(OBJ)
