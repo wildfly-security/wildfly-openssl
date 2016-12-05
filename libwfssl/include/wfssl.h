@@ -336,6 +336,8 @@
 // Use "weak" to redeclare optional features
 #define weak __attribute__((weak))
 
+#undef X509_NAME
+typedef void X509_NAME;
 typedef void SSL_CTX;
 typedef void X509_STORE;
 typedef void SSL_SESSION;
@@ -364,7 +366,6 @@ typedef void ssl_ctx_st;
 typedef void evp_pkey_st;
 typedef void X509_OBJECT;
 typedef void ASN1_TIME;
-typedef void X509_NAME;
 typedef void BIGNUM;
 typedef void X509_LU_CRL;
 

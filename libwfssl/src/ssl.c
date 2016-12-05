@@ -1,11 +1,6 @@
 
 #include "wfssl.h"
 
-#ifdef WIN32
-#include <openssl\applink.c>
-#endif
-
-
 #if defined(SSL_OP_NO_TLSv1_1)
 #define HAVE_TLSV1_1
 #endif
