@@ -115,37 +115,67 @@ public abstract class SSL {
                     }
                     String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
                     String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
+                    List<String> paths = new ArrayList<>();
                     if(path != null) {
-                        List<String> attempted = new ArrayList<>();
+                        paths.add(path);
+                    }
+                    for(String p : System.getProperty("java.library.path").split(":")) {
+                        if(p != null) {
+                            paths.add(p);
+                        }
+                    }
+                    List<String> attemptedSSL = new ArrayList<>();
+                    List<String> attemptedCrypto = new ArrayList<>();
+                    for(String p : paths) {
+                        if(sslPath != null && cryptoPath != null) {
+                            break;
+                        }
                         if(sslPath == null) {
                             for (String ssl : LIBSSL_NAMES) {
                                 String lib = System.mapLibraryName(ssl);
-                                File file = new File(path, lib);
+                                File file = new File(p, lib);
                                 if (file.exists()) {
                                     sslPath = file.getAbsolutePath();
                                     break;
                                 }
-                                attempted.add(file.getAbsolutePath());
+                                attemptedSSL.add(file.getAbsolutePath());
                             }
                             if (sslPath == null) {
-                                throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH , attempted.toString()));
+                                for (String ssl : LIBSSL_NAMES) {
+                                    String lib = System.mapLibraryName(ssl);
+                                    sslPath = searchForVersionedLibrary(p, lib);
+                                    if (sslPath != null) {
+                                        break;
+                                    }
+                                }
                             }
                         }
-                        attempted.clear();
                         if(cryptoPath == null) {
                             for (String crypto : LIBCRYPTO_NAMES) {
                                 String lib = System.mapLibraryName(crypto);
-                                File file = new File(path, lib);
+                                File file = new File(p, lib);
                                 if (file.exists()) {
                                     cryptoPath = file.getAbsolutePath();
                                     break;
                                 }
-                                attempted.add(file.getAbsolutePath());
+                                attemptedCrypto.add(file.getAbsolutePath());
                             }
                             if (cryptoPath == null) {
-                                throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attempted.toString()));
+                                for (String crypto : LIBCRYPTO_NAMES) {
+                                    String lib = System.mapLibraryName(crypto);
+                                    cryptoPath = searchForVersionedLibrary(p, lib);
+                                    if (cryptoPath != null) {
+                                        break;
+                                    }
+                                }
                             }
                         }
+                    }
+                    if (sslPath == null) {
+                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH, attemptedSSL.toString()));
+                    }
+                    if (cryptoPath == null) {
+                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attemptedCrypto.toString()));
                     }
                     instance.initialize(cryptoPath, sslPath);
                     String version = instance.version();
@@ -157,6 +187,19 @@ public abstract class SSL {
                 }
             }
         }
+    }
+
+    private static String searchForVersionedLibrary(String path, String lib) {
+        File file = new File(path);
+        String[] files = file.list();
+        if(files != null) {
+            for (String test : files) {
+                if(test.startsWith(lib)) {
+                    return new File(path, test).getAbsolutePath();
+                }
+            }
+        }
+        return null;
     }
 
     private static final class LibraryClassLoader extends ClassLoader {
