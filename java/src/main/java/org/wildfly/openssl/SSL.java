@@ -119,7 +119,7 @@ public abstract class SSL {
                     if(path != null) {
                         paths.add(path);
                     }
-                    for(String p : System.getProperty("java.library.path").split(":")) {
+                    for(String p : System.getProperty("java.library.path").split(File.pathSeparator)) {
                         if(p != null) {
                             paths.add(p);
                         }
