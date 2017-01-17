@@ -92,7 +92,7 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-linux-i686</artifactId>
+                    <artifactId>wildfly-openssl-linux-i386</artifactId>
                     <version>${project.version}</version>
                 </dependency>
                 <dependency>
@@ -116,7 +116,7 @@
             <dependencies>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-windows-i686</artifactId>
+                    <artifactId>wildfly-openssl-windows-i386</artifactId>
                     <version>${project.version}</version>
                 </dependency>
             </dependencies>
@@ -198,7 +198,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-windows-i686</artifactId>
+                    <artifactId>wildfly-openssl-windows-i386</artifactId>
                     <version>${project.version}</version>
                 </dependency>
                 <dependency>
@@ -208,7 +208,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-linux-i686</artifactId>
+                    <artifactId>wildfly-openssl-linux-i386</artifactId>
                     <version>${project.version}</version>
                 </dependency>
                 <dependency>

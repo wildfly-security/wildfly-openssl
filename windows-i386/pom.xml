@@ -27,7 +27,7 @@
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
-    <artifactId>wildfly-openssl-linux-i686</artifactId>
+    <artifactId>wildfly-openssl-windows-i386</artifactId>
     <version>1.0.0.Beta3-SNAPSHOT</version>
 
     <packaging>jar</packaging>
@@ -53,7 +53,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>make</executable>
+                    <executable>nmake</executable>
                 </configuration>
             </plugin>
         </plugins>

@@ -185,17 +185,15 @@ WF_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArr
 
 jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session) {
 
-    unsigned int len;
-    const unsigned char *session_id;
+    jsize len;
+    const jbyte *session_id;
     session_id = ssl_methods.SSL_SESSION_get_id(session, &len);
-
     if (len == 0 || session_id == NULL) {
         return NULL;
     }
-
     jbyteArray bArray;
     bArray = (*e)->NewByteArray(e, len);
-    (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*) session_id);
+    (*e)->SetByteArrayRegion(e, bArray, 0, len, session_id);
     return bArray;
 }
 

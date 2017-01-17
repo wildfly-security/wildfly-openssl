@@ -122,7 +122,7 @@
             </activation>
             <modules>
                 <module>linux-x86_64</module>
-                <module>linux-i686</module>
+                <module>linux-i386</module>
             </modules>
         </profile>
         <profile>
@@ -179,7 +179,7 @@
                 <openssl.path>C:\OpenSSL-Win32\bin</openssl.path>
             </properties>
             <modules>
-                <module>windows-i686</module>
+                <module>windows-i386</module>
             </modules>
         </profile>
     </profiles>
