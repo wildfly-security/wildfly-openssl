@@ -285,7 +285,12 @@ int new_session_cb(SSL * ssl, SSL_SESSION * session) {
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
     jbyteArray sessionId = getSessionId(e, session);
 
-    (*e)->CallVoidMethod(e, c->session_context, sessionInit, ssl, session, sessionId);
+    jvalue value[3];
+    value[0].j = ssl;
+    value[1].j = session;
+    value[2].l = sessionId;
+
+    (*e)->CallVoidMethodA(e, c->session_context, sessionInit, value);
 
     (*javavm)->DetachCurrentThread(javavm);
     return 1;
@@ -297,7 +302,11 @@ void remove_session_cb(SSL_CTX *ctx, SSL_SESSION * session) {
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
     jbyteArray sessionId = getSessionId(e, session);
 
-    (*e)->CallVoidMethod(e, c->session_context, sessionRemove, sessionId);
+
+    jvalue value[1];
+    value[0].l = sessionId;
+
+    (*e)->CallVoidMethodA(e, c->session_context, sessionRemove, sessionId);
 
     (*javavm)->DetachCurrentThread(javavm);
 }
