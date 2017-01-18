@@ -201,7 +201,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        sslEngine.setEnabledProtocols(suites);
+        sslEngine.setEnabledCipherSuites(suites);
     }
 
     @Override
