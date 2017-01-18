@@ -43,6 +43,27 @@ public class Messages {
     private static final String MSG11 = formatCode(11);
     private static final String MSG12 = formatCode(12);
     private static final String MSG13 = formatCode(13);
+    private static final String MSG14 = formatCode(14);
+    private static final String MSG15 = formatCode(15);
+    private static final String MSG16 = formatCode(16);
+    private static final String MSG17 = formatCode(17);
+    private static final String MSG18 = formatCode(18);
+    private static final String MSG19 = formatCode(19);
+    private static final String MSG20 = formatCode(20);
+    private static final String MSG21 = formatCode(21);
+    private static final String MSG22 = formatCode(22);
+    private static final String MSG23 = formatCode(23);
+    private static final String MSG24 = formatCode(24);
+    private static final String MSG25 = formatCode(25);
+    private static final String MSG26 = formatCode(26);
+    private static final String MSG27 = formatCode(27);
+    private static final String MSG28 = formatCode(28);
+    private static final String MSG29 = formatCode(29);
+    private static final String MSG30 = formatCode(30);
+    private static final String MSG31 = formatCode(31);
+    private static final String MSG32 = formatCode(32);
+    private static final String MSG33 = formatCode(33);
+    private static final String MSG34 = formatCode(34);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -111,5 +132,74 @@ public class Messages {
 
     public String unsupportedProtocol(String p) {
         return interpolate(MSG13, p);
+    }
+
+    public String failedToInitializeCiphers() {
+        return interpolate(MSG14);
+    }
+
+    public String failedToMakeSslContext() {
+        return interpolate(MSG15);
+    }
+
+    public String failedToInitializeSslContext() {
+        return interpolate(MSG16);
+    }
+
+    public String ignoringSecondInit() {
+        return interpolate(MSG17);
+    }
+
+    public String couldNotFileSuitableKeyManager() {
+        return interpolate(MSG18);
+    }
+    public String keyManagerDoesNotContainValidCertificates() {
+        return interpolate(MSG19);
+    }
+    public String keyManagerIsMissing() {
+        return interpolate(MSG20);
+    }
+    public String trustManagerIsMissing() {
+        return interpolate(MSG21);
+    }
+    public String engineIsClosed() {
+        return interpolate(MSG22);
+    }
+
+    public String renegotiationNotSupported() {
+        return interpolate(MSG23);
+    }
+    public String oversidedPacket() {
+        return interpolate(MSG24);
+    }
+    public String bufferAlreadyFreed() {
+        return interpolate(MSG25);
+    }
+    public String bufferLeakDetected() {
+        return interpolate(MSG26);
+    }
+    public String nameWasNull() {
+        return interpolate(MSG27);
+    }
+    public String valueWasNull() {
+        return interpolate(MSG28);
+    }
+    public String unverifiedPeer() {
+        return interpolate(MSG29);
+    }
+    public String runningHandshakeWithBufferedData() {
+        return interpolate(MSG30);
+    }
+    public String connectionClosed() {
+        return interpolate(MSG31);
+    }
+    public String bufferOverflow() {
+        return interpolate(MSG32);
+    }
+    public String bufferUnderflow() {
+        return interpolate(MSG33);
+    }
+    public String unsupportedAddressType() {
+        return interpolate(MSG34);
     }
 }

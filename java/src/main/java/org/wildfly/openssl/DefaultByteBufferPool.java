@@ -217,7 +217,7 @@ class DefaultByteBufferPool {
         @Override
         public ByteBuffer getBuffer() {
             if (referenceCount == 0) {
-                throw new RuntimeException("Buffer already freed");
+                throw new RuntimeException(Messages.MESSAGES.bufferAlreadyFreed());
             }
             return buffer;
         }
@@ -271,7 +271,7 @@ class DefaultByteBufferPool {
         private final Throwable allocationPoint;
 
         private LeakDetector() {
-            this.allocationPoint = new Throwable("Buffer leak detected");
+            this.allocationPoint = new Throwable(Messages.MESSAGES.bufferLeakDetected());
         }
 
         @Override

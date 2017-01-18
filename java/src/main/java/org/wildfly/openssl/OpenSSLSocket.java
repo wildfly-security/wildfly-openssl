@@ -17,6 +17,8 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.Messages.MESSAGES;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -338,7 +340,7 @@ public class OpenSSLSocket extends SSLSocket {
                             if (read > 0) {
                                 indirectPooled.getBuffer().limit(readOffset);
                                 if (unwrappedData != null) {
-                                    throw new IllegalStateException("Running handshake with buffered unwrapped data");
+                                    throw new IllegalStateException(MESSAGES.runningHandshakeWithBufferedData());
                                 }
                                 unwrappedData = DefaultByteBufferPool.DIRECT_POOL.allocate();
                                 buffer.clear();
@@ -356,7 +358,7 @@ public class OpenSSLSocket extends SSLSocket {
                                 break;
                             } else {
                                 close();
-                                throw new SSLException("handshake failed: underlying connection was closed");
+                                throw new SSLException(MESSAGES.connectionClosed());
                             }
                         }
                     }
@@ -457,7 +459,7 @@ public class OpenSSLSocket extends SSLSocket {
                         return ret;
                     } else {
                         close();
-                        throw new SSLException("handshake failed: underlying connection was closed");
+                        throw new SSLException(MESSAGES.connectionClosed());
                     }
                 }
             } catch (IOException | RuntimeException e) {
@@ -509,10 +511,10 @@ public class OpenSSLSocket extends SSLSocket {
                         compressedPooled.getBuffer().flip();
                         if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                             close();
-                            throw new IOException("Buffer overflow");//should never happen
+                            throw new IOException(MESSAGES.bufferOverflow());//should never happen
                         } else if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                             close();
-                            throw new IOException("Buffer underflow");//should never happen
+                            throw new IOException(MESSAGES.bufferUnderflow());//should never happen
                         }
                         int produced = result.bytesProduced();
                         if (produced > 0) {
@@ -549,7 +551,7 @@ public class OpenSSLSocket extends SSLSocket {
         }
 
         if (!(endpoint instanceof InetSocketAddress))
-            throw new IllegalArgumentException("Unsupported address type");
+            throw new IllegalArgumentException(MESSAGES.unsupportedAddressType());
         final InetSocketAddress address = (InetSocketAddress) endpoint;
         sslEngine.setHost(address.getHostName());
         sslEngine.setPort(address.getPort());
@@ -564,7 +566,7 @@ public class OpenSSLSocket extends SSLSocket {
         }
 
         if (!(endpoint instanceof InetSocketAddress))
-            throw new IllegalArgumentException("Unsupported address type");
+            throw new IllegalArgumentException(MESSAGES.unsupportedAddressType());
         final InetSocketAddress address = (InetSocketAddress) endpoint;
         sslEngine.setHost(address.getHostName());
         sslEngine.setPort(address.getPort());

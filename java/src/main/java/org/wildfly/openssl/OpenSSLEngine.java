@@ -39,9 +39,9 @@ public final class OpenSSLEngine extends SSLEngine {
     private static final Logger LOG = Logger.getLogger(OpenSSLEngine.class.getName());
 
 
-    private static final SSLException ENGINE_CLOSED = new SSLException("Engine is closed");
-    private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException("Renegotiation is not supported");
-    private static final SSLException ENCRYPTED_PACKET_OVERSIZED = new SSLException("Oversized packet");
+    private static final SSLException ENGINE_CLOSED = new SSLException(MESSAGES.engineIsClosed());
+    private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException(MESSAGES.renegotiationNotSupported());
+    private static final SSLException ENCRYPTED_PACKET_OVERSIZED = new SSLException(MESSAGES.oversidedPacket());
 
     static {
         ENGINE_CLOSED.setStackTrace(new StackTraceElement[0]);

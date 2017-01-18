@@ -106,7 +106,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                             SSL.getInstance().freeSSLContext(sslCtx);
                         }
                     } catch (Exception e) {
-                        LOG.log(Level.WARNING, "Failed to initialize ciphers", e);
+                        LOG.log(Level.WARNING, Messages.MESSAGES.failedToInitializeCiphers(), e);
                     }
                     allAvailableCiphers = availableCipherSuites.toArray(new String[availableCipherSuites.size()]);
                 }
@@ -125,7 +125,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
                 // the AprLifecycleListener settings from here
-                throw new SSLException("Failed to make SSL context", e);
+                throw new SSLException(Messages.MESSAGES.failedToMakeSslContext(), e);
             }
             try {
                 //disable unsafe renegotiation
@@ -162,7 +162,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 LOG.fine("The version of SSL in use does not support disabling session tickets");
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialise OpenSSL context", e);
+            throw new RuntimeException(Messages.MESSAGES.failedToInitializeSslContext(), e);
         }
 
     }
@@ -176,7 +176,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
      */
     private synchronized void init(KeyManager[] kms, TrustManager[] tms) throws KeyManagementException {
         if (initialized) {
-            LOG.warning("Ignoring second invocation of init() method");
+            LOG.warning(Messages.MESSAGES.ignoringSecondInit());
             return;
         }
 
@@ -184,7 +184,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
             if (keyManager == null) {
-                throw new IllegalArgumentException("could not find suitable trust manager");
+                throw new IllegalArgumentException(Messages.MESSAGES.couldNotFileSuitableKeyManager());
             }
             boolean oneFound = false;
             for (String algorithm : ALGORITHMS) {
@@ -207,7 +207,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
 
             if (!oneFound) {
-                throw new IllegalStateException("KeyManager does not contain a valid certificates");
+                throw new IllegalStateException(Messages.MESSAGES.keyManagerDoesNotContainValidCertificates());
             }
             /*
             // Support Client Certificates
@@ -262,7 +262,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 return (X509KeyManager) tm;
             }
         }
-        throw new IllegalStateException("Key manager is missing");
+        throw new IllegalStateException(Messages.MESSAGES.keyManagerIsMissing());
     }
 
     static X509TrustManager chooseTrustManager(TrustManager[] managers) {
@@ -271,7 +271,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 return (X509TrustManager) m;
             }
         }
-        throw new IllegalStateException("Trust manager is missing");
+        throw new IllegalStateException(Messages.MESSAGES.trustManagerIsMissing());
     }
 
     private static X509Certificate[] certificates(byte[][] chain) {

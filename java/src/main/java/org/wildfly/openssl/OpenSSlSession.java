@@ -102,10 +102,10 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized void putValue(String name, Object value) {
         if (name == null) {
-            throw new IllegalArgumentException("Name was null");
+            throw new IllegalArgumentException(Messages.MESSAGES.nameWasNull());
         }
         if (value == null) {
-            throw new IllegalArgumentException("Value was null");
+            throw new IllegalArgumentException(Messages.MESSAGES.valueWasNull());
         }
         Map<String, Object> values = this.values;
         if (values == null) {
@@ -122,7 +122,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized Object getValue(String name) {
         if (name == null) {
-            throw new IllegalArgumentException("Name was null");
+            throw new IllegalArgumentException(Messages.MESSAGES.nameWasNull());
         }
         if (values == null) {
             return null;
@@ -133,7 +133,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public synchronized void removeValue(String name) {
         if (name == null) {
-            throw new IllegalArgumentException("Name was null");
+            throw new IllegalArgumentException(Messages.MESSAGES.nameWasNull());
         }
         Map<String, Object> values = this.values;
         if (values == null) {
@@ -161,7 +161,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         if (peerCerts == null) {
-            throw new SSLPeerUnverifiedException("Unverified Peer");
+            throw new SSLPeerUnverifiedException(Messages.MESSAGES.unverifiedPeer());
         }
         return peerCerts;
     }
@@ -175,7 +175,7 @@ class OpenSSlSession implements SSLSession {
     @Override
     public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
         if (x509PeerCerts == null) {
-            throw new SSLPeerUnverifiedException("Unverified Peer");
+            throw new SSLPeerUnverifiedException(Messages.MESSAGES.unverifiedPeer());
         }
         return x509PeerCerts;
     }
