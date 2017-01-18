@@ -4,6 +4,7 @@ target
 .settings
 .project
 .classpath
+.checkstyle
 *~
 local-test
 out
