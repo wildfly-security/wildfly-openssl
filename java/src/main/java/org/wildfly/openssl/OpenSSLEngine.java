@@ -99,6 +99,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private final long sslCtx;
     private long ssl = 0;
     private long networkBIO = 0;
+    private int serverSelectedCipher = -1;
 
     private final OpenSSLContextSPI openSSLContextSPI;
     /**
@@ -387,6 +388,12 @@ public final class OpenSSLEngine extends SSLEngine {
             } catch (Exception e) {
                 throw new SSLException(e);
             }
+            if(serverSelectedCipher == -1 && !clientMode) {
+                ByteBuffer duplicate = dst.duplicate();
+                duplicate.flip();
+                serverSelectedCipher = OpenSSLServerHelloExplorer.getCipherSuite(duplicate);
+                SSL.getInstance().saveServerCipher(ssl, serverSelectedCipher);
+            }
 
             // If isOuboundDone is set, then the data from the network BIO
             // was the close_notify message -- we are not required to wait
@@ -431,7 +438,12 @@ public final class OpenSSLEngine extends SSLEngine {
                     } catch (Exception e) {
                         throw new SSLException(e);
                     }
-
+                    if(serverSelectedCipher == -1 && !clientMode) {
+                        ByteBuffer duplicate = dst.duplicate();
+                        duplicate.flip();
+                        serverSelectedCipher = OpenSSLServerHelloExplorer.getCipherSuite(duplicate);
+                        SSL.getInstance().saveServerCipher(ssl, serverSelectedCipher);
+                    }
                     return new SSLEngineResult(getEngineStatus(), getHandshakeStatus(), bytesConsumed, bytesProduced);
                 }
             }

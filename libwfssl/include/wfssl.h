@@ -446,6 +446,7 @@ typedef struct {
     int             shutdown_type;
     jobject         alpn_selection_callback;
     int             handshake_done;
+    int             server_cipher;
     /* Track the handshake/renegotiation state for the connection so
      * that all client-initiated renegotiations can be rejected, as a
      * partial fix for CVE-2009-3555.

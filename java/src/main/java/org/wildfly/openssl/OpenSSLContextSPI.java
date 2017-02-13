@@ -226,20 +226,19 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             SSL.getInstance().setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
             if (tms != null) {
                 final X509TrustManager manager = chooseTrustManager(tms);
-                SSL.getInstance().setCertVerifyCallback(ctx, new CertificateVerifier() {
-                    @Override
-                    public boolean verify(long ssl, byte[][] chain, String auth) {
-                        X509Certificate[] peerCerts = certificates(chain);
-                        try {
-                            manager.checkClientTrusted(peerCerts, auth);
-                            return true;
-                        } catch (Exception e) {
-                            if (LOG.isLoggable(Level.FINE)) {
-                                LOG.log(Level.FINE, "Certificate verification failed", e);
-                            }
+                SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo) -> {
+                    X509Certificate[] peerCerts = certificates(chain);
+                    Cipher cipher = Cipher.valueOf(cipherNo);
+                    String auth = cipher == null ? "RSA" : cipher.getAu().toString();
+                    try {
+                        manager.checkClientTrusted(peerCerts, auth);
+                        return true;
+                    } catch (Exception e) {
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.log(Level.FINE, "Certificate verification failed", e);
                         }
-                        return false;
                     }
+                    return false;
                 });
             }
 

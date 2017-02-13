@@ -655,6 +655,8 @@ public abstract class SSL {
 
     protected abstract int getSSLError(long ssl, int code);
 
+    protected abstract int saveServerCipher(long ssl, int cipher);
+
     /**
      * SSL_renegotiate
      *

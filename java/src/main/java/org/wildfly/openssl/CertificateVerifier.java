@@ -28,8 +28,7 @@ public interface CertificateVerifier {
      *
      * @param ssl               the SSL instance
      * @param x509              the {@code X509} certificate chain
-     * @param authAlgorithm     the auth algorithm
      * @return verified         {@code true} if verified successful, {@code false} otherwise
      */
-    boolean verify(long ssl, byte[][] x509, String authAlgorithm);
+    boolean verify(long ssl, byte[][] x509, int cipher);
 }

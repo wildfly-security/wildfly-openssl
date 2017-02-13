@@ -936,6 +936,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     /* Get Apache context back through OpenSSL context */
     SSL *ssl = crypto_methods.X509_STORE_CTX_get_ex_data(ctx, ssl_methods.SSL_get_ex_data_X509_STORE_CTX_idx());
     tcn_ssl_ctxt_t *c = SSL_get_app_data2(ssl);
+    tcn_ssl_conn_t *conn = SSL_get_app_data1(ssl);
 
 
     // Get a stack of all certs in the chain
@@ -989,7 +990,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     authMethodString = (*e)->NewStringUTF(e, "");
 
     result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
-            authMethodString);
+            conn->server_cipher);
 
     r = result == JNI_TRUE ? 1 : 0;
 
@@ -1012,7 +1013,7 @@ WF_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject
         ssl_methods.SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
-        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BLjava/lang/String;)Z");
+        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BI)Z");
 
         if (method == NULL) {
             return;
@@ -1185,6 +1186,20 @@ WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     UNREFERENCED(o);
 
     return ssl_methods.SSL_do_handshake(ssl_);
+}
+
+
+WF_OPENSSL(jint, saveServerCipher)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jint server_cipher) {
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *ssl_ = J2P(ssl, SSL *);
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return 0;
+    }
+
+    UNREFERENCED(o);
+    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
+    con->server_cipher = server_cipher;
 }
 
 
