@@ -1220,8 +1220,10 @@ WF_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     }
 
     UNREFERENCED(o);
-
-    return ssl_methods.SSL_renegotiate(ssl_);
+    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
+    con->handshake_done = 0;
+    ssl_methods.SSL_renegotiate(ssl_);
+    return ssl_methods.SSL_do_handshake(ssl_);
 }
 
 

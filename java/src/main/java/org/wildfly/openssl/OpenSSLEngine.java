@@ -111,6 +111,8 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean handshakeFinished;
     private boolean receivedShutdown;
     private volatile int destroyed;
+    private boolean wantClientAuth = false;
+    private boolean needClientAuth = false;
 
 
     private volatile ClientAuthMode clientAuth = ClientAuthMode.NONE;
@@ -369,7 +371,6 @@ public final class OpenSSLEngine extends SSLEngine {
         if ((!handshakeFinished || engineClosed) && handshakeStatus == SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
             return new SSLEngineResult(getEngineStatus(), SSLEngineResult.HandshakeStatus.NEED_UNWRAP, 0, 0);
         }
-
         int bytesProduced = 0;
         int pendingNet;
 
@@ -803,7 +804,14 @@ public final class OpenSSLEngine extends SSLEngine {
         if (!handshakeFinished) {
             return getHandshakeSession();
         }
-        return getSessionContext().getSession(SSL.getInstance().getSessionId(getSsl()));
+        SSLSession session = getSessionContext().getSession(SSL.getInstance().getSessionId(getSsl()));
+        if(session == null) {
+            if(handshakeSession == null) {
+                handshakeSession = new OpenSSlSession(!clientMode, getSessionContext());
+            }
+            return handshakeSession;
+        }
+        return session;
     }
 
     @Override
@@ -1028,7 +1036,8 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setNeedClientAuth(boolean b) {
-        setClientAuth(b ? ClientAuthMode.REQUIRE : ClientAuthMode.NONE);
+        needClientAuth = b;
+        setClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
     }
 
     @Override
@@ -1038,7 +1047,8 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setWantClientAuth(boolean b) {
-        setClientAuth(b ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
+        wantClientAuth = b;
+        setClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
     }
 
     @Override

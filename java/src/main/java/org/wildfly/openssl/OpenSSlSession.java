@@ -52,7 +52,7 @@ class OpenSSlSession implements SSLSession {
 
     private volatile byte[] sessionId;
     private volatile long sessionPointer;
-    private boolean valid = true;
+    private volatile boolean valid = true;
     private String cipherSuite = OpenSSLEngine.INVALID_CIPHER;
     private String protocol = "TLS";
 
@@ -85,9 +85,11 @@ class OpenSSlSession implements SSLSession {
     }
 
     @Override
-    public void invalidate() {
+    public synchronized void invalidate() {
         if (valid) {
-            SSL.getInstance().invalidateSession(sessionPointer);
+            if(sessionPointer > 0) {
+                SSL.getInstance().invalidateSession(sessionPointer);
+            }
             sessionContext.remove(sessionId);
             sessionPointer = 0;
             valid = false;
