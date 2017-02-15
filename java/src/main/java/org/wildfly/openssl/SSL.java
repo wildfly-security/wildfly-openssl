@@ -90,13 +90,13 @@ public abstract class SSL {
                         Runtime.getRuntime().load(libPath);
                         instance = new SSLImpl();
                     }
-                    String path = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
+                    String specifiedPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
 
-                    if (path != null && path.isEmpty()) {
-                        path = null;
+                    if (specifiedPath != null && specifiedPath.isEmpty()) {
+                        specifiedPath = null;
                     }
-                    if (path != null && !path.endsWith("/")) {
-                        path = path + "/";
+                    if (specifiedPath != null && !specifiedPath.endsWith("/")) {
+                        specifiedPath = specifiedPath + "/";
                     }
                     //mac OS ships with an old version of OpenSSL by default that we know won't work
                     //as a workaround we look for the one installed by brew instead
@@ -104,6 +104,7 @@ public abstract class SSL {
                     //1) user specified location
                     //2) homebrew default location
                     //3) system default
+                    String path = specifiedPath;
                     if (path == null) {
                         String os = System.getProperty("os.name").toLowerCase();
                         if (os.contains("mac")) {
@@ -113,8 +114,8 @@ public abstract class SSL {
                             }
                         }
                     }
-                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
-                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
+                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL, specifiedPath);
+                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO, specifiedPath);
                     List<String> paths = new ArrayList<>();
                     if(path != null) {
                         paths.add(path);
