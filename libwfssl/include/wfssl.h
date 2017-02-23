@@ -479,8 +479,6 @@ typedef struct {
     int (*SSL_CTX_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
     int (*SSL_get_ex_new_index)(long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
 
-    /* 1.1 versions */
-    int (*CRYPTO_get_ex_new_index)(int class_index, long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
 
     const char *	(*SSL_CIPHER_get_name)(const SSL_CIPHER *c);
     int (*SSL_CTX_check_private_key)(const SSL_CTX *ctx);
@@ -555,6 +553,9 @@ typedef struct {
 } ssl_dynamic_methods;
 
 typedef struct {
+    /* 1.1 versions */
+    int (*CRYPTO_get_ex_new_index)(int class_index, long argl, void *argp, CRYPTO_EX_new *new_func, CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func);
+
     int (*ASN1_INTEGER_cmp)(const ASN1_INTEGER *x, const ASN1_INTEGER *y);
     long (*BIO_ctrl)(BIO *bp, int cmd, long larg, void *parg);
     size_t (*BIO_ctrl_pending)(BIO *b);

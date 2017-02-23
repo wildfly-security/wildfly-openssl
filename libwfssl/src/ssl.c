@@ -53,10 +53,10 @@ void init_app_data_idx(void)
         SSL_app_data3_idx = ssl_methods.SSL_get_ex_new_index(0, "Third Application Data for SSL", NULL, NULL, NULL);
         SSL_CTX_app_data1_idx = ssl_methods.SSL_CTX_get_ex_new_index(0, "First Application Data for SSL_CTX", NULL, NULL, NULL);
     } else {
-        SSL_app_data1_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "First Application Data for SSL", NULL, NULL, NULL);
-        SSL_app_data2_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Second Application Data for SSL", NULL, NULL, NULL);
-        SSL_app_data3_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Third Application Data for SSL", NULL, NULL, NULL);
-        SSL_CTX_app_data1_idx = ssl_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL_CTX, 0, "First Application Data for SSL_CTX", NULL, NULL, NULL);
+        SSL_app_data1_idx = crypto_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "First Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data2_idx = crypto_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Second Application Data for SSL", NULL, NULL, NULL);
+        SSL_app_data3_idx = crypto_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL, 0, "Third Application Data for SSL", NULL, NULL, NULL);
+        SSL_CTX_app_data1_idx = crypto_methods.CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_SSL_CTX, 0, "First Application Data for SSL_CTX", NULL, NULL, NULL);
     }
 }
 /*the the SSL context structure associated with the context*/
@@ -238,7 +238,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     if(ssl_methods.SSL_CTX_get_ex_new_index != NULL) {
         REQUIRE_SSL_SYMBOL(SSL_get_ex_new_index);
     } else {
-        REQUIRE_SSL_SYMBOL(CRYPTO_get_ex_new_index)
+        REQUIRE_CRYPTO_SYMBOL(CRYPTO_get_ex_new_index)
     }
 
     REQUIRE_SSL_SYMBOL(SSL_CIPHER_get_name);

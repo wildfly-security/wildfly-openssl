@@ -45,8 +45,8 @@ public abstract class SSL {
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
 
-    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32"};
-    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "ssl", "ssleay32", "libssl32"};
+    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32", "libcrypto-1_1"};
+    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "ssl", "ssleay32", "libssl32", "libssl-1_1"};
 
     public SSL() {
     }
@@ -95,8 +95,8 @@ public abstract class SSL {
                     if (specifiedPath != null && specifiedPath.isEmpty()) {
                         specifiedPath = null;
                     }
-                    if (specifiedPath != null && !specifiedPath.endsWith("/")) {
-                        specifiedPath = specifiedPath + "/";
+                    if (specifiedPath != null && !specifiedPath.endsWith(File.separator)) {
+                        specifiedPath = specifiedPath + File.separator;
                     }
                     //mac OS ships with an old version of OpenSSL by default that we know won't work
                     //as a workaround we look for the one installed by brew instead
@@ -114,15 +114,19 @@ public abstract class SSL {
                             }
                         }
                     }
-                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL, specifiedPath);
-                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO, specifiedPath);
+                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
+                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
                     List<String> paths = new ArrayList<>();
-                    if(path != null) {
-                        paths.add(path);
-                    }
-                    for(String p : System.getProperty("java.library.path").split(File.pathSeparator)) {
-                        if(p != null) {
-                            paths.add(p);
+                    if(specifiedPath != null) {
+                        paths.add(specifiedPath);
+                    } else {
+                        if (path != null) {
+                            paths.add(path);
+                        }
+                        for (String p : System.getProperty("java.library.path").split(File.pathSeparator)) {
+                            if (p != null) {
+                                paths.add(p);
+                            }
                         }
                     }
                     List<String> attemptedSSL = new ArrayList<>();
