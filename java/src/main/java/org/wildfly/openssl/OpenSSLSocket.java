@@ -400,14 +400,11 @@ public class OpenSSLSocket extends SSLSocket {
     public int read(byte[] b, int off, int len) throws IOException {
         if (unwrappedData != null) {
             ByteBuffer buf = unwrappedData.getBuffer();
-            int oldLimit = buf.limit();
             int read = buf.remaining();
             if (len < buf.remaining()) {
-                buf.limit(buf.position() + len);
                 read = len;
             }
-            buf.get(b, off, len);
-            buf.limit(oldLimit);
+            buf.get(b, off, read);
             if (!buf.hasRemaining()) {
                 unwrappedData.close();
                 unwrappedData = null;
