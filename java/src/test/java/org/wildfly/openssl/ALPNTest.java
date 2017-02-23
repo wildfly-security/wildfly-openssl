@@ -40,7 +40,7 @@ public class ALPNTest extends AbstractOpenSSLTest {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 OpenSSLEngine openSSLEngine = (OpenSSLEngine) engine;

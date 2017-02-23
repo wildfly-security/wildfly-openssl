@@ -867,6 +867,11 @@ public final class OpenSSLEngine extends SSLEngine {
                     SSL.getInstance().setServerALPNCallback(ssl, new ServerALPNCallback() {
                         @Override
                         public String select(String[] data) {
+                            String version = SSL.getInstance().getVersion(ssl);
+                            if(version == null || !version.equals("TLSv1.2")) {
+                                //only offer ALPN on TLS 1.2
+                                return null;
+                            }
                             for (String proto : applicationProtocols) {
                                 for (String clientProto : data) {
                                     if (clientProto.equals(proto)) {

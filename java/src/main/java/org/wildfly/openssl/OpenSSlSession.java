@@ -298,9 +298,7 @@ class OpenSSlSession implements SSLSession {
     }
 
     private void initProtcol(long ssl) {
-        //TODO: fix this
-        String version = SSL.getInstance().getVersion(ssl);
-        protocol = "TLS:" + version;
+        protocol = SSL.getInstance().getVersion(ssl);
     }
 
     private void initCipherSuite(long ssl) {
