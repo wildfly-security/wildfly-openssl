@@ -18,6 +18,7 @@
 package org.wildfly.openssl;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -34,7 +35,7 @@ import org.junit.Test;
 public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
 
     @Test
-    public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
+    public void basicOpenSSLTest1() throws IOException, NoSuchAlgorithmException, InterruptedException {
 
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
@@ -57,4 +58,27 @@ public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
         }
     }
 
+    @Test
+    public void basicOpenSSLTest2() throws IOException, NoSuchAlgorithmException, InterruptedException {
+
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
+            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
+
+            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createSSLContext("TLSv1"), sessionID));
+            acceptThread.start();
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+            InetSocketAddress socketAddress = (InetSocketAddress) SSLTestUtils.createSocketAddress();
+            final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket(socketAddress.getAddress(), socketAddress.getPort());
+            socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
+            byte[] data = new byte[100];
+            int read = socket.getInputStream().read(data);
+
+            Assert.assertEquals("hello world", new String(data, 0, read));
+            //TODO: fix client session id
+            //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            serverSocket.close();
+            acceptThread.join();
+        }
+    }
 }

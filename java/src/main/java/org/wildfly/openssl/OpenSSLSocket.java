@@ -27,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -60,57 +59,58 @@ public class OpenSSLSocket extends SSLSocket {
     private final boolean autoclose;
 
     protected OpenSSLSocket(OpenSSLEngine sslEngine) {
-        super();
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
-        delegate = this;
+        delegate = null;
         this.autoclose = true;
     }
 
-    protected OpenSSLSocket(String host, int port, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
-        super(host, port);
+    protected OpenSSLSocket(String host, int port, OpenSSLEngine sslEngine) throws IOException {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
-        delegate = this;
+        delegate = null;
         this.autoclose = true;
         sslEngine.setHost(host);
         sslEngine.setPort(port);
+        connect(new InetSocketAddress(host, port));
     }
 
     protected OpenSSLSocket(InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
-        super(address, port);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
-        delegate = this;
+        delegate = null;
         this.autoclose = true;
         sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
+        connect(new InetSocketAddress(address, port));
     }
 
-    protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
-        super(host, port, clientAddress, clientPort);
+    protected OpenSSLSocket(String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
-        delegate = this;
+        delegate = null;
         this.autoclose = true;
         sslEngine.setHost(host);
         sslEngine.setPort(port);
+        bind(new InetSocketAddress(clientAddress, clientPort));
+        connect(new InetSocketAddress(host, port));
 
     }
 
     protected OpenSSLSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
-        super(address, port, clientAddress, clientPort);
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
-        delegate = this;
+        delegate = null;
         this.autoclose = true;
         sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
+        bind(new InetSocketAddress(clientAddress, clientPort));
+        connect(new InetSocketAddress(address, port));
     }
 
     protected OpenSSLSocket(Socket socket, boolean autoclose, OpenSSLEngine sslEngine) {
@@ -122,47 +122,14 @@ public class OpenSSLSocket extends SSLSocket {
         this.autoclose = autoclose;
     }
 
-    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
-        super(host, port);
+    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, OpenSSLEngine sslEngine) throws IOException {
+        super();
         this.sslEngine = sslEngine;
         this.sslOut = new OpenSSLOutputStream(this);
         this.sslIn = new OpenSSLInputStream(this);
         this.delegate = socket;
         this.autoclose = autoclose;
         sslEngine.setHost(host);
-        sslEngine.setPort(port);
-    }
-
-    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, OpenSSLEngine sslEngine) throws IOException {
-        super(address, port);
-        this.sslEngine = sslEngine;
-        this.sslOut = new OpenSSLOutputStream(this);
-        this.sslIn = new OpenSSLInputStream(this);
-        this.delegate = socket;
-        this.autoclose = autoclose;
-        sslEngine.setHost(address.getHostName());
-        sslEngine.setPort(port);
-    }
-
-    protected OpenSSLSocket(Socket socket, boolean autoclose, String host, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException, UnknownHostException {
-        super(host, port, clientAddress, clientPort);
-        this.sslEngine = sslEngine;
-        this.sslOut = new OpenSSLOutputStream(this);
-        this.sslIn = new OpenSSLInputStream(this);
-        this.delegate = socket;
-        this.autoclose = autoclose;
-        sslEngine.setHost(host);
-        sslEngine.setPort(port);
-    }
-
-    protected OpenSSLSocket(Socket socket, boolean autoclose, InetAddress address, int port, InetAddress clientAddress, int clientPort, OpenSSLEngine sslEngine) throws IOException {
-        super(address, port, clientAddress, clientPort);
-        this.sslEngine = sslEngine;
-        this.sslOut = new OpenSSLOutputStream(this);
-        this.sslIn = new OpenSSLInputStream(this);
-        this.delegate = socket;
-        this.autoclose = autoclose;
-        sslEngine.setHost(address.getHostName());
         sslEngine.setPort(port);
     }
 
@@ -300,7 +267,7 @@ public class OpenSSLSocket extends SSLSocket {
             dataToUnwrap.close();
             dataToUnwrap = null;
         }
-        if (delegate == this) {
+        if (delegate == null) {
             super.close();
         } else if (autoclose) {
             delegate.close();
@@ -385,7 +352,7 @@ public class OpenSSLSocket extends SSLSocket {
     }
 
     private InputStream getDelegateInputStream() throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getInputStream();
         }
         return delegate.getInputStream();
@@ -528,7 +495,7 @@ public class OpenSSLSocket extends SSLSocket {
     }
 
     private OutputStream getDelegateOutputStream() throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getOutputStream();
         }
         return delegate.getOutputStream();
@@ -541,7 +508,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void connect(SocketAddress endpoint) throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.connect(endpoint);
         } else {
             delegate.connect(endpoint);
@@ -556,7 +523,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.connect(endpoint, timeout);
         } else {
             delegate.connect(endpoint, timeout);
@@ -571,7 +538,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void bind(SocketAddress bindpoint) throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.bind(bindpoint);
         } else {
             delegate.bind(bindpoint);
@@ -580,7 +547,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public InetAddress getInetAddress() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getInetAddress();
         } else {
             return delegate.getInetAddress();
@@ -589,7 +556,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public InetAddress getLocalAddress() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getLocalAddress();
         } else {
             return delegate.getLocalAddress();
@@ -598,7 +565,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public int getPort() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getPort();
         } else {
             return delegate.getPort();
@@ -607,7 +574,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public int getLocalPort() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getLocalPort();
         } else {
             return delegate.getLocalPort();
@@ -616,7 +583,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public SocketAddress getRemoteSocketAddress() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getRemoteSocketAddress();
         } else {
             return delegate.getRemoteSocketAddress();
@@ -625,7 +592,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public SocketAddress getLocalSocketAddress() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getLocalSocketAddress();
         } else {
             return delegate.getLocalSocketAddress();
@@ -634,7 +601,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public SocketChannel getChannel() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getChannel();
         } else {
             return delegate.getChannel();
@@ -643,7 +610,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setTcpNoDelay(boolean on) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setTcpNoDelay(on);
         } else {
             delegate.setTcpNoDelay(on);
@@ -652,7 +619,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean getTcpNoDelay() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getTcpNoDelay();
         } else {
             return delegate.getTcpNoDelay();
@@ -661,7 +628,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setSoLinger(boolean on, int linger) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setSoLinger(on, linger);
         } else {
             delegate.setSoLinger(on, linger);
@@ -670,7 +637,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public int getSoLinger() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getSoLinger();
         } else {
             return delegate.getSoLinger();
@@ -679,7 +646,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void sendUrgentData(int data) throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.sendUrgentData(data);
         } else {
             delegate.sendUrgentData(data);
@@ -688,7 +655,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setOOBInline(boolean on) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setOOBInline(on);
         } else {
             delegate.setOOBInline(on);
@@ -697,7 +664,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean getOOBInline() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getOOBInline();
         } else {
             return delegate.getOOBInline();
@@ -706,7 +673,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized void setSoTimeout(int timeout) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setSoTimeout(timeout);
         } else {
             delegate.setSoTimeout(timeout);
@@ -715,7 +682,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized int getSoTimeout() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getSoTimeout();
         } else {
             return delegate.getSoTimeout();
@@ -724,7 +691,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized void setSendBufferSize(int size) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setSendBufferSize(size);
         } else {
             delegate.setSendBufferSize(size);
@@ -733,7 +700,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized int getSendBufferSize() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getSendBufferSize();
         } else {
             return delegate.getSendBufferSize();
@@ -742,7 +709,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized void setReceiveBufferSize(int size) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setReceiveBufferSize(size);
         } else {
             delegate.setReceiveBufferSize(size);
@@ -751,7 +718,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public synchronized int getReceiveBufferSize() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getReceiveBufferSize();
         } else {
             return delegate.getReceiveBufferSize();
@@ -760,7 +727,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setKeepAlive(boolean on) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setKeepAlive(on);
         } else {
             delegate.setKeepAlive(on);
@@ -769,7 +736,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean getKeepAlive() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getKeepAlive();
         } else {
             return delegate.getKeepAlive();
@@ -778,7 +745,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setTrafficClass(int tc) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setTrafficClass(tc);
         } else {
             delegate.setTrafficClass(tc);
@@ -787,7 +754,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public int getTrafficClass() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getTrafficClass();
         } else {
             return delegate.getTrafficClass();
@@ -796,7 +763,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setReuseAddress(boolean on) throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setReuseAddress(on);
         } else {
             delegate.setReuseAddress(on);
@@ -805,7 +772,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean getReuseAddress() throws SocketException {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.getReuseAddress();
         } else {
             return delegate.getReuseAddress();
@@ -814,7 +781,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void shutdownInput() throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.shutdownInput();
         } else {
             delegate.shutdownInput();
@@ -823,7 +790,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void shutdownOutput() throws IOException {
-        if (delegate == this) {
+        if (delegate == null) {
             super.shutdownOutput();
         } else {
             delegate.shutdownOutput();
@@ -837,7 +804,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean isConnected() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.isConnected();
         } else {
             return delegate.isConnected();
@@ -846,7 +813,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean isBound() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.isBound();
         } else {
             return delegate.isBound();
@@ -855,7 +822,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean isClosed() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.isClosed();
         } else {
             return delegate.isClosed();
@@ -864,7 +831,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean isInputShutdown() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.isInputShutdown();
         } else {
             return delegate.isInputShutdown();
@@ -873,7 +840,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public boolean isOutputShutdown() {
-        if (delegate == this) {
+        if (delegate == null) {
             return super.isOutputShutdown();
         } else {
             return delegate.isOutputShutdown();
@@ -882,7 +849,7 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public void setPerformancePreferences(int connectionTime, int latency, int bandwidth) {
-        if (delegate == this) {
+        if (delegate == null) {
             super.setPerformancePreferences(connectionTime, latency, bandwidth);
         } else {
             delegate.setPerformancePreferences(connectionTime, latency, bandwidth);
