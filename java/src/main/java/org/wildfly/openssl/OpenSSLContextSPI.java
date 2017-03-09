@@ -186,12 +186,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             if (keyManager == null) {
                 throw new IllegalArgumentException(Messages.MESSAGES.couldNotFileSuitableKeyManager());
             }
-            boolean oneFound = false;
             for (String algorithm : ALGORITHMS) {
 
                 final String[] aliases = keyManager.getServerAliases(algorithm, null);
                 if (aliases != null && aliases.length != 0) {
-                    oneFound = true;
                     String alias = aliases[0];
                     if (LOG.isLoggable(Level.FINE)) {
                         LOG.fine("Using alias " + alias);
@@ -204,10 +202,6 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     sb.append(END_CERT);
                     SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                 }
-            }
-
-            if (!oneFound) {
-                throw new IllegalStateException(Messages.MESSAGES.keyManagerDoesNotContainValidCertificates());
             }
             /*
             // Support Client Certificates
