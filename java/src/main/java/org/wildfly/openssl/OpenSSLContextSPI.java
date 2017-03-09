@@ -56,7 +56,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private static final String END_CERT = "\n-----END RSA PRIVATE KEY-----";
 
-    private static final String[] ALGORITHMS = {"RSA"};
+    private static final String[] ALGORITHMS = {"RSA", "DSA"};
 
     private OpenSSLServerSessionContext serverSessionContext;
     private OpenSSLClientSessionContext clientSessionContext;
