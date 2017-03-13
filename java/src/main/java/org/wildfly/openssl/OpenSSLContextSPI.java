@@ -183,24 +183,23 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         try {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
-            if (keyManager == null) {
-                throw new IllegalArgumentException(Messages.MESSAGES.couldNotFileSuitableKeyManager());
-            }
-            for (String algorithm : ALGORITHMS) {
+            if (keyManager != null) {
+                for (String algorithm : ALGORITHMS) {
 
-                final String[] aliases = keyManager.getServerAliases(algorithm, null);
-                if (aliases != null && aliases.length != 0) {
-                    String alias = aliases[0];
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine("Using alias " + alias);
+                    final String[] aliases = keyManager.getServerAliases(algorithm, null);
+                    if (aliases != null && aliases.length != 0) {
+                        String alias = aliases[0];
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.fine("Using alias " + alias);
+                        }
+
+                        X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                        PrivateKey key = keyManager.getPrivateKey(alias);
+                        StringBuilder sb = new StringBuilder(BEGIN_CERT);
+                        sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
+                        sb.append(END_CERT);
+                        SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                     }
-
-                    X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
-                    PrivateKey key = keyManager.getPrivateKey(alias);
-                    StringBuilder sb = new StringBuilder(BEGIN_CERT);
-                    sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
-                    sb.append(END_CERT);
-                    SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                 }
             }
             /*
@@ -220,20 +219,22 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             SSL.getInstance().setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
             if (tms != null) {
                 final X509TrustManager manager = chooseTrustManager(tms);
-                SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo) -> {
-                    X509Certificate[] peerCerts = certificates(chain);
-                    Cipher cipher = Cipher.valueOf(cipherNo);
-                    String auth = cipher == null ? "RSA" : cipher.getAu().toString();
-                    try {
-                        manager.checkClientTrusted(peerCerts, auth);
-                        return true;
-                    } catch (Exception e) {
-                        if (LOG.isLoggable(Level.FINE)) {
-                            LOG.log(Level.FINE, "Certificate verification failed", e);
+                if(manager != null) {
+                    SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo) -> {
+                        X509Certificate[] peerCerts = certificates(chain);
+                        Cipher cipher = Cipher.valueOf(cipherNo);
+                        String auth = cipher == null ? "RSA" : cipher.getAu().toString();
+                        try {
+                            manager.checkClientTrusted(peerCerts, auth);
+                            return true;
+                        } catch (Exception e) {
+                            if (LOG.isLoggable(Level.FINE)) {
+                                LOG.log(Level.FINE, "Certificate verification failed", e);
+                            }
                         }
-                    }
-                    return false;
-                });
+                        return false;
+                    });
+                }
             }
 
             serverSessionContext = new OpenSSLServerSessionContext(ctx);
@@ -250,6 +251,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     private X509KeyManager chooseKeyManager(KeyManager[] tms) {
+        if(tms == null) {
+            return null;
+        }
         for (KeyManager tm : tms) {
             if (tm instanceof X509KeyManager) {
                 return (X509KeyManager) tm;
