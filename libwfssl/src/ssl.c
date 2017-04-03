@@ -884,12 +884,9 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
         goto cleanup;
     }
 
-    EVP_PKEY * evp = malloc(sizeof(EVP_PKEY));
-    memset(evp, 0, sizeof(EVP_PKEY));
     if(c->keys[idx] != NULL) {
         free(c->keys[idx]);
     }
-    c->keys[idx] = evp;
 
     BIO * bio = crypto_methods.BIO_new(crypto_methods.BIO_s_mem());
     crypto_methods.BIO_write(bio, key, lengthOfKey);
