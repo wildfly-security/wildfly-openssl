@@ -103,9 +103,8 @@
 
 #define SSL_CIPHERS_ALWAYS_DISABLED         ("!aNULL:!eNULL:!EXP:")
 
-///////////
-//OpenSSL definitions
-///////////
+
+/* OpenSSL definitions */
 
 #define SHA_DIGEST_LENGTH 20
 #define SSL_TLSEXT_ERR_OK 0
@@ -193,9 +192,8 @@
 #define SSL_CB_HANDSHAKE_DONE           0x20
 
 #define CRYPTO_LOCK             1
-///////////
-//End OpenSSL definitions
-///////////
+
+/* End OpenSSL definitions */
 
 /*
  * Adapted from OpenSSL:
@@ -333,7 +331,7 @@
 #define SSL_INFO_SERVER_CERT                (0x0207)
 #define SSL_INFO_CLIENT_CERT_CHAIN          (0x0400)
 
-// Use "weak" to redeclare optional features
+/*  Use "weak" to redeclare optional features */
 #define weak __attribute__((weak))
 
 #undef X509_NAME
@@ -369,10 +367,10 @@ typedef void ASN1_TIME;
 typedef void BIGNUM;
 typedef void X509_LU_CRL;
 
-//This is a 'fake' definition, that matches the definition used in the 1.0.x branch
-//1.1. does not use this, as additional functions were added to allow it to be used
-//as an opaque type.
-//we only need access to the 'untrusted' member
+/* This is a 'fake' definition, that matches the definition used in the 1.0.x branch
+ * 1.1. does not use this, as additional functions were added to allow it to be used
+ * as an opaque type.
+ * we only need access to the 'untrusted' member */
 typedef struct {
     X509_STORE *unused1;
     int unused2;
@@ -645,7 +643,7 @@ void alpn_init(JNIEnv *e);
 void session_init(JNIEnv *e);
 
 #ifndef SSL_CTRL_SET_ECDH_AUTO
-//older openssl version may not have this
+/* older openssl version may not have this */
 #define SSL_CTRL_SET_ECDH_AUTO  94
 #endif
 

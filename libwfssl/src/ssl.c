@@ -123,14 +123,14 @@ int ssl_callback_ServerNameIndication(SSL *ssl, int *al, tcn_ssl_ctxt_t *c)
     jlong original_ssl_context, new_ssl_context;
     (*javavm)->AttachCurrentThread(javavm, (void **)&env, NULL);
 
-    // Get the host name presented by the client
+    /*  Get the host name presented by the client */
     servername = ssl_methods.SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
 
-    // Convert parameters ready for the method call
+    /*  Convert parameters ready for the method call */
     hostname = (*env)->NewStringUTF(env, servername);
     original_ssl_context = P2J(c->ctx);
 
-    // Make the call
+    /*  Make the call */
     new_ssl_context = (*env)->CallStaticLongMethod(env,
                                                             ssl_context_class,
                                                             sni_java_callback,
@@ -355,7 +355,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_ctrl);
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_file);
     REQUIRE_CRYPTO_SYMBOL(X509_LOOKUP_hash_dir);
-    //REQUIRE_CRYPTO_SYMBOL(X509_OBJECT_free_contents);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_cleanup);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_current_cert);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_get_error);
@@ -367,7 +366,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_CTX_free);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_add_lookup);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_free);
-    //REQUIRE_CRYPTO_SYMBOL(X509_STORE_get_by_subject);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_new);
     REQUIRE_CRYPTO_SYMBOL(X509_STORE_set_flags);
     REQUIRE_CRYPTO_SYMBOL(X509_cmp_current_time);
@@ -423,7 +421,7 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstri
     if (ssl_initialized++) {
         return 0;
     }
-    //require 1.0.1 or higher
+    /* require 1.0.1 or higher */
     if (version < 0x010001000L) {
         ssl_initialized = 0;
         return throwIllegalStateException(e, "Invalid OpenSSL Version");
@@ -449,7 +447,7 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstri
 
     ssl_thread_setup();
 
-    //TODO: engine support?
+    /* TODO: engine support? */
 
     /* Cache the byte[].class for performance reasons */
     clazz = (*e)->FindClass(e, "[B");
@@ -515,7 +513,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
         ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv3),NULL);
     if (!(protocol & SSL_PROTOCOL_TLSV1))
         ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1),NULL);
-    if(ssl_methods.TLSv1_1_server_method != NULL) { //we use the presence of the method to test if it is supported
+    if(ssl_methods.TLSv1_1_server_method != NULL) { /* we use the presence of the method to test if it is supported */
         if (!(protocol & SSL_PROTOCOL_TLSV1_1))
             ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_1),NULL);
     }
@@ -528,7 +526,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
      */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_DH_USE),NULL);
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_ECDH_USE),NULL);
-//TODO: what do we do with these defines?
+/* TODO: what do we do with these defines? */
 #ifdef SSL_OP_NO_COMPRESSION
     /* Disable SSL compression to be safe */
     ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_COMPRESSION),NULL);
@@ -560,12 +558,6 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o,
     c->verify_depth  = 1;
     c->verify_mode   = SSL_CVERIFY_UNSET;
     c->shutdown_type = SSL_SHUTDOWN_TYPE_UNSET;
-
-    /* Set default password callback */
-    //TODO: fixme, do we need to support these callbacks?
-    //SSL_CTX_set_default_passwd_cb(c->ctx, (pem_password_cb *)SSL_password_callback);
-    //SSL_CTX_set_default_passwd_cb_userdata(c->ctx, (void *)(&tcn_password_callback));
-    //ssl_methods.SSL_CTX_set_info_callback(c->ctx, SSL_callback_handshake);
 
     /* Cache Java side SNI callback if not already cached */
     if (ssl_context_class == NULL) {
@@ -708,11 +700,9 @@ WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx,
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-//#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
     /* Clear the flag if not supported */
     if (opt & 0x00040000)
         opt &= ~0x00040000;
-//#endif
 	ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(opt),NULL);
 }
 
@@ -734,11 +724,9 @@ WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl,
     SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
-//#ifndef SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION
     /* Clear the flag if not supported */
     if (opt & 0x00040000)
         opt &= ~0x00040000;
-//#endif
     ssl_methods.SSL_ctrl(c,SSL_CTRL_OPTIONS,(opt),NULL);
 }
 
@@ -919,7 +907,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx,
         rv = JNI_FALSE;
         goto cleanup;
     }
-    //TODO: read DH and ECC params?
+
 
 cleanup:
     free(key);
@@ -936,7 +924,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     tcn_ssl_conn_t *conn = SSL_get_app_data1(ssl);
 
 
-    // Get a stack of all certs in the chain
+    /*  Get a stack of all certs in the chain */
     STACK_OF_X509 *sk;
     if(crypto_methods.X509_STORE_CTX_get0_untrusted == NULL) {
         sk = ctx->untrusted;
@@ -958,7 +946,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     int r;
     tcn_get_java_env(&e);
 
-    // Create the byte[][] array that holds all the certs
+    /*  Create the byte[][] array that holds all the certs */
     array = (*e)->NewObjectArray(e, len, byteArrayClass, NULL);
 
     for(i = 0; i < len; i++) {
@@ -968,9 +956,9 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         buf = NULL;
         length = crypto_methods.i2d_X509(cert, &buf);
         if (length < 0) {
-            // In case of error just return an empty byte[][]
+            /*  In case of error just return an empty byte[][] */
             array = (*e)->NewObjectArray(e, 0, byteArrayClass, NULL);
-            // We need to delete the local references so we not leak memory as this method is called via callback.
+            /*  We need to delete the local references so we not leak memory as this method is called via callback. */
             crypto_methods.CRYPTO_free(buf);
             break;
         }
@@ -978,8 +966,8 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         (*e)->SetByteArrayRegion(e, bArray, 0, length, (jbyte*) buf);
         (*e)->SetObjectArrayElement(e, array, i, bArray);
 
-        // Delete the local reference as we not know how long the chain is and local references are otherwise
-        // only freed once jni method returns.
+        /*  Delete the local reference as we not know how long the chain is and local references are otherwise */
+        /*  only freed once jni method returns. */
         (*e)->DeleteLocalRef(e, bArray);
         crypto_methods.CRYPTO_free(buf);
     }
@@ -991,7 +979,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
 
     r = result == JNI_TRUE ? 1 : 0;
 
-    // We need to delete the local references so we not leak memory as this method is called via callback.
+    /*  We need to delete the local references so we not leak memory as this method is called via callback. */
     (*e)->DeleteLocalRef(e, authMethodString);
     (*e)->DeleteLocalRef(e, array);
     return r;
@@ -1015,7 +1003,7 @@ WF_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject
         if (method == NULL) {
             return;
         }
-        // Delete the reference to the previous specified verifier if needed.
+        /*  Delete the reference to the previous specified verifier if needed. */
         if (c->verifier != NULL) {
             (*e)->DeleteLocalRef(e, c->verifier);
         }
@@ -1103,8 +1091,6 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
 
     /* Setup verify and seed */
     ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);
-    //TODO: do we need our seed? It seems the default seed should be more secure
-    //SSL_rand_seed(c->rand_file);
     /* Add callback to keep track of handshakes and the handshake state */
     ssl_methods.SSL_set_info_callback(ssl, &ssl_info_callback);
 
@@ -1374,7 +1360,7 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o,
 
     UNREFERENCED(o);
 
-    // Get a stack of all certs in the chain.
+    /*  Get a stack of all certs in the chain. */
     sk = ssl_methods.SSL_get_peer_cert_chain(ssl_);
 
     len = crypto_methods.sk_num(sk);

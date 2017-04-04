@@ -28,20 +28,20 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
     int cnt;
 
     if (protos == NULL) {
-        // Guard against NULL protos.
+        /*  Guard against NULL protos. */
         return -1;
     }
 
     cnt = (*e)->GetArrayLength(e, protos);
 
     if (cnt == 0) {
-        // if cnt is 0 we not need to continue and can just fail fast.
+        /*  if cnt is 0 we not need to continue and can just fail fast. */
         return -1;
     }
 
     p_data = (unsigned char *) malloc(p_data_size);
     if (p_data == NULL) {
-        // Not enough memory?
+        /*  Not enough memory? */
         return -1;
     }
 
@@ -51,41 +51,41 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
 
          proto_chars_len = strlen(proto_chars);
          if (proto_chars_len > 0 && proto_chars_len <= MAX_ALPN_NPN_PROTO_SIZE) {
-            // We need to add +1 as each protocol is prefixed by it's length (unsigned char).
-            // For all except of the last one we already have the extra space as everything is
-            // delimited by ','.
+            /* We need to add +1 as each protocol is prefixed by it's length (unsigned char).
+             * For all except of the last one we already have the extra space as everything is
+             * delimited by ','. */
             p_data_len += 1 + proto_chars_len;
             if (p_data_len > p_data_size) {
-                // double size
+                /*  double size */
                 p_data_size <<= 1;
                 p_data = realloc(p_data, p_data_size);
                 if (p_data == NULL) {
-                    // Not enough memory?
+                    /*  Not enough memory? */
                     (*e)->ReleaseStringUTFChars(e, proto_string, proto_chars);
                     break;
                 }
             }
-            // Write the length of the protocol and then increment before memmove the protocol itself.
+            /*  Write the length of the protocol and then increment before memmove the protocol itself. */
             *p_data = proto_chars_len;
             ++p_data;
             memmove(p_data, proto_chars, proto_chars_len);
             p_data += proto_chars_len;
          }
 
-         // Release the string to prevent memory leaks
+         /*  Release the string to prevent memory leaks */
          (*e)->ReleaseStringUTFChars(e, proto_string, proto_chars);
     }
 
     if (p_data == NULL) {
-        // Something went wrong so update the proto_len and return -1
+        /*  Something went wrong so update the proto_len and return -1 */
         *proto_len = 0;
         return -1;
     } else {
         if (*proto_data != NULL) {
-            // Free old data
+            /*  Free old data */
             free(*proto_data);
         }
-        // Decrement pointer again as we incremented it while creating the protocols in wire format.
+        /*  Decrement pointer again as we incremented it while creating the protocols in wire format. */
         p_data -= p_data_len;
         *proto_data = p_data;
         *proto_len = p_data_len;
@@ -113,7 +113,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 
     p = in;
     end = in + inlen;
-    //first we count them
+    /* first we count them */
     int count = 0;
     while (p < end) {
         proto_len = *p;
@@ -121,10 +121,10 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
         if (proto + proto_len <= end) {
             count++;
         }
-        // Move on to the next protocol.
+        /*  Move on to the next protocol. */
         p += proto_len;
     }
-    //now we allocate an array
+    /* now we allocate an array */
     jobjectArray array = (*e)->NewObjectArray(e, count, stringClass, NULL);
 	jobject *nativeArray = malloc(count * sizeof(jobject));
     p = in;
@@ -139,7 +139,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
             nativeArray[c] = string;
             (*e)->SetObjectArrayElement(e, array, c++, string);
         }
-        // Move on to the next protocol.
+        /*  Move on to the next protocol. */
         p += proto_len;
     }
 
@@ -163,7 +163,7 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
             jobject string = nativeArray[c++];
             if((*e)->CallBooleanMethod(e, string, stringEquals, result)) {
 
-                //we have a match
+                /* we have a match */
                 *out = proto;
                 *outlen = proto_len;
                 (*javavm)->DetachCurrentThread(javavm);
@@ -171,11 +171,11 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
                 return SSL_TLSEXT_ERR_OK;
             }
         }
-        // Move on to the next protocol.
+        /*  Move on to the next protocol. */
         p += proto_len;
     }
 
-    //it did not return a valid response
+    /* it did not return a valid response */
     (*javavm)->DetachCurrentThread(javavm);
 	free(nativeArray);
     return SSL_TLSEXT_ERR_NOACK;

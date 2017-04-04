@@ -59,15 +59,6 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     }
 #endif
     /*
-     * Additionally perform CRL-based revocation checks
-     */
-//    if (ok && con->ctx->crl && !skip_crl) {
-//        if (!(ok = ssl_verify_CRL(ok, ctx, con))) {
-//            errnum = crypto_methods.X509_STORE_CTX_get_error(ctx);
-//            /* TODO: Log something */
-//        }
-//    }
-    /*
      * If we already know it's not ok, log the real reason
      */
     if (!ok) {

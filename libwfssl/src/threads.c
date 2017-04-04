@@ -47,8 +47,8 @@ static void ssl_thread_lock(int mode, int type,
         if (mode & CRYPTO_LOCK) {
 #ifdef WIN32
 			WaitForSingleObject(
-				&ssl_lock_cs[type],    // handle to mutex
-				INFINITE);  // no time-out interval
+				&ssl_lock_cs[type],    /*  handle to mutex */
+				INFINITE);  /*  no time-out interval */
 #else
             pthread_mutex_lock(&ssl_lock_cs[type]);
 #endif
@@ -93,9 +93,9 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
     #ifdef WIN32
 	value = malloc(sizeof(*value));
 	value->mutex = CreateMutex(
-		NULL,              // default security attributes
-		FALSE,             // initially not owned
-		NULL);             // unnamed mutex
+		NULL,              /*  default security attributes */
+		FALSE,             /*  initially not owned */
+		NULL);             /*  unnamed mutex */
     #else
         value = malloc(sizeof(*value));
         if(value == NULL) {
@@ -121,8 +121,8 @@ static void ssl_dyn_lock_function(int mode, struct CRYPTO_dynlock_value *l,
     if (mode & CRYPTO_LOCK) {
 #ifdef WIN32
 		WaitForSingleObject(
-			&(l->mutex),    // handle to mutex
-			INFINITE);  // no time-out interval
+			&(l->mutex),    /*  handle to mutex */
+			INFINITE);  /*  no time-out interval */
 #else
         pthread_mutex_lock(&(l->mutex));
 #endif

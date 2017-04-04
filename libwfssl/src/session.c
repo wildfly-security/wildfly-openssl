@@ -54,7 +54,7 @@ WF_OPENSSL(jlong, setSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx, jlong si
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     jlong rv = 0;
 
-    // Also allow size of 0 which is unlimited
+    /*  Also allow size of 0 which is unlimited */
     if (size >= 0) {
       ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SET_SESS_CACHE_MODE,SSL_SESS_CACHE_SERVER,NULL);
       rv = ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_SET_SESS_CACHE_SIZE,size,NULL);

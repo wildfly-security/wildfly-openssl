@@ -84,7 +84,6 @@ jint throwIllegalArgumentException( JNIEnv *env, char *message )
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...) {
     throwIllegalStateException(env, fmt);
-//TODO
 /*
     char msg[8124] = {'\0'};
     va_list ap;
