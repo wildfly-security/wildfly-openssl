@@ -249,10 +249,10 @@ public class SSLImpl extends SSL {
         return SSLImpl.doHandshake0(ssl);
     }
 
-    static native int saveServerCipher0(long ssl, int serverCipher);
+    static native void saveServerCipher0(long ssl, int serverCipher);
 
-    protected int saveServerCipher(long ssl, int serverCipher) {
-        return SSLImpl.saveServerCipher0(ssl, serverCipher);
+    protected void saveServerCipher(long ssl, int serverCipher) {
+        SSLImpl.saveServerCipher0(ssl, serverCipher);
     }
     static native int getSSLError0(long ssl, int code);
 

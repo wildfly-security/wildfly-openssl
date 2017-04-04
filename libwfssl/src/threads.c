@@ -62,13 +62,13 @@ static void ssl_thread_lock(int mode, int type,
         }
     }
 }
-
+/*
 static unsigned long ssl_thread_id(void)
 {
-    /* OpenSSL needs this to return an unsigned long.  On OS/390, the pthread
+     * OpenSSL needs this to return an unsigned long.  On OS/390, the pthread
      * id is a structure twice that big.  Use the TCB pointer instead as a
      * unique unsigned long.
-     */
+     *
 #ifdef __MVS__
     struct PSA {
         char unmapped[540];
@@ -82,7 +82,7 @@ static unsigned long ssl_thread_id(void)
     return (unsigned long)(pthread_self());
 #endif
 }
-
+*/
 /*
  * Dynamic lock creation callback
  */
@@ -90,6 +90,7 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
                                                      int line)
 {
     struct CRYPTO_dynlock_value *value;
+    int val;
     #ifdef WIN32
 	value = malloc(sizeof(*value));
 	value->mutex = CreateMutex(
@@ -102,7 +103,7 @@ static struct CRYPTO_dynlock_value *ssl_dyn_create_function(const char *file,
             fprintf(stderr, "org.wildfly.openssl [ERROR] Failed to allocate memory for mutex\n");
             return NULL;
         }
-        int val = pthread_mutex_init(&(value->mutex), 0);
+        val = pthread_mutex_init(&(value->mutex), 0);
         if(val != 0) {
             fprintf(stderr, "org.wildfly.openssl [ERROR] Failed to create mutex, error %d\n", val);
             return NULL;
@@ -152,11 +153,11 @@ static void ssl_dyn_destroy_function(struct CRYPTO_dynlock_value *l,
 }
 void ssl_thread_setup()
 {
+    int i;
     if(crypto_methods.CRYPTO_num_locks == NULL) {
         /* OpenSSL 1.1 does not need any of this*/
         return;
     }
-    int i;
     ssl_lock_num_locks = crypto_methods.CRYPTO_num_locks();
     ssl_lock_cs = malloc(ssl_lock_num_locks * sizeof(ssl_lock_type));
 

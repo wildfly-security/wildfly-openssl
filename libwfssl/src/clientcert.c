@@ -3,6 +3,8 @@
 extern ssl_dynamic_methods ssl_methods;
 extern crypto_dynamic_methods crypto_methods;
 
+WF_OPENSSL(void, setSSLVerify)(JNIEnv *e, jobject o, jlong ssl, jint level, jint depth);
+int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx);
 /*
  * This OpenSSL callback function is called when OpenSSL
  * does client authentication and verifies the certificate chain.
@@ -18,7 +20,6 @@ int SSL_callback_SSL_verify(int ok, X509_STORE_CTX *ctx)
     int errdepth = crypto_methods.X509_STORE_CTX_get_error_depth(ctx);
     int verify   = con->ctx->verify_mode;
     int depth    = con->ctx->verify_depth;
-    int skip_crl = 0;
 
     if (verify == SSL_CVERIFY_UNSET ||
         verify == SSL_CVERIFY_NONE)

@@ -5,6 +5,14 @@ static jclass stringClass;
 static jmethodID stringEquals;
 extern ssl_dynamic_methods ssl_methods;
 
+WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray alpn_protos);
+WF_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
+WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback);
+WF_OPENSSL(jboolean, isAlpnSupported)(JNIEnv *e, jobject o);
+int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
+        const unsigned char *in, unsigned int inlen, void *arg);
+
 void alpn_init(JNIEnv *e) {
     jclass sClazz = (*e)->FindClass(e, "java/lang/String");
     stringClass = (jclass) (*e)->NewGlobalRef(e, sClazz);
@@ -95,6 +103,21 @@ static int initProtocols(JNIEnv *e, unsigned char **proto_data,
 
 int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned char *outlen,
         const unsigned char *in, unsigned int inlen, void *arg) {
+    JavaVM *javavm;
+    JNIEnv *e;
+    jobjectArray array;
+    jobject *nativeArray;
+    jclass clazz;
+    jmethodID method;
+    jobject result;
+    int count;
+    const unsigned char *p;
+    const unsigned char *end;
+    const unsigned char *proto;
+    unsigned char proto_len;
+    int c;
+
+
     tcn_ssl_conn_t *con = SSL_get_app_data1(ssl);
 
     if(con->alpn_selection_callback == NULL) {
@@ -102,19 +125,13 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
     }
 
     /* Get the JNI environment for this callback */
-    JavaVM *javavm = tcn_get_java_vm();
-    JNIEnv *e;
+    javavm = tcn_get_java_vm();
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
-
-    const unsigned char *p;
-    const unsigned char *end;
-    const unsigned char *proto;
-    unsigned char proto_len;
 
     p = in;
     end = in + inlen;
     /* first we count them */
-    int count = 0;
+    count = 0;
     while (p < end) {
         proto_len = *p;
         proto = ++p;
@@ -125,11 +142,11 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
         p += proto_len;
     }
     /* now we allocate an array */
-    jobjectArray array = (*e)->NewObjectArray(e, count, stringClass, NULL);
-	jobject *nativeArray = malloc(count * sizeof(jobject));
+    array = (*e)->NewObjectArray(e, count, stringClass, NULL);
+    nativeArray = malloc(count * sizeof(jobject));
     p = in;
     end = in + inlen;
-    int c = 0;
+    c = 0;
 
     while (p < end) {
         proto_len = *p;
@@ -143,9 +160,9 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
         p += proto_len;
     }
 
-    jclass clazz = (*e)->GetObjectClass(e, con->alpn_selection_callback);
-    jmethodID method = (*e)->GetMethodID(e, clazz, "select", "([Ljava/lang/String;)Ljava/lang/String;");
-    jobject result = (*e)->CallObjectMethod(e, con->alpn_selection_callback, method, array);
+    clazz = (*e)->GetObjectClass(e, con->alpn_selection_callback);
+    method = (*e)->GetMethodID(e, clazz, "select", "([Ljava/lang/String;)Ljava/lang/String;");
+    result = (*e)->CallObjectMethod(e, con->alpn_selection_callback, method, array);
 
     if(result == NULL) {
         (*javavm)->DetachCurrentThread(javavm);
@@ -185,15 +202,17 @@ int SSL_callback_alpn_select_proto(SSL* ssl, const unsigned char **out, unsigned
 WF_OPENSSL(void, setAlpnProtos)(JNIEnv *e, jobject o, jlong ssl, jobjectArray alpn_protos)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *ssl_;
+    unsigned char * alpn_proto_data;
+    unsigned int alpn_proto_len;
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
-    SSL *ssl_ = J2P(ssl, SSL *);
+    ssl_ = J2P(ssl, SSL *);
 
     TCN_ASSERT(ssl != 0);
-    UNREFERENCED(o);
-    unsigned char * alpn_proto_data = NULL;
-    unsigned int alpn_proto_len = 0;
+    alpn_proto_data = NULL;
+    alpn_proto_len = 0;
     if (initProtocols(e, &alpn_proto_data, &alpn_proto_len, alpn_protos) == 0) {
         ssl_methods.SSL_set_alpn_protos(ssl_, alpn_proto_data, alpn_proto_len);
         free(alpn_proto_data);
@@ -205,13 +224,13 @@ WF_OPENSSL(void, enableAlpn)(JNIEnv *e, jobject o, jlong ctx)
 {
 
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    tcn_ssl_ctxt_t *c;
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
-    tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
+    c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     TCN_ASSERT(ctx != 0);
-    UNREFERENCED(o);
 
     ssl_methods.SSL_CTX_set_alpn_select_cb(c->ctx, SSL_callback_alpn_select_proto, (void *) c);
 
@@ -240,16 +259,18 @@ WF_OPENSSL(jstring, getAlpnSelected)(JNIEnv *e, jobject o, jlong ssl /* SSL * */
 
 WF_OPENSSL(void, setServerALPNCallback)(JNIEnv *e, jobject o, jlong ssl, jobject callback) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *ssl_;
+    tcn_ssl_conn_t *con;
     if(ssl_methods.SSL_set_alpn_protos == NULL) {
         return;
     }
-    SSL *ssl_ = J2P(ssl, SSL *);
+    ssl_ = J2P(ssl, SSL *);
 
     if (ssl_ == NULL) {
         throwIllegalStateException(e, "ssl is null");
         return;
     }
-    tcn_ssl_conn_t *con = SSL_get_app_data1(ssl_);
+    con = SSL_get_app_data1(ssl_);
 
     con->alpn_selection_callback = (*e)->NewGlobalRef(e, callback);
 }

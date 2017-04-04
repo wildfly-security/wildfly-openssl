@@ -18,6 +18,11 @@ extern ssl_dynamic_methods ssl_methods;
  * so that the return value for SSL_OP_FUTURE_WORKAROUND will only be
  * reported by versions that actually support that specific workaround.
  */
+
+WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
+WF_OPENSSL(jboolean, hasOp)(JNIEnv *e, jobject o, jint op);
+
 static const jint supported_ssl_opts = 0
 
 

@@ -628,7 +628,7 @@ void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);
 jint throwIllegalArgumentException( JNIEnv *env, char *message);
 jint tcn_get_java_env(JNIEnv **env);
-JavaVM * tcn_get_java_vm();
+JavaVM * tcn_get_java_vm(void);
 
 jstring tcn_new_string(JNIEnv *env, const char *str);
 jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l);
@@ -637,7 +637,7 @@ tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl);
 tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl);
 void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c);
 /*thread setup function*/
-void ssl_thread_setup();
+void ssl_thread_setup(void);
 
 void alpn_init(JNIEnv *e);
 void session_init(JNIEnv *e);

@@ -3,6 +3,35 @@
 
 /*functions related to openssl session management */
 
+WF_OPENSSL(jlong, setSessionCacheMode)(JNIEnv *e, jobject o, jlong ctx, jlong mode);
+WF_OPENSSL(jlong, getSessionCacheMode)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, setSessionCacheTimeout)(JNIEnv *e, jobject o, jlong ctx, jlong timeout);
+WF_OPENSSL(jlong, getSessionCacheTimeout)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, setSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx, jlong size);
+WF_OPENSSL(jlong, getSessionCacheSize)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionNumber)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionConnect)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionConnectGood)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionConnectRenegotiate)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionAccept)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionAcceptGood)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionAcceptRenegotiate)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionHits)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionCbHits)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionMisses)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionTimeouts)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(jlong, sessionCacheFull)(JNIEnv *e, jobject o, jlong ctx);
+WF_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArray keys);
+WF_OPENSSL(jlong, getSession)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session);
+WF_OPENSSL(jbyteArray, getSessionId)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ses);
+WF_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(void, registerSessionContext)(JNIEnv *e, jobject o, jlong ctx, jobject context);
+jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session);
+int new_session_cb(SSL * ssl, SSL_SESSION * session);
+void remove_session_cb(SSL_CTX *ctx, SSL_SESSION * session);
+
 
 static jclass sessionContextClass;
 static jmethodID sessionInit;
@@ -186,12 +215,14 @@ WF_OPENSSL(void, setSessionTicketKeys)(JNIEnv *e, jobject o, jlong ctx, jbyteArr
 jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session) {
 
     jsize len;
+    jbyteArray bArray;
     const jbyte *session_id;
-    session_id = ssl_methods.SSL_SESSION_get_id(session, &len);
+    unsigned int ulen;
+    session_id = (jbyte*)ssl_methods.SSL_SESSION_get_id(session, &ulen);
+    len = ulen;
     if (len == 0 || session_id == NULL) {
         return NULL;
     }
-    jbyteArray bArray;
     bArray = (*e)->NewByteArray(e, len);
     (*e)->SetByteArrayRegion(e, bArray, 0, len, session_id);
     return bArray;
@@ -215,15 +246,16 @@ WF_OPENSSL(void, setSession)(JNIEnv *e, jobject o, jlong ssl, jlong session)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 
+    SSL *ssl_ = J2P(ssl, SSL *);
     SSL_SESSION *session_ = J2P(session, SSL_SESSION *);
+    int r;
     if (session_ == NULL) {
         throwIllegalStateException(e, "session is null");
     }
-    SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
         throwIllegalStateException(e, "ssl is null");
     }
-    int r = ssl_methods.SSL_set_session(ssl_, session_);
+    r = ssl_methods.SSL_set_session(ssl_, session_);
     if (r == 0) {
         fprintf(stderr, "org.wildfly.openssl [ERROR] %s", crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), NULL));
     }
@@ -260,7 +292,6 @@ WF_OPENSSL(void, invalidateSession)(JNIEnv *e, jobject o, jlong ses) {
 WF_OPENSSL(jlong, getTime)(JNIEnv *e, jobject o, jlong ssl)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-  UNREFERENCED(o);
   SSL_SESSION *session;
   SSL *ssl_ = J2P(ssl, SSL *);
   if (ssl_ == NULL) {
@@ -279,11 +310,11 @@ WF_OPENSSL(void, registerSessionContext)(JNIEnv *e, jobject o, jlong ctx, jobjec
 
 int new_session_cb(SSL * ssl, SSL_SESSION * session) {
     tcn_ssl_ctxt_t  *c = SSL_get_app_data2(ssl);
-
+    jbyteArray sessionId;
     JavaVM *javavm = tcn_get_java_vm();
     JNIEnv *e;
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
-    jbyteArray sessionId = getSessionId(e, session);
+    sessionId = getSessionId(e, session);
 
     (*e)->CallVoidMethod(e, c->session_context, sessionInit, P2J(ssl), P2J(session), sessionId);
 
@@ -293,9 +324,10 @@ int new_session_cb(SSL * ssl, SSL_SESSION * session) {
 void remove_session_cb(SSL_CTX *ctx, SSL_SESSION * session) {
      tcn_ssl_ctxt_t  *c = SSL_CTX_get_app_data1(ctx);
     JavaVM *javavm = tcn_get_java_vm();
+    jbyteArray sessionId;
     JNIEnv *e;
     (*javavm)->AttachCurrentThread(javavm, (void **)&e, NULL);
-    jbyteArray sessionId = getSessionId(e, session);
+    sessionId = getSessionId(e, session);
 
     (*e)->CallVoidMethod(e, c->session_context, sessionRemove, sessionId);
 
