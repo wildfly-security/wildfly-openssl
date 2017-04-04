@@ -535,7 +535,7 @@ typedef struct {
     void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
     void (*SSL_set_verify_result)(SSL *ssl, long v);
     int (*SSL_shutdown)(SSL *s);
-    int (*SSL_set_info_callback)(SSL *ssl, void (*callback)());
+    int (*SSL_set_info_callback)(SSL *ssl, void (*callback)(SSL *ssl, int where, int ret));
     int (*SSL_write)(SSL *ssl, const void *buf, int num);
     int (*SSL_get_error)(const SSL *ssl, int ret);
     const SSL_METHOD *(*TLSv1_1_server_method)(void);

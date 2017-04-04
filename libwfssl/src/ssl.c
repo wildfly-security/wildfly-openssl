@@ -748,8 +748,9 @@ WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
     /* Clear the flag if not supported */
-    if (opt & 0x00040000)
+    if (opt & 0x00040000) {
         opt &= ~0x00040000;
+    }
 	ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(opt),NULL);
 }
 
@@ -1084,7 +1085,7 @@ WF_OPENSSL(jboolean, setSessionIdContext)(JNIEnv *e, jobject o, jlong ctx, jbyte
 }
 
 
-static void ssl_info_callback(const SSL *ssl, int where, int ret) {
+static void ssl_info_callback(SSL *ssl, int where, int ret) {
     int *handshakeCount = NULL;
     if (0 != (where & SSL_CB_HANDSHAKE_START)) {
         handshakeCount = (int*) SSL_get_app_data3(ssl);

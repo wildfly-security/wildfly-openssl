@@ -11,7 +11,7 @@ target/classes/linux-i386:
 	mkdir -p target/classes/linux-i386
 
 target/%.o : ../libwfssl/src/%.c target/classes/linux-i386
-	cc -Wall -m32 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
+	cc  -Werror -Wall -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations -Wpointer-arith -std=c89 -Wdeclaration-after-statement -Wformat -Wformat-security -Wunused -Wno-unknown-pragmas -m32 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
 
 target/classes/linux-i386/libwfssl.so: $(OBJ)
 	cc -m32 -shared $(OBJ) -o $@ -Wl,--no-as-needed -ldl
