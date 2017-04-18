@@ -23,6 +23,8 @@
 #endif
 #endif
 
+#define WF_OPENSSL_MIN_VERSION 0x010001000L /* minimum required version of OpenSSL to work with */
+
 static int ssl_initialized = 0;
 static jclass byteArrayClass, stringClass;
 
@@ -278,6 +280,12 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     }
 #endif
 
+    if (ssl_methods.SSLeay() < WF_OPENSSL_MIN_VERSION) {
+        ssl_initialized = 0;
+        throwIllegalStateException(e, "Invalid OpenSSL Version (required OpenSSL 1.0.1 or newer)");
+        return 1;
+    }
+
     GET_SSL_SYMBOL(SSL_CTX_get_ex_new_index);
     REQUIRE_SSL_SYMBOL(SSL_get_ex_data);
     REQUIRE_SSL_SYMBOL(SSL_set_ex_data);
@@ -450,7 +458,6 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstri
     const char * sPath = NULL;
     TCN_ALLOC_CSTRING(libCryptoPath);
     TCN_ALLOC_CSTRING(libSSLPath);
-    long version;
     if(libCryptoPath != NULL) {
         cPath = J2S(libCryptoPath);
     }
@@ -465,16 +472,9 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstri
     TCN_FREE_CSTRING(libCryptoPath);
     TCN_FREE_CSTRING(libSSLPath);
 
-    version = ssl_methods.SSLeay();
-
     /* Check if already initialized */
     if (ssl_initialized++) {
         return 0;
-    }
-    /* require 1.0.1 or higher */
-    if (version < 0x010001000L) {
-        ssl_initialized = 0;
-        return throwIllegalStateException(e, "Invalid OpenSSL Version");
     }
     /* We must register the library in full, to ensure our configuration
      * code can successfully test the SSL environment.
