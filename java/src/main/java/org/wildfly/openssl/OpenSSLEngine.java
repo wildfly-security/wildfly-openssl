@@ -131,6 +131,8 @@ public final class OpenSSLEngine extends SSLEngine {
     private String host;
     private int port;
 
+    private List<Runnable> tasks = new ArrayList<>();
+
     /**
      * Creates a new instance
      *
@@ -163,6 +165,10 @@ public final class OpenSSLEngine extends SSLEngine {
             if(clientMode) {
                 openSSLContextSPI.engineGetClientSessionContext().tryAttachClientSideSession(ssl, host, port);
             }
+            for(Runnable task : tasks) {
+                task.run();
+            }
+            tasks = null;
         }
     }
 
@@ -681,36 +687,42 @@ public final class OpenSSLEngine extends SSLEngine {
         if (cipherSuites == null) {
             throw new IllegalArgumentException(MESSAGES.nullCipherSuites());
         }
-        initSsl();
-        final StringBuilder buf = new StringBuilder();
-        for (String cipherSuite : cipherSuites) {
-            if (cipherSuite == null) {
-                break;
-            }
-            String converted = CipherSuiteConverter.toOpenSsl(cipherSuite);
-            if (converted != null) {
-                cipherSuite = converted;
-            }
-            Set<String> availbile = new HashSet<>(Arrays.asList(OpenSSLContextSPI.getAvailableCipherSuites()));
-            if (!availbile.contains(cipherSuite)) {
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + availbile);
+        Runnable task = () -> {
+            final StringBuilder buf = new StringBuilder();
+            for (String cipherSuite : cipherSuites) {
+                if (cipherSuite == null) {
+                    break;
                 }
+                String converted = CipherSuiteConverter.toOpenSsl(cipherSuite);
+                if (converted != null) {
+                    cipherSuite = converted;
+                }
+                Set<String> availbile = new HashSet<>(Arrays.asList(OpenSSLContextSPI.getAvailableCipherSuites()));
+                if (!availbile.contains(cipherSuite)) {
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + availbile);
+                    }
+                }
+
+                buf.append(cipherSuite);
+                buf.append(':');
             }
 
-            buf.append(cipherSuite);
-            buf.append(':');
-        }
-
-        if (buf.length() == 0) {
-            throw new IllegalArgumentException(MESSAGES.emptyCipherSuiteList());
-        }
-        buf.setLength(buf.length() - 1);
-        final String cipherSuiteSpec = buf.toString();
-        try {
-            SSL.getInstance().setCipherSuites(ssl, cipherSuiteSpec);
-        } catch (Exception e) {
-            throw new IllegalStateException(MESSAGES.failedCipherSuite(cipherSuiteSpec), e);
+            if (buf.length() == 0) {
+                throw new IllegalArgumentException(MESSAGES.emptyCipherSuiteList());
+            }
+            buf.setLength(buf.length() - 1);
+            final String cipherSuiteSpec = buf.toString();
+            try {
+                SSL.getInstance().setCipherSuites(ssl, cipherSuiteSpec);
+            } catch (Exception e) {
+                throw new IllegalStateException(MESSAGES.failedCipherSuite(cipherSuiteSpec), e);
+            }
+        };
+        if(ssl == 0) {
+            tasks.add(task);
+        } else {
+            task.run();
         }
     }
 
@@ -755,45 +767,51 @@ public final class OpenSSLEngine extends SSLEngine {
             // This is correct from the API docs
             throw new IllegalArgumentException();
         }
-        initSsl();
-        boolean sslv2 = false;
-        boolean sslv3 = false;
-        boolean tlsv1 = false;
-        boolean tlsv1_1 = false;
-        boolean tlsv1_2 = false;
-        for (String p : protocols) {
-            if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
-                throw new IllegalArgumentException(MESSAGES.unsupportedProtocol(p));
+        Runnable task = () -> {
+            boolean sslv2 = false;
+            boolean sslv3 = false;
+            boolean tlsv1 = false;
+            boolean tlsv1_1 = false;
+            boolean tlsv1_2 = false;
+            for (String p : protocols) {
+                if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
+                    throw new IllegalArgumentException(MESSAGES.unsupportedProtocol(p));
+                }
+                if (p.equals(SSL.SSL_PROTO_SSLv2)) {
+                    sslv2 = true;
+                } else if (p.equals(SSL.SSL_PROTO_SSLv3)) {
+                    sslv3 = true;
+                } else if (p.equals(SSL.SSL_PROTO_TLSv1)) {
+                    tlsv1 = true;
+                } else if (p.equals(SSL.SSL_PROTO_TLSv1_1)) {
+                    tlsv1_1 = true;
+                } else if (p.equals(SSL.SSL_PROTO_TLSv1_2)) {
+                    tlsv1_2 = true;
+                }
             }
-            if (p.equals(SSL.SSL_PROTO_SSLv2)) {
-                sslv2 = true;
-            } else if (p.equals(SSL.SSL_PROTO_SSLv3)) {
-                sslv3 = true;
-            } else if (p.equals(SSL.SSL_PROTO_TLSv1)) {
-                tlsv1 = true;
-            } else if (p.equals(SSL.SSL_PROTO_TLSv1_1)) {
-                tlsv1_1 = true;
-            } else if (p.equals(SSL.SSL_PROTO_TLSv1_2)) {
-                tlsv1_2 = true;
-            }
-        }
-        // Enable all and then disable what we not want
-        SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
+            // Enable all and then disable what we not want
+            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
 
-        if (!sslv2) {
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv2);
-        }
-        if (!sslv3) {
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv3);
-        }
-        if (!tlsv1) {
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1);
-        }
-        if (!tlsv1_1) {
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_1);
-        }
-        if (!tlsv1_2) {
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
+            if (!sslv2) {
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv2);
+            }
+            if (!sslv3) {
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv3);
+            }
+            if (!tlsv1) {
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1);
+            }
+            if (!tlsv1_1) {
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_1);
+            }
+            if (!tlsv1_2) {
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
+            }
+        };
+        if(ssl == 0) {
+            tasks.add(task);
+        } else {
+            task.run();
         }
     }
 
@@ -1065,12 +1083,12 @@ public final class OpenSSLEngine extends SSLEngine {
         if (clientMode) {
             return;
         }
-        initSsl();
-        synchronized (this) {
-            if (clientAuth == mode) {
-                // No need to issue any JNI calls if the mode is the same
-                return;
-            }
+        if (clientAuth == mode) {
+            // No need to issue any JNI calls if the mode is the same
+            return;
+        }
+        clientAuth = mode;
+        Runnable task = () -> {
             switch (mode) {
                 case NONE:
                     SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
@@ -1082,7 +1100,11 @@ public final class OpenSSLEngine extends SSLEngine {
                     SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_OPTIONAL, VERIFY_DEPTH);
                     break;
             }
-            clientAuth = mode;
+        };
+        if (ssl == 0) {
+            tasks.add(task);
+        } else {
+            task.run();
         }
     }
 
@@ -1153,34 +1175,41 @@ public final class OpenSSLEngine extends SSLEngine {
     public void setSSLParameters(SSLParameters sslParameters) {
         super.setSSLParameters(sslParameters);
 
-        initSsl();
-        // Use server's preference order for ciphers (rather than
-        // client's)
-        boolean orderCiphersSupported = false;
-        try {
-            orderCiphersSupported = SSL.getInstance().hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-            if (orderCiphersSupported) {
-                if (sslParameters.getUseCipherSuitesOrder()) {
-                    SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                }
-            }
-        } catch (UnsatisfiedLinkError e) {
-            // Ignore
-        }
-        if (!orderCiphersSupported) {
-            // OpenSSL does not support ciphers ordering.
-            LOG.fine("The version of SSL in use does not support cipher ordering");
-        }
+        Runnable config = () -> {
 
-        int value = 0;
-        if (sslParameters.getNeedClientAuth()) {
-            value = SSL.SSL_CVERIFY_REQUIRE;
-        } else if (sslParameters.getWantClientAuth()) {
-            value = SSL.SSL_CVERIFY_OPTIONAL;
+            // Use server's preference order for ciphers (rather than
+            // client's)
+            boolean orderCiphersSupported = false;
+            try {
+                orderCiphersSupported = SSL.getInstance().hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                if (orderCiphersSupported) {
+                    if (sslParameters.getUseCipherSuitesOrder()) {
+                        SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
+                    }
+                }
+            } catch (UnsatisfiedLinkError e) {
+                // Ignore
+            }
+            if (!orderCiphersSupported) {
+                // OpenSSL does not support ciphers ordering.
+                LOG.fine("The version of SSL in use does not support cipher ordering");
+            }
+
+            int value = 0;
+            if (sslParameters.getNeedClientAuth()) {
+                value = SSL.SSL_CVERIFY_REQUIRE;
+            } else if (sslParameters.getWantClientAuth()) {
+                value = SSL.SSL_CVERIFY_OPTIONAL;
+            } else {
+                value = SSL.SSL_CVERIFY_NONE;
+            }
+            SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
+        };
+        if(ssl == 0) {
+            tasks.add(config);
         } else {
-            value = SSL.SSL_CVERIFY_NONE;
+            config.run();
         }
-        SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
 
     }
 
@@ -1191,4 +1220,5 @@ public final class OpenSSLEngine extends SSLEngine {
     void setPort(final int port) {
         this.port = port;
     }
+
 }
