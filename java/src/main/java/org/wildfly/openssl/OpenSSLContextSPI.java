@@ -188,17 +188,22 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                     final String[] aliases = keyManager.getServerAliases(algorithm, null);
                     if (aliases != null && aliases.length != 0) {
-                        String alias = aliases[0];
-                        if (LOG.isLoggable(Level.FINE)) {
-                            LOG.fine("Using alias " + alias);
-                        }
+                        for(String alias: aliases) {
 
-                        X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
-                        PrivateKey key = keyManager.getPrivateKey(alias);
-                        StringBuilder sb = new StringBuilder(BEGIN_CERT);
-                        sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
-                        sb.append(END_CERT);
-                        SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                            PrivateKey key = keyManager.getPrivateKey(alias);
+                            if(key == null || certificate == null) {
+                                continue;
+                            }
+                            if (LOG.isLoggable(Level.FINE)) {
+                                LOG.fine("Using alias " + alias + " for " + algorithm);
+                            }
+                            StringBuilder sb = new StringBuilder(BEGIN_CERT);
+                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
+                            sb.append(END_CERT);
+                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            break;
+                        }
                     }
                 }
             }
