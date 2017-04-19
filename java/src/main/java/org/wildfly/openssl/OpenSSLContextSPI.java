@@ -192,7 +192,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                             X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
                             PrivateKey key = keyManager.getPrivateKey(alias);
-                            if(key == null || certificate == null) {
+                            if(key == null || certificate == null || key.getEncoded() == null) {
                                 continue;
                             }
                             if (LOG.isLoggable(Level.FINE)) {
