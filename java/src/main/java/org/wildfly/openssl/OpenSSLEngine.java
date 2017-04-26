@@ -880,30 +880,36 @@ public final class OpenSSLEngine extends SSLEngine {
         initSsl();
         if (!alpnRegistered) {
             alpnRegistered = true;
-            if (applicationProtocols != null) {
-                if (!isClientMode()) {
-                    SSL.getInstance().setServerALPNCallback(ssl, new ServerALPNCallback() {
-                        @Override
-                        public String select(String[] data) {
-                            String version = SSL.getInstance().getVersion(ssl);
-                            if(version == null || !version.equals("TLSv1.2")) {
-                                //only offer ALPN on TLS 1.2
-                                return null;
-                            }
-                            for (String proto : applicationProtocols) {
-                                for (String clientProto : data) {
-                                    if (clientProto.equals(proto)) {
-                                        selectedApplicationProtocol = proto;
-                                        return proto;
-                                    }
+            if (!isClientMode()) {
+                SSL.getInstance().setServerALPNCallback(ssl, new ServerALPNCallback() {
+                    @Override
+                    public String select(String[] data) {
+                        String version = SSL.getInstance().getVersion(ssl);
+                        if(applicationProtocols == null || version == null || !version.equals("TLSv1.2")) {
+                            //only offer ALPN on TLS 1.2, try and force http/1.1 if it is offered, otherwise fail the connection
+                            //it seems wrong to hard code protocols in the SSL impl, but openssl does not really allow alpn to be enabled
+                            //on a per engine basis
+                            for(String i : data) {
+                                if(i.equals("http/1.1")) {
+                                    return i;
                                 }
                             }
                             return null;
                         }
-                    });
-                } else {
-                    SSL.getInstance().setAlpnProtos(ssl, applicationProtocols);
-                }
+
+                        for (String proto : applicationProtocols) {
+                            for (String clientProto : data) {
+                                if (clientProto.equals(proto)) {
+                                    selectedApplicationProtocol = proto;
+                                    return proto;
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                });
+            } else if(applicationProtocols != null){
+                SSL.getInstance().setAlpnProtos(ssl, applicationProtocols);
             }
         }
         int code = SSL.getInstance().doHandshake(ssl);
