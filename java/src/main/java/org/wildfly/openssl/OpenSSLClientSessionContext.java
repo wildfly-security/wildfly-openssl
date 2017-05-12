@@ -77,14 +77,16 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
         return maxCacheSize;
     }
 
-    void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
+    synchronized void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
         if (host != null && port >= 0) {
             final ClientSessionKey key = new ClientSessionKey(host, port);
             // set with the session pointer from the found session
             final ClientSessionInfo foundSessionPtr = getCacheValue(key);
             if (foundSessionPtr != null) {
                 if(getSession(foundSessionPtr.sessionId) != null) {
-                    SSL.getInstance().invalidateSession(foundSessionPtr.session);
+                    removeCacheEntry(key, true);
+                } else {
+                    removeCacheEntry(key, false);
                 }
             }
             final long sessionPointer = SSL.getInstance().getSession(ssl);
