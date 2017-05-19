@@ -399,34 +399,29 @@ public class OpenSSLSocket extends SSLSocket {
                     return -1;
                 }
                 readOffset += read;
-                if (readOffset > 0) {
-                    indirectPooled.getBuffer().position(readOffset);
-                    indirectPooled.getBuffer().flip();
-                    SSLEngineResult result = sslEngine.unwrap(indirectPooled.getBuffer(), unwrappedData.getBuffer());
-                    unwrappedData.getBuffer().flip();
-                    if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW || result.bytesProduced() == 0) {
-                        //try and read some more from the socket
-                        indirectPooled.getBuffer().compact();
-                        readOffset = indirectPooled.getBuffer().position();
-                        continue;
-                    }
-                    int ret = Math.min(len, unwrappedData.getBuffer().remaining());
-                    unwrappedData.getBuffer().get(b, off, ret);
-                    if (indirectPooled.getBuffer().hasRemaining()) {
-                        freeIndirect = false;
-                        indirectPooled.getBuffer().compact();
-                        dataToUnwrap = indirectPooled;
-                    }
-                    if(!unwrappedData.getBuffer().hasRemaining()) {
-                        unwrappedData.close();
-                        unwrappedData = null;
-                    }
-
-                    return ret;
-                } else {
-                    close();
-                    throw new SSLException(MESSAGES.connectionClosed());
+                indirectPooled.getBuffer().position(readOffset);
+                indirectPooled.getBuffer().flip();
+                SSLEngineResult result = sslEngine.unwrap(indirectPooled.getBuffer(), unwrappedData.getBuffer());
+                unwrappedData.getBuffer().flip();
+                if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW || result.bytesProduced() == 0) {
+                    //try and read some more from the socket
+                    indirectPooled.getBuffer().compact();
+                    readOffset = indirectPooled.getBuffer().position();
+                    continue;
                 }
+                int ret = Math.min(len, unwrappedData.getBuffer().remaining());
+                unwrappedData.getBuffer().get(b, off, ret);
+                if (indirectPooled.getBuffer().hasRemaining()) {
+                    freeIndirect = false;
+                    indirectPooled.getBuffer().compact();
+                    dataToUnwrap = indirectPooled;
+                }
+                if(!unwrappedData.getBuffer().hasRemaining()) {
+                    unwrappedData.close();
+                    unwrappedData = null;
+                }
+
+                return ret;
             }
         } catch (IOException | RuntimeException e) {
             if (unwrappedData != null) {
