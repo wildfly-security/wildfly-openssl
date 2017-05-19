@@ -458,8 +458,7 @@ public class OpenSSLSocket extends SSLSocket {
     public void write(byte[] b, int off, int len) throws IOException {
         runHandshake();
         try (DefaultByteBufferPool.PooledByteBuffer uncompressedPooled = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
-            try (DefaultByteBufferPool.PooledByteBuffer compressedPooled = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
-                try (DefaultByteBufferPool.PooledByteBuffer indirectPooled = DefaultByteBufferPool.INDIRECT_POOL.allocate()) {
+                try (DefaultByteBufferPool.PooledByteBuffer encryptedPooled = DefaultByteBufferPool.INDIRECT_POOL.allocate()) {
                     int written = 0;
                     ByteBuffer buf = uncompressedPooled.getBuffer();
                     buf.clear();
@@ -467,9 +466,9 @@ public class OpenSSLSocket extends SSLSocket {
                     buf.put(b, off + written, Math.min(toWrite, buf.remaining()));
                     buf.flip();
                     while (buf.hasRemaining()) {
-                        compressedPooled.getBuffer().clear();
-                        SSLEngineResult result = sslEngine.wrap(buf, compressedPooled.getBuffer());
-                        compressedPooled.getBuffer().flip();
+                        encryptedPooled.getBuffer().clear();
+                        SSLEngineResult result = sslEngine.wrap(buf, encryptedPooled.getBuffer());
+                        encryptedPooled.getBuffer().flip();
                         if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                             close();
                             throw new IOException(MESSAGES.bufferOverflow());//should never happen
@@ -482,14 +481,10 @@ public class OpenSSLSocket extends SSLSocket {
                         }
                         int produced = result.bytesProduced();
                         if (produced > 0) {
-                            indirectPooled.getBuffer().clear();
-                            indirectPooled.getBuffer().put(compressedPooled.getBuffer());
-                            indirectPooled.getBuffer().flip();
-                            getDelegateOutputStream().write(indirectPooled.getBuffer().array(), indirectPooled.getBuffer().arrayOffset() + indirectPooled.getBuffer().position(), indirectPooled.getBuffer().remaining());
+                            getDelegateOutputStream().write(encryptedPooled.getBuffer().array(), encryptedPooled.getBuffer().arrayOffset() + encryptedPooled.getBuffer().position(), encryptedPooled.getBuffer().remaining());
                         }
                     }
                 }
-            }
         }
 
     }
