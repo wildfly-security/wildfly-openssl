@@ -46,7 +46,6 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #include <jni.h>
-#include <stdint.h>
 
 /* Debugging code */
 #if defined(_DEBUG) || defined(DEBUG)
