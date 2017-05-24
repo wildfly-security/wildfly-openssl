@@ -38,14 +38,21 @@
 #include <dlfcn.h>
 #endif
 
+#include <jni.h>
 
+#ifdef _GCC
 /* openssl is deprecated on OSX
    this pragma directive is requires to build it
    otherwise -Wall -Werror fail the build
  */
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
-#include <jni.h>
+#ifdef _WIN32
+typedef  unsigned __int64   uint64_t;
+#else
+#include <stdint.h>
+#endif
 
 /* Debugging code */
 #if defined(_DEBUG) || defined(DEBUG)
