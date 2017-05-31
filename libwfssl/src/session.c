@@ -224,7 +224,7 @@ jbyteArray getSessionId(JNIEnv *e, SSL_SESSION *session) {
         return NULL;
     }
     bArray = (*e)->NewByteArray(e, len);
-    (*e)->SetByteArrayRegion(e, bArray, 0, len, session_id);
+    (*e)->SetByteArrayRegion(e, bArray, 0, len, (jbyte*)session_id);
     return bArray;
 }
 
