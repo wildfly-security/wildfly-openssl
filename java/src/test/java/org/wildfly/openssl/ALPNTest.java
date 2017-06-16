@@ -49,7 +49,9 @@ public class ALPNTest extends AbstractOpenSSLTest {
                 return openSSLEngine;
             })));
             acceptThread.start();
-            final OpenSSLSocket socket = (OpenSSLSocket) sslContext.getSocketFactory().createSocket();
+
+            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.2");
+            final OpenSSLSocket socket = (OpenSSLSocket) clientSslContext.getSocketFactory().createSocket();
             socket.setApplicationProtocols("h2/13", "h2", "http");
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
@@ -69,7 +71,8 @@ public class ALPNTest extends AbstractOpenSSLTest {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
+            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.2");
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 OpenSSLEngine openSSLEngine = (OpenSSLEngine) engine;
@@ -78,7 +81,7 @@ public class ALPNTest extends AbstractOpenSSLTest {
                 return openSSLEngine;
             })));
             acceptThread.start();
-            final OpenSSLSocket socket = (OpenSSLSocket) sslContext.getSocketFactory().createSocket();
+            final OpenSSLSocket socket = (OpenSSLSocket) clientSslContext.getSocketFactory().createSocket();
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];

@@ -52,9 +52,13 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     public static final int DEFAULT_SESSION_CACHE_SIZE = 1000;
 
-    private static final String BEGIN_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
+    private static final String BEGIN_RSA_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
 
-    private static final String END_CERT = "\n-----END RSA PRIVATE KEY-----";
+    private static final String END_RSA_CERT = "\n-----END RSA PRIVATE KEY-----";
+
+    private static final String BEGIN_DSA_CERT = "-----BEGIN DSA PRIVATE KEY-----\n";
+
+    private static final String END_DSA_CERT = "\n-----END DSA PRIVATE KEY-----";
 
     private static final String[] ALGORITHMS = {"RSA", "DSA"};
 
@@ -186,6 +190,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             if (keyManager != null) {
                 for (String algorithm : ALGORITHMS) {
 
+                    boolean rsa = algorithm.equals("RSA");
                     final String[] aliases = keyManager.getServerAliases(algorithm, null);
                     if (aliases != null && aliases.length != 0) {
                         for(String alias: aliases) {
@@ -198,10 +203,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                             if (LOG.isLoggable(Level.FINE)) {
                                 LOG.fine("Using alias " + alias + " for " + algorithm);
                             }
-                            StringBuilder sb = new StringBuilder(BEGIN_CERT);
+                            StringBuilder sb = new StringBuilder(rsa ? BEGIN_RSA_CERT : BEGIN_DSA_CERT);
                             sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
-                            sb.append(END_CERT);
-                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), algorithm.equals("RSA") ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
+                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             break;
                         }
                     }

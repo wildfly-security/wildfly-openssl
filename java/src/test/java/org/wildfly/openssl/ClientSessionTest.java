@@ -66,7 +66,6 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
         final int port2 = SSLTestUtils.SECONDARY_PORT;
         final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
-        final SSLSessionContext clientSession = context.getClientSessionContext();
 
         try (
                 ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port1);
@@ -76,18 +75,20 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
             final Thread acceptThread1 = startServer(serverSocket1);
             final Thread acceptThread2 = startServer(serverSocket2);
 
-            byte[] host1SessionId = connectAndWrite(context, port1);
-            byte[] host2SessionId = connectAndWrite(context, port2);
+            SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
+            final SSLSessionContext clientSession = clientContext.getClientSessionContext();
+            byte[] host1SessionId = connectAndWrite(clientContext, port1);
+            byte[] host2SessionId = connectAndWrite(clientContext, port2);
 
             // No timeout was set, id's should be identical
-            Assert.assertArrayEquals(host1SessionId, connectAndWrite(context, port1));
-            Assert.assertArrayEquals(host2SessionId, connectAndWrite(context, port2));
+            Assert.assertArrayEquals(host1SessionId, connectAndWrite(clientContext, port1));
+            Assert.assertArrayEquals(host2SessionId, connectAndWrite(clientContext, port2));
 
             // Set the session timeout to 1 second and sleep for 2 to ensure the timeout works
             clientSession.setSessionTimeout(1);
             TimeUnit.SECONDS.sleep(2L);
-            Assert.assertFalse(Arrays.equals(host1SessionId, connectAndWrite(context, port1)));
-            Assert.assertFalse(Arrays.equals(host1SessionId, connectAndWrite(context, port2)));
+            Assert.assertFalse(Arrays.equals(host1SessionId, connectAndWrite(clientContext, port1)));
+            Assert.assertFalse(Arrays.equals(host1SessionId, connectAndWrite(clientContext, port2)));
 
             serverSocket1.close();
             serverSocket2.close();
@@ -105,7 +106,8 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
             final Thread acceptThread1 = startServer(serverSocket1);
             final FutureSessionId future = new FutureSessionId();
-            try (final SSLSocket socket = (SSLSocket) context.getSocketFactory().createSocket()) {
+            SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
+            try (final SSLSocket socket = (SSLSocket) clientContext.getSocketFactory().createSocket()) {
                 socket.connect(new InetSocketAddress(SSLTestUtils.HOST, port));
                 socket.addHandshakeCompletedListener(new FutureHandshakeCompletedListener(future));
                 socket.getOutputStream().write(HELLO_WORLD);
@@ -113,7 +115,7 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
                 socket.getOutputStream().flush();
             }
             byte[] invalided = future.get();
-            byte[] newSession = connectAndWrite(context, port);
+            byte[] newSession = connectAndWrite(clientContext, port);
 
             Assert.assertFalse(Arrays.equals(invalided, newSession));
 
@@ -128,8 +130,6 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
         final int port2 = SSLTestUtils.SECONDARY_PORT;
         final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
-        final SSLSessionContext clientSession = context.getClientSessionContext();
-
         try (
                 ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port1);
                 ServerSocket serverSocket2 = SSLTestUtils.createServerSocket(port2)
@@ -137,34 +137,37 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
             final Thread acceptThread1 = startServer(serverSocket1);
             final Thread acceptThread2 = startServer(serverSocket2);
+            SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
 
-            byte[] host1SessionId = connectAndWrite(context, port1);
-            byte[] host2SessionId = connectAndWrite(context, port2);
+            final SSLSessionContext clientSession = clientContext.getClientSessionContext();
+
+            byte[] host1SessionId = connectAndWrite(clientContext, port1);
+            byte[] host2SessionId = connectAndWrite(clientContext, port2);
 
             // No cache limit was set, id's should be identical
-            Assert.assertArrayEquals(host1SessionId, connectAndWrite(context, port1));
-            Assert.assertArrayEquals(host2SessionId, connectAndWrite(context, port2));
+            Assert.assertArrayEquals(host1SessionId, connectAndWrite(clientContext, port1));
+            Assert.assertArrayEquals(host2SessionId, connectAndWrite(clientContext, port2));
 
             // Set the cache size to 1
             clientSession.setSessionCacheSize(1);
             // The second session id should be the one kept as it was the last one used
-            Assert.assertArrayEquals(host2SessionId, connectAndWrite(context, port2));
+            Assert.assertArrayEquals(host2SessionId, connectAndWrite(clientContext, port2));
             // Connect again to the first host, this should not match the initial session id for the first host
-            byte[] nextId = connectAndWrite(context, port1);
+            byte[] nextId = connectAndWrite(clientContext, port1);
             Assert.assertFalse(Arrays.equals(host1SessionId, nextId));
             // Once more connect to the first host and this should match the previous session id
-            Assert.assertArrayEquals(nextId, connectAndWrite(context, port1));
+            Assert.assertArrayEquals(nextId, connectAndWrite(clientContext, port1));
             // Connect to the second host which should be purged at this point
-            Assert.assertFalse(Arrays.equals(nextId, connectAndWrite(context, port2)));
+            Assert.assertFalse(Arrays.equals(nextId, connectAndWrite(clientContext, port2)));
 
             // Reset the cache limit and ensure both sessions are cached
             clientSession.setSessionCacheSize(0);
-            host1SessionId = connectAndWrite(context, port1);
-            host2SessionId = connectAndWrite(context, port2);
+            host1SessionId = connectAndWrite(clientContext, port1);
+            host2SessionId = connectAndWrite(clientContext, port2);
 
             // No cache limit was set, id's should be identical
-            Assert.assertArrayEquals(host1SessionId, connectAndWrite(context, port1));
-            Assert.assertArrayEquals(host2SessionId, connectAndWrite(context, port2));
+            Assert.assertArrayEquals(host1SessionId, connectAndWrite(clientContext, port1));
+            Assert.assertArrayEquals(host2SessionId, connectAndWrite(clientContext, port2));
 
             serverSocket1.close();
             serverSocket2.close();
@@ -184,7 +187,8 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
             byte[] sessionID;
             // Create a connection to get a session ID, all other session id's should match
-            try (final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket()) {
+            SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
+            try (final SSLSocket socket = (SSLSocket) clientContext.getSocketFactory().createSocket()) {
                 socket.connect(SSLTestUtils.createSocketAddress());
                 socket.startHandshake();
                 final byte[] id = socket.getSession().getId();
@@ -194,7 +198,7 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
             final CountDownLatch latch = new CountDownLatch(iterations);
 
             for (int i = 0; i < iterations; i++) {
-                final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
+                final SSLSocket socket = (SSLSocket) clientContext.getSocketFactory().createSocket();
                 socket.connect(SSLTestUtils.createSocketAddress());
                 socket.addHandshakeCompletedListener(new AssertingHandshakeCompletedListener(latch, sessionID));
                 socket.startHandshake();
