@@ -1135,6 +1135,9 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     ssl_methods.SSL_set_read_ahead(ssl, 0);
 
     /* Setup verify and seed */
+    if(server == JNI_FALSE) {
+        ssl_methods.SSL_set_verify(ssl, SSL_VERIFY_PEER, NULL);
+    }
     ssl_methods.SSL_set_verify_result(ssl, X509_V_OK);
     /* Add callback to keep track of handshakes and the handshake state */
     ssl_methods.SSL_set_info_callback(ssl, &ssl_info_callback);
