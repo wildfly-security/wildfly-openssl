@@ -40,10 +40,14 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
 
-            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createDSASSLContext("TLSv1.2"), sessionID));
+            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createDSASSLContext("TLSv1.2"), sessionID, engine -> {
+                engine.setEnabledCipherSuites(new String[] {"TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"});
+                return engine;
+            }));
             acceptThread.start();
             final SSLContext sslContext = SSLTestUtils.createClientDSASSLContext("openssl.TLSv1.2");
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
+            socket.setEnabledCipherSuites(new String[] {"TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"});
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().flush();

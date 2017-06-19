@@ -144,6 +144,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_SESS_CACHE_SERVER                   0x0002
 #define SSL_SESS_CACHE_BOTH     (SSL_SESS_CACHE_CLIENT|SSL_SESS_CACHE_SERVER)
 
+#define SSL_CTRL_SET_TMP_DH                     3
 #define SSL_CTRL_SESS_NUMBER                    20
 #define SSL_CTRL_SESS_CONNECT                   21
 #define SSL_CTRL_SESS_CONNECT_GOOD              22
@@ -372,6 +373,7 @@ typedef void X509_OBJECT;
 typedef void ASN1_TIME;
 typedef void BIGNUM;
 typedef void X509_LU_CRL;
+typedef void DH;
 
 /* This is a 'fake' definition, that matches the definition used in the 1.0.x branch
  * 1.1. does not use this, as additional functions were added to allow it to be used
@@ -383,7 +385,6 @@ typedef struct {
     X509 *unused3;
     STACK_OF_X509 *untrusted;
 } X509_STORE_CTX;
-
 
 struct CRYPTO_dynlock_value;
 
@@ -628,6 +629,8 @@ typedef struct {
     int (*i2d_X509)(X509 *a, unsigned char **out);
     void (*ENGINE_load_builtin_engines)(void);
     STACK_OF_X509* (*X509_STORE_CTX_get0_untrusted)(X509_STORE_CTX *ctx);
+    void (*DH_free)(DH *dh);
+    DH *(*PEM_read_bio_DHparams)(BIO *bp, DH **x, pem_password_cb *cb, void *u);
 } crypto_dynamic_methods;
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
