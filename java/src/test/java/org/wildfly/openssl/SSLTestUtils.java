@@ -135,6 +135,25 @@ public class SSLTestUtils {
             throw new RuntimeException("Unable to create and initialise the SSLContext", e);
         }
     }
+    static SSLContext createClientDSASSLContext(String provider) throws IOException {
+        TrustManager[] trustManagers = null;
+        try {
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(loadKeyStore("client-dsa.truststore"));
+            trustManagers = trustManagerFactory.getTrustManagers();
+        } catch (NoSuchAlgorithmException | KeyStoreException e) {
+            throw new RuntimeException("Unable to initialise TrustManager[]", e);
+        }
+
+        try {
+            final SSLContext context = SSLContext.getInstance(provider);
+            context.init(null, trustManagers, new SecureRandom());
+            return context;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Unable to create and initialise the SSLContext", e);
+        }
+    }
 
     public static byte[] readData(InputStream in) throws IOException {
         int r;
