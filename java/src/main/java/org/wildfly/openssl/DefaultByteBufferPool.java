@@ -39,7 +39,7 @@ class DefaultByteBufferPool {
 
     //TODO: make configurable
     static final DefaultByteBufferPool DIRECT_POOL = new DefaultByteBufferPool(true, Integer.getInteger("org.wildfly.openssl.buffer-size", 17 * 1024));
-    static final DefaultByteBufferPool INDIRECT_POOL = new DefaultByteBufferPool(false, Integer.getInteger("org.wildfly.openssl.buffer-size", 17 * 1024));
+    static final DefaultByteBufferPool HEAP_POOL = new DefaultByteBufferPool(false, Integer.getInteger("org.wildfly.openssl.buffer-size", 17 * 1024));
 
 
     private final ThreadLocal<ThreadLocalData> threadLocalCache = new ThreadLocal<>();
@@ -50,7 +50,7 @@ class DefaultByteBufferPool {
     private final int bufferSize;
     private final int maximumPoolSize;
     private final int threadLocalCacheSize;
-    private final int leakDectionPercent;
+    private final int leakDetectionPercent;
     private int count; //racily updated count used in leak detection
 
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
@@ -81,7 +81,7 @@ class DefaultByteBufferPool {
         this.bufferSize = bufferSize;
         this.maximumPoolSize = maximumPoolSize;
         this.threadLocalCacheSize = threadLocalCacheSize;
-        this.leakDectionPercent = leakDecetionPercent;
+        this.leakDetectionPercent = leakDecetionPercent;
     }
 
 
@@ -133,7 +133,7 @@ class DefaultByteBufferPool {
             local.allocationDepth++;
         }
         buffer.clear();
-        return new DefaultPooledBuffer(this, buffer, leakDectionPercent == 0 ? false : (++count % 100 > leakDectionPercent));
+        return new DefaultPooledBuffer(this, buffer, leakDetectionPercent == 0 ? false : (++count % 100 > leakDetectionPercent));
     }
 
     private void cleanupThreadLocalData() {
