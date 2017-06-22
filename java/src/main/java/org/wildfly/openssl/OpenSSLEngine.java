@@ -697,11 +697,16 @@ public final class OpenSSLEngine extends SSLEngine {
                 if (converted != null) {
                     cipherSuite = converted;
                 }
+                Set<String> missing = new HashSet<>();
                 Set<String> availbile = new HashSet<>(Arrays.asList(OpenSSLContextSPI.getAvailableCipherSuites()));
                 if (!availbile.contains(cipherSuite)) {
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine("Unsupported cypher suite " + cipherSuite + "(" + converted + "), available " + availbile);
+                    if (LOG.isLoggable(Level.FINEST)) {
+                        missing.add(cipherSuite);
                     }
+                }
+
+                if (!missing.isEmpty() && LOG.isLoggable(Level.FINEST)) {
+                    LOG.fine("Unsupported cypher suites " + missing + " available " + availbile);
                 }
 
                 buf.append(cipherSuite);
