@@ -135,6 +135,8 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private List<Runnable> tasks = new ArrayList<>();
 
+    private int remainingInUnwrapRecord = 0;
+
     /**
      * Creates a new instance
      *
@@ -485,150 +487,169 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public synchronized SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset, final int length) throws SSLException {
-        // Check to make sure the engine has not been closed
-        if (destroyed != 0) {
-            return new SSLEngineResult(SSLEngineResult.Status.CLOSED, SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING, 0, 0);
-        }
-        initSsl();
-
-        // Throw required runtime exceptions
-        if (src == null) {
-            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
-        }
-        if (dsts == null) {
-            throw new IllegalArgumentException(MESSAGES.bufferIsNull());
-        }
-        if (offset >= dsts.length || offset + length > dsts.length) {
-            throw new IndexOutOfBoundsException(MESSAGES.invalidOffset(offset, length, dsts.length));
-        }
-
-        int capacity = 0;
-        final int endOffset = offset + length;
-        for (int i = offset; i < endOffset; i++) {
-            ByteBuffer dst = dsts[i];
-            if (dst == null) {
-                throw new IllegalArgumentException(MESSAGES.bufferIsNull());
+        int consumed = 0, produced = 0;
+        for(;;) {
+            // Check to make sure the engine has not been closed
+            if (destroyed != 0) {
+                return new SSLEngineResult(SSLEngineResult.Status.CLOSED, SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING, 0, 0);
             }
-            if (dst.isReadOnly()) {
-                throw new ReadOnlyBufferException();
+            if (src != null && src.remaining() > 0 && src.remaining() < 5) {
+                return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
             }
-            capacity += dst.remaining();
-        }
-
-        // Prepare OpenSSL to work in server mode and receive handshake
-        if (accepted == 0) {
-            beginHandshakeImplicitly();
-        }
-
-        // In handshake or close_notify stages, check if call to unwrap was made
-        // without regard to the handshake status.
-        SSLEngineResult.HandshakeStatus handshakeStatus = getHandshakeStatus();
-        if ((!handshakeFinished || engineClosed) && handshakeStatus == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
-            return new SSLEngineResult(getEngineStatus(), SSLEngineResult.HandshakeStatus.NEED_WRAP, 0, 0);
-        }
-
-        int len = src.remaining();
-
-        // protect against protocol overflow attack vector
-        if (len > MAX_ENCRYPTED_PACKET_LENGTH) {
-            isInboundDone = true;
-            isOutboundDone = true;
-            engineClosed = true;
-            shutdown();
-            throw ENCRYPTED_PACKET_OVERSIZED;
-        }
-
-        // Write encrypted data to network BIO
-        int bytesConsumed = -1;
-        try {
-            int written = writeEncryptedData(src);
-            if (written >= 0) {
-                if (bytesConsumed == -1) {
-                    bytesConsumed = written;
-                } else {
-                    bytesConsumed += written;
+            int oldLimit = -1;
+            if (src != null && src.remaining() > 0) {
+                oldLimit = src.limit();
+                if (remainingInUnwrapRecord == 0) {
+                    int frameLength = ((src.get(src.position() + 3) & 0xff) << 8) + ((src.get(src.position() + 4)) & 0xff) + 5;
+                    remainingInUnwrapRecord = frameLength;
+                }
+                if (src.remaining() >= remainingInUnwrapRecord) {
+                    src.limit(src.position() + remainingInUnwrapRecord);
                 }
             }
-        } catch (Exception e) {
-            throw new SSLException(e);
-        }
-        int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
-        // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
-        // fatal.
-        if (lastPrimingReadResult <= 0) {
-            // Check for OpenSSL errors caused by the priming read
-            long error = SSL.getInstance().getLastErrorNumber();
-            if (error != SSL.SSL_ERROR_NONE) {
-                String err = SSL.getInstance().getErrorString(error);
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine(MESSAGES.readFromSSLFailed(error, lastPrimingReadResult, err));
+            try {
+
+                initSsl();
+
+                // Throw required runtime exceptions
+                if (src == null) {
+                    throw new IllegalArgumentException(MESSAGES.bufferIsNull());
                 }
-                // There was an internal error -- shutdown
-                shutdown();
-                throw new SSLException(err);
-            }
-        }
-
-        if (bytesConsumed < 0) {
-            bytesConsumed = 0;
-        }
-
-        // There won't be any application data until we're done handshaking
-        //
-        // We first check handshakeFinished to eliminate the overhead of extra JNI call if possible.
-        int pendingApp = (handshakeFinished || SSL.getInstance().isInInit(ssl) == 0) ? SSL.getInstance().pendingReadableBytesInSSL(ssl) : 0;
-        int bytesProduced = 0;
-
-        while (pendingApp > 0) {
-            // Do we have enough room in dsts to write decrypted data?
-            if (capacity < pendingApp) {
-                return new SSLEngineResult(SSLEngineResult.Status.BUFFER_OVERFLOW, getHandshakeStatus(), bytesConsumed, 0);
-            }
-
-            // Write decrypted data to dsts buffers
-            int idx = offset;
-            while (idx < endOffset) {
-                ByteBuffer dst = dsts[idx];
-                if (!dst.hasRemaining()) {
-                    idx++;
-                    continue;
+                if (dsts == null) {
+                    throw new IllegalArgumentException(MESSAGES.bufferIsNull());
+                }
+                if (offset >= dsts.length || offset + length > dsts.length) {
+                    throw new IndexOutOfBoundsException(MESSAGES.invalidOffset(offset, length, dsts.length));
                 }
 
-                if (pendingApp <= 0) {
-                    break;
+                int capacity = 0;
+                final int endOffset = offset + length;
+                for (int i = offset; i < endOffset; i++) {
+                    ByteBuffer dst = dsts[i];
+                    if (dst == null) {
+                        throw new IllegalArgumentException(MESSAGES.bufferIsNull());
+                    }
+                    if (dst.isReadOnly()) {
+                        throw new ReadOnlyBufferException();
+                    }
+                    capacity += dst.remaining();
                 }
 
-                int bytesRead;
+                // Prepare OpenSSL to work in server mode and receive handshake
+                if (accepted == 0) {
+                    beginHandshakeImplicitly();
+                }
+
+                // In handshake or close_notify stages, check if call to unwrap was made
+                // without regard to the handshake status.
+                SSLEngineResult.HandshakeStatus handshakeStatus = getHandshakeStatus();
+                if ((!handshakeFinished || engineClosed) && handshakeStatus == SSLEngineResult.HandshakeStatus.NEED_WRAP) {
+                    return new SSLEngineResult(getEngineStatus(), SSLEngineResult.HandshakeStatus.NEED_WRAP, 0, 0);
+                }
+
+                int len = src.remaining();
+
+                // protect against protocol overflow attack vector
+                if (len > MAX_ENCRYPTED_PACKET_LENGTH) {
+                    isInboundDone = true;
+                    isOutboundDone = true;
+                    engineClosed = true;
+                    shutdown();
+                    throw ENCRYPTED_PACKET_OVERSIZED;
+                }
+
+                // Write encrypted data to network BIO
                 try {
-                    bytesRead = readPlaintextData(dst);
+                    int written = writeEncryptedData(src);
+                    if (written >= 0) {
+                        remainingInUnwrapRecord -= written;
+                        consumed += written;
+                    }
                 } catch (Exception e) {
                     throw new SSLException(e);
                 }
-
-                if (bytesRead == 0) {
-                    break;
+                int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
+                // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
+                // fatal.
+                if (lastPrimingReadResult <= 0) {
+                    // Check for OpenSSL errors caused by the priming read
+                    long error = SSL.getInstance().getLastErrorNumber();
+                    if (error != SSL.SSL_ERROR_NONE) {
+                        String err = SSL.getInstance().getErrorString(error);
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.fine(MESSAGES.readFromSSLFailed(error, lastPrimingReadResult, err));
+                        }
+                        // There was an internal error -- shutdown
+                        shutdown();
+                        throw new SSLException(err);
+                    }
                 }
 
-                bytesProduced += bytesRead;
-                pendingApp -= bytesRead;
+                // There won't be any application data until we're done handshaking
+                //
+                // We first check handshakeFinished to eliminate the overhead of extra JNI call if possible.
+                int pendingApp = (handshakeFinished || SSL.getInstance().isInInit(ssl) == 0) ? SSL.getInstance().pendingReadableBytesInSSL(ssl) : 0;
 
-                if (!dst.hasRemaining()) {
-                    idx++;
+                while (pendingApp > 0) {
+                    // Do we have enough room in dsts to write decrypted data?
+                    if (capacity < pendingApp) {
+                        return new SSLEngineResult(SSLEngineResult.Status.BUFFER_OVERFLOW, getHandshakeStatus(), consumed, 0);
+                    }
+
+                    // Write decrypted data to dsts buffers
+                    int idx = offset;
+                    while (idx < endOffset) {
+                        ByteBuffer dst = dsts[idx];
+                        if (!dst.hasRemaining()) {
+                            idx++;
+                            continue;
+                        }
+
+                        if (pendingApp <= 0) {
+                            break;
+                        }
+
+                        int bytesRead;
+                        try {
+                            bytesRead = readPlaintextData(dst);
+                        } catch (Exception e) {
+                            throw new SSLException(e);
+                        }
+
+                        if (bytesRead == 0) {
+                            break;
+                        }
+
+                        produced += bytesRead;
+                        pendingApp -= bytesRead;
+
+                        if (!dst.hasRemaining()) {
+                            idx++;
+                        }
+                    }
+                    pendingApp = SSL.getInstance().pendingReadableBytesInSSL(ssl);
+                }
+
+                // Check to see if we received a close_notify message from the peer
+                if (!receivedShutdown && (SSL.getInstance().getShutdown(ssl) & SSL.SSL_RECEIVED_SHUTDOWN) == SSL.SSL_RECEIVED_SHUTDOWN) {
+                    receivedShutdown = true;
+                    closeOutbound();
+                    closeInbound();
+                }
+            } finally {
+                if (oldLimit > 0) {
+                    src.limit(oldLimit);
                 }
             }
-            pendingApp = SSL.getInstance().pendingReadableBytesInSSL(ssl);
-        }
-
-        // Check to see if we received a close_notify message from the peer
-        if (!receivedShutdown && (SSL.getInstance().getShutdown(ssl) & SSL.SSL_RECEIVED_SHUTDOWN) == SSL.SSL_RECEIVED_SHUTDOWN) {
-            receivedShutdown = true;
-            closeOutbound();
-            closeInbound();
-        }
-        if (bytesProduced == 0 && bytesConsumed == 0) {
-            return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW, getHandshakeStatus(), bytesConsumed, bytesProduced);
-        } else {
-            return new SSLEngineResult(getEngineStatus(), getHandshakeStatus(), bytesConsumed, bytesProduced);
+            if (produced == 0 && consumed == 0) {
+                return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW, getHandshakeStatus(), consumed, produced);
+            } else if(produced == 0 && consumed > 0 && src.hasRemaining()) {
+                //we have consumed a full frame, but produced no output, and there is still more data to consume
+                //we attempt to consume the next frame as well
+                continue;
+            } else {
+                return new SSLEngineResult(getEngineStatus(), getHandshakeStatus(), consumed, produced);
+            }
         }
     }
 
