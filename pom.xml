@@ -48,6 +48,14 @@
         <version.jar.plugin>2.6</version.jar.plugin>
     </properties>
 
+    <licenses>
+        <license>
+            <name>Apache License Version 2.0</name>
+            <url>http://repository.jboss.org/licenses/apache-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
