@@ -66,7 +66,7 @@ Using the provider
 
 After the provider has been registered all that is necessary to use it to get the SSLContext:
 
-    SSLContext sslContext =  SSLContext.getInstance("openssl.TLSv1");
+    SSLContext sslContext =  SSLContext.getInstance("openssl.TLS");
 
 The SSLContext can then be used as normal, and should provide a drop in replacement for JSSE.
 
