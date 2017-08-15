@@ -68,6 +68,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     private static volatile String[] allAvailableCiphers;
 
     protected final long ctx;
+    final int supportedCiphers;
 
 
     private volatile String[] ciphers;
@@ -120,6 +121,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     OpenSSLContextSPI(final int value) throws SSLException {
+        this.supportedCiphers = value;
         SSL.init();
         try {
             // Create SSL Context
@@ -306,7 +308,8 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         if(ciphers == null) {
             synchronized (this) {
                 if(ciphers == null) {
-                    SSLEngine engine = createSSLEngine();
+                    OpenSSLEngine engine = (OpenSSLEngine) createSSLEngine();
+                    engine.initSsl();
                     ciphers = engine.getEnabledCipherSuites();
                 }
             }

@@ -125,6 +125,8 @@ public final class OpenSSLEngine extends SSLEngine {
     private boolean clientMode;
 
     private String[] applicationProtocols;
+    private String[] userSetEnabledCipherSuites;
+    private String[] userSetEnabledProtocols;
     private String selectedApplicationProtocol;
     private SSLSession handshakeSession;
 
@@ -158,7 +160,7 @@ public final class OpenSSLEngine extends SSLEngine {
         this.port = port;
     }
 
-    private void initSsl() {
+    void initSsl() {
         if(ssl == 0 && DESTROYED_UPDATER.get(this) == 0) {
             ssl = SSL.getInstance().newSSL(sslCtx, !clientMode);
             networkBIO = SSL.getInstance().makeNetworkBIO(ssl);
@@ -667,6 +669,13 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public String[] getEnabledCipherSuites() {
+        if(ssl == 0) {
+            if(userSetEnabledCipherSuites != null) {
+                return userSetEnabledCipherSuites;
+            } else {
+                return openSSLContextSPI.getCiphers();
+            }
+        }
         initSsl();
         String[] enabled = SSL.getInstance().getCiphers(ssl);
         if (enabled == null) {
@@ -687,6 +696,7 @@ public final class OpenSSLEngine extends SSLEngine {
         if (cipherSuites == null) {
             throw new IllegalArgumentException(MESSAGES.nullCipherSuites());
         }
+        userSetEnabledCipherSuites = cipherSuites;
         Runnable task = () -> {
             final StringBuilder buf = new StringBuilder();
             for (String cipherSuite : cipherSuites) {
@@ -738,11 +748,18 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public String[] getEnabledProtocols() {
-        initSsl();
+        if(ssl == 0 && userSetEnabledProtocols != null) {
+                return userSetEnabledProtocols;
+        }
         List<String> enabled = new ArrayList<>();
         // Seems like there is no way to explict disable SSLv2Hello in openssl so it is always enabled
         enabled.add(SSL.SSL_PROTO_SSLv2Hello);
-        int opts = SSL.getInstance().getOptions(ssl);
+        int opts;
+        if(ssl != 0) {
+            opts = SSL.getInstance().getOptions(ssl);
+        } else {
+            opts = openSSLContextSPI.supportedCiphers;
+        }
         if ((opts & SSL.SSL_OP_NO_TLSv1) == 0) {
             enabled.add(SSL.SSL_PROTO_TLSv1);
         }
@@ -772,6 +789,7 @@ public final class OpenSSLEngine extends SSLEngine {
             // This is correct from the API docs
             throw new IllegalArgumentException();
         }
+        userSetEnabledProtocols = protocols;
         Runnable task = () -> {
             boolean sslv2 = false;
             boolean sslv3 = false;
