@@ -56,16 +56,13 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
     @Test
     public void testOpenSsl() throws Exception {
-        final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
-        testSessionId(context);
+        testSessionId(SSLTestUtils.createSSLContext("openssl.TLSv1"));
     }
 
     @Test
     public void testSessionTimeout() throws Exception {
         final int port1 = SSLTestUtils.PORT;
         final int port2 = SSLTestUtils.SECONDARY_PORT;
-        final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
-
 
         try (
                 ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port1);
@@ -100,7 +97,6 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
     @Test
     public void testSessionInvalidation() throws Exception {
         final int port = SSLTestUtils.PORT;
-        final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
         try (ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port)) {
 
@@ -128,7 +124,6 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
     public void testSessionSize() throws Exception {
         final int port1 = SSLTestUtils.PORT;
         final int port2 = SSLTestUtils.SECONDARY_PORT;
-        final SSLContext context = SSLTestUtils.createSSLContext("openssl.TLSv1");
 
         try (
                 ServerSocket serverSocket1 = SSLTestUtils.createServerSocket(port1);
