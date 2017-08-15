@@ -25,6 +25,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -196,13 +197,10 @@ public abstract class SSL {
 
     private static String searchForVersionedLibrary(String path, String lib) {
         File file = new File(path);
-        String[] files = file.list();
-        if(files != null) {
-            for (String test : files) {
-                if(test.startsWith(lib)) {
-                    return new File(path, test).getAbsolutePath();
-                }
-            }
+        String[] files = file.list((File dir, String name) -> name.startsWith(lib));
+        if (files != null && files.length > 0) {
+            Arrays.sort(files, String.CASE_INSENSITIVE_ORDER);
+            return new File(path, files[0]).getAbsolutePath();
         }
         return null;
     }
