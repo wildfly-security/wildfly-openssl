@@ -82,6 +82,7 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o, jlong ssl /* SS
 WF_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jstring, version)(JNIEnv *e);
+WF_OPENSSL(jboolean, isServer)(JNIEnv *e, jobject o, jlong ssl);
 void init_app_data_idx(void);
 void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg);
 void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg);
@@ -345,6 +346,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     REQUIRE_SSL_SYMBOL(SSL_set_session);
     REQUIRE_SSL_SYMBOL(SSL_get_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_get_version);
+    REQUIRE_SSL_SYMBOL(SSL_is_server);
 
     GET_SSL_SYMBOL(SSL_library_init);
     if(ssl_methods.SSL_library_init == NULL) {
@@ -974,7 +976,6 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
     JNIEnv *e;
     jbyteArray array;
     jbyteArray bArray;
-    jstring authMethodString;
     jboolean result;
     int r;
     int len;
@@ -1021,16 +1022,12 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         (*e)->DeleteLocalRef(e, bArray);
         crypto_methods.CRYPTO_free(buf);
     }
-
-    authMethodString = (*e)->NewStringUTF(e, "");
-
     result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
             conn->server_cipher);
 
     r = result == JNI_TRUE ? 1 : 0;
 
     /*  We need to delete the local references so we not leak memory as this method is called via callback. */
-    (*e)->DeleteLocalRef(e, authMethodString);
     (*e)->DeleteLocalRef(e, array);
     return r;
 }
@@ -1492,6 +1489,12 @@ WF_OPENSSL(jstring, version)(JNIEnv *e)
     return (*e)->NewStringUTF(e, version);
 }
 
+WF_OPENSSL(jboolean, isServer)(JNIEnv *e, jobject o, jlong ssl)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *ssl_ = J2P(ssl, SSL *);
+    return (jboolean)ssl_methods.SSL_is_server(ssl_);
+}
 /* sets up diffie hellman params using the apps/dh2048.pem file from openssl */
 void setupDH(JNIEnv *e, SSL_CTX * ctx)
 {

@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -52,6 +53,22 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            serverSocket.close();
+            acceptThread.join();
+        }
+    }
+
+    @Test(expected = SSLException.class)
+    public void testWrongClientSideTrustManagerFailsValidation() throws IOException, NoSuchAlgorithmException, InterruptedException {
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
+            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+
+            Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID));
+            acceptThread.start();
+            final SSLSocket socket = (SSLSocket) SSLTestUtils.createSSLContext("openssl.TLSv1").getSocketFactory().createSocket();
+            socket.connect(SSLTestUtils.createSocketAddress());
+            socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             serverSocket.close();
             acceptThread.join();
         }

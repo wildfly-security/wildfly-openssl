@@ -237,7 +237,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                         Cipher cipher = Cipher.valueOf(cipherNo);
                         String auth = cipher == null ? "RSA" : cipher.getAu().toString();
                         try {
-                            manager.checkClientTrusted(peerCerts, auth);
+                            if(SSL.getInstance().isServer(ssl)) {
+                                manager.checkClientTrusted(peerCerts, auth);
+                            } else {
+                                manager.checkServerTrusted(peerCerts, auth);
+                            }
                             return true;
                         } catch (Exception e) {
                             if (LOG.isLoggable(Level.FINE)) {

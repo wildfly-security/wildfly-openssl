@@ -868,4 +868,10 @@ public class SSLImpl extends SSL {
     protected boolean setSessionIdContext(long ctx, byte[] sidCtx) {
         return SSLImpl.setSessionIdContext0(ctx, sidCtx);
     }
+
+    static native boolean isServer0(long ssl);
+
+    protected boolean isServer(long ssl) {
+        return SSLImpl.isServer0(ssl);
+    }
 }

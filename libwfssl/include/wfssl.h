@@ -555,6 +555,7 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_method)(void);
     evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
+    int (*SSL_is_server)(const SSL *ssl);
 } ssl_dynamic_methods;
 
 typedef struct {
