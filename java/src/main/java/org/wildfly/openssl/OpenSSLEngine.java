@@ -180,6 +180,7 @@ public final class OpenSSLEngine extends SSLEngine {
     public synchronized void shutdown() {
         if (DESTROYED_UPDATER.compareAndSet(this, 0, 1)) {
             if(ssl != 0) {
+                SSL.getInstance().shutdownSSL(ssl);
                 SSL.getInstance().freeSSL(ssl);
                 SSL.getInstance().freeBIO(networkBIO);
             }

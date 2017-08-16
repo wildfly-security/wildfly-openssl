@@ -51,7 +51,7 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
     @Test
     public void testJsse() throws Exception {
-        testSessionId(SSLContext.getDefault());
+        testSessionId(SSLTestUtils.createSSLContext("TLSv1"));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
 
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
 
-            final Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createSSLContext("TLSv1"), new AtomicReference<>()));
+            final Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, new AtomicReference<>()));
             acceptThread.start();
 
             byte[] sessionID;
