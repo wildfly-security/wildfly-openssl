@@ -25,6 +25,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +46,7 @@ public abstract class SSL {
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
 
-    private static final String[] LIBCRYPTO_NAMES= {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32", "libcrypto-1_1"};
+    private static final String[] LIBCRYPTO_NAMES = {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32", "libcrypto-1_1"};
     private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "ssl", "ssleay32", "libssl32", "libssl-1_1"};
 
     public SSL() {
@@ -117,7 +118,7 @@ public abstract class SSL {
                     String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
                     String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
                     List<String> paths = new ArrayList<>();
-                    if(specifiedPath != null) {
+                    if (specifiedPath != null) {
                         paths.add(specifiedPath);
                     } else {
                         if (path != null) {
@@ -131,11 +132,12 @@ public abstract class SSL {
                     }
                     List<String> attemptedSSL = new ArrayList<>();
                     List<String> attemptedCrypto = new ArrayList<>();
-                    for(String p : paths) {
-                        if(sslPath != null && cryptoPath != null) {
+                    VersionedLibrary sslVersion = null;
+                    for (String p : paths) {
+                        if (sslPath != null && cryptoPath != null) {
                             break;
                         }
-                        if(sslPath == null) {
+                        if (sslPath == null) {
                             for (String ssl : LIBSSL_NAMES) {
                                 String lib = System.mapLibraryName(ssl);
                                 File file = new File(p, lib);
@@ -148,14 +150,15 @@ public abstract class SSL {
                             if (sslPath == null) {
                                 for (String ssl : LIBSSL_NAMES) {
                                     String lib = System.mapLibraryName(ssl);
-                                    sslPath = searchForVersionedLibrary(p, lib);
-                                    if (sslPath != null) {
+                                    sslVersion = searchForVersionedLibrary(p, lib, null);
+                                    if (sslVersion != null) {
+                                        sslPath = sslVersion.file;
                                         break;
                                     }
                                 }
                             }
                         }
-                        if(cryptoPath == null) {
+                        if (sslPath != null) {
                             for (String crypto : LIBCRYPTO_NAMES) {
                                 String lib = System.mapLibraryName(crypto);
                                 File file = new File(p, lib);
@@ -165,14 +168,20 @@ public abstract class SSL {
                                 }
                                 attemptedCrypto.add(file.getAbsolutePath());
                             }
-                            if (cryptoPath == null) {
+                            if (cryptoPath == null && sslVersion != null) {
                                 for (String crypto : LIBCRYPTO_NAMES) {
                                     String lib = System.mapLibraryName(crypto);
-                                    cryptoPath = searchForVersionedLibrary(p, lib);
-                                    if (cryptoPath != null) {
+                                    VersionedLibrary cryptoVersion = searchForVersionedLibrary(p, lib, sslVersion.versionPart);
+                                    if (cryptoVersion != null) {
+                                        cryptoPath = cryptoVersion.file;
                                         break;
                                     }
                                 }
+                            }
+                            if (cryptoPath == null) {
+                                //we need them to match, if we find one but not the other we look elsewhere
+                                sslPath = null;
+                                sslVersion = null;
                             }
                         }
                     }
@@ -187,24 +196,34 @@ public abstract class SSL {
                     logger.info(Messages.MESSAGES.openSSLVersion(version));
 
 
-
                     init = true;
                 }
             }
         }
     }
 
-    private static String searchForVersionedLibrary(String path, String lib) {
+    private static VersionedLibrary searchForVersionedLibrary(String path, String lib, String requiredVersion) {
         File file = new File(path);
         String[] files = file.list();
-        if(files != null) {
+        List<VersionedLibrary> versionedLibraries = new ArrayList<>();
+        if (files != null) {
             for (String test : files) {
-                if(test.startsWith(lib)) {
-                    return new File(path, test).getAbsolutePath();
+                if (test.startsWith(lib)) {
+                    String absolutePath = new File(path, test).getAbsolutePath();
+                    String versionedPart = test.substring(lib.length());
+                    if (requiredVersion != null && versionedPart.equals(requiredVersion)) {
+                        return new VersionedLibrary(absolutePath, versionedPart);
+                    } else {
+                        versionedLibraries.add(new VersionedLibrary(absolutePath, versionedPart));
+                    }
                 }
             }
         }
-        return null;
+        if (versionedLibraries.isEmpty()) {
+            return null;
+        }
+        Collections.sort(versionedLibraries);
+        return versionedLibraries.get(0);
     }
 
     private static final class LibraryClassLoader extends ClassLoader {
@@ -216,7 +235,7 @@ public abstract class SSL {
         @Override
         protected String findLibrary(String libname) {
             final String mapped = System.mapLibraryName(libname);
-            for(String path : Identification.NATIVE_SEARCH_PATHS) {
+            for (String path : Identification.NATIVE_SEARCH_PATHS) {
                 String complete = path + "/" + mapped;
                 try {
                     try (final InputStream resource = SSL.class.getClassLoader().getResourceAsStream(complete)) {
@@ -1156,4 +1175,29 @@ public abstract class SSL {
      * @return {@code true} if success, {@code false} otherwise.
      */
     protected abstract boolean setSessionIdContext(long ctx, byte[] sidCtx);
+
+    private static final class VersionedLibrary implements Comparable<VersionedLibrary> {
+        final String file;
+        final String versionPart;
+
+        private VersionedLibrary(String file, String versionPart) {
+            this.file = file;
+            this.versionPart = versionPart;
+        }
+
+        @Override
+        public int compareTo(VersionedLibrary versionedLibrary) {
+            //fairly hacky, but naming schemes are not consistent
+            //we want to prefer the newer openssl 1.1, but the old real way to sort
+            //this properly is just to look for the 1.1 string
+            boolean other11 = versionedLibrary.versionPart.contains("1.1");
+            boolean this11 = versionPart.contains("1.1");
+            if(other11 && !this11) {
+                return 1;
+            } else if(!other11 && this11) {
+                return -1;
+            }
+            return versionedLibrary.versionPart.compareTo(versionPart);
+        }
+    }
 }
