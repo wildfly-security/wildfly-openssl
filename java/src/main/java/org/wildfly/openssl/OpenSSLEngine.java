@@ -274,7 +274,7 @@ public final class OpenSSLEngine extends SSLEngine {
     /**
      * Read plaintext data from the OpenSSL internal BIO
      */
-    private int readPlaintextData(final ByteBuffer dst) {
+    private int readPlaintextData(final ByteBuffer dst) throws SSLException {
         initSsl();
         if (dst.isDirect()) {
             final int pos = dst.position();
@@ -284,6 +284,17 @@ public final class OpenSSLEngine extends SSLEngine {
             if (sslRead > 0) {
                 dst.position(pos + sslRead);
                 return sslRead;
+            } else {
+                long error = SSL.getInstance().getLastErrorNumber();
+                if (error != SSL.SSL_ERROR_NONE) {
+                    String err = SSL.getInstance().getErrorString(error);
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine(MESSAGES.readFromSSLFailed(error, sslRead, err));
+                    }
+                    // There was an internal error -- shutdown
+                    shutdown();
+                    throw new SSLException(err);
+                }
             }
         } else {
             final int pos = dst.position();
@@ -300,6 +311,17 @@ public final class OpenSSLEngine extends SSLEngine {
                     dst.put(buf);
                     dst.limit(limit);
                     return sslRead;
+                } else {
+                    long error = SSL.getInstance().getLastErrorNumber();
+                    if (error != SSL.SSL_ERROR_NONE) {
+                        String err = SSL.getInstance().getErrorString(error);
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.fine(MESSAGES.readFromSSLFailed(error, sslRead, err));
+                        }
+                        // There was an internal error -- shutdown
+                        shutdown();
+                        throw new SSLException(err);
+                    }
                 }
             } finally {
                 buf.clear();
