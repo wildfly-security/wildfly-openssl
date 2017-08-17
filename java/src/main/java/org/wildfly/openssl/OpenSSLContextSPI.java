@@ -232,12 +232,12 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             if (tms != null) {
                 final X509TrustManager manager = chooseTrustManager(tms);
                 if(manager != null) {
-                    SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo) -> {
+                    SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
                         X509Certificate[] peerCerts = certificates(chain);
                         Cipher cipher = Cipher.valueOf(cipherNo);
                         String auth = cipher == null ? "RSA" : cipher.getAu().toString();
                         try {
-                            if(SSL.getInstance().isServer(ssl)) {
+                            if(server) {
                                 manager.checkClientTrusted(peerCerts, auth);
                             } else {
                                 manager.checkServerTrusted(peerCerts, auth);

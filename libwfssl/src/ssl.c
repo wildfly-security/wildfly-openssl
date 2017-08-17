@@ -82,7 +82,6 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o, jlong ssl /* SS
 WF_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jstring, version)(JNIEnv *e);
-WF_OPENSSL(jboolean, isServer)(JNIEnv *e, jobject o, jlong ssl);
 void init_app_data_idx(void);
 void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg);
 void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg);
@@ -1023,7 +1022,7 @@ static int SSL_cert_verify(X509_STORE_CTX *ctx, void *arg) {
         crypto_methods.CRYPTO_free(buf);
     }
     result = (*e)->CallBooleanMethod(e, c->verifier, c->verifier_method, P2J(ssl), array,
-            conn->server_cipher);
+            conn->server_cipher, conn->server);
 
     r = result == JNI_TRUE ? 1 : 0;
 
@@ -1045,7 +1044,7 @@ WF_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject
         ssl_methods.SSL_CTX_set_cert_verify_callback(c->ctx, NULL, NULL);
     } else {
         jclass verifier_class = (*e)->GetObjectClass(e, verifier);
-        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BI)Z");
+        jmethodID method = (*e)->GetMethodID(e, verifier_class, "verify", "(J[[BIZ)Z");
 
         if (method == NULL) {
             return;
@@ -1123,6 +1122,7 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
     con->ctx  = c;
     con->ssl  = ssl;
     con->shutdown_type = c->shutdown_type;
+    con->server = server;
 
     /* Store the handshakeCount in the SSL instance. */
     *handshakeCount = 0;
@@ -1489,12 +1489,6 @@ WF_OPENSSL(jstring, version)(JNIEnv *e)
     return (*e)->NewStringUTF(e, version);
 }
 
-WF_OPENSSL(jboolean, isServer)(JNIEnv *e, jobject o, jlong ssl)
-{
-#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-    SSL *ssl_ = J2P(ssl, SSL *);
-    return (jboolean)ssl_methods.SSL_is_server(ssl_);
-}
 /* sets up diffie hellman params using the apps/dh2048.pem file from openssl */
 void setupDH(JNIEnv *e, SSL_CTX * ctx)
 {

@@ -294,10 +294,10 @@ class OpenSSlSession implements SSLSession {
         this.sessionId = sessionId;
         initPeerCertChain(ssl);
         initCipherSuite(ssl);
-        initProtcol(ssl);
+        initProtocol(ssl);
     }
 
-    private void initProtcol(long ssl) {
+    private void initProtocol(long ssl) {
         protocol = SSL.getInstance().getVersion(ssl);
     }
 

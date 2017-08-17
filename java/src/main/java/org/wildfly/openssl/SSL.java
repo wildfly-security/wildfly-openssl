@@ -1176,13 +1176,6 @@ public abstract class SSL {
      */
     protected abstract boolean setSessionIdContext(long ctx, byte[] sidCtx);
 
-    /**
-     * Returns true if the ssl is acting as the server
-     * @param ssl   the ssl instance
-     * @return <code>true</code> if the ssl instance is acting as the server
-     */
-    protected abstract boolean isServer(long ssl);
-
     private static final class VersionedLibrary implements Comparable<VersionedLibrary> {
         final String file;
         final String versionPart;

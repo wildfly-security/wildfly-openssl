@@ -20,7 +20,7 @@ package org.wildfly.openssl;
 /**
  * Is called during handshake and hooked into openssl via {@code SSL_CTX_set_cert_verify_callback}.
  */
-public interface CertificateVerifier {
+interface CertificateVerifier {
 
     /**
      * Returns {@code true} if the passed in certificate chain could be verified and so the handshake
@@ -30,5 +30,5 @@ public interface CertificateVerifier {
      * @param x509              the {@code X509} certificate chain
      * @return verified         {@code true} if verified successful, {@code false} otherwise
      */
-    boolean verify(long ssl, byte[][] x509, int cipher);
+    boolean verify(long ssl, byte[][] x509, int cipher, boolean server);
 }
