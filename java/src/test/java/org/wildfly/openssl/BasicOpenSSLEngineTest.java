@@ -67,6 +67,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID));
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLTestUtils.createSSLContext("openssl.TLSv1").getSocketFactory().createSocket();
+            socket.setSSLParameters(socket.getSSLParameters());
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             serverSocket.close();

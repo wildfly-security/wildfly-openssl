@@ -1141,6 +1141,9 @@ public final class OpenSSLEngine extends SSLEngine {
         }
         clientAuth = mode;
         Runnable task = () -> {
+            if (clientMode) {
+                return;
+            }
             switch (mode) {
                 case NONE:
                     SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
@@ -1247,15 +1250,17 @@ public final class OpenSSLEngine extends SSLEngine {
                 LOG.fine("The version of SSL in use does not support cipher ordering");
             }
 
-            int value = 0;
-            if (sslParameters.getNeedClientAuth()) {
-                value = SSL.SSL_CVERIFY_REQUIRE;
-            } else if (sslParameters.getWantClientAuth()) {
-                value = SSL.SSL_CVERIFY_OPTIONAL;
-            } else {
-                value = SSL.SSL_CVERIFY_NONE;
+            if(!clientMode) {
+                int value = 0;
+                if (sslParameters.getNeedClientAuth()) {
+                    value = SSL.SSL_CVERIFY_REQUIRE;
+                } else if (sslParameters.getWantClientAuth()) {
+                    value = SSL.SSL_CVERIFY_OPTIONAL;
+                } else {
+                    value = SSL.SSL_CVERIFY_NONE;
+                }
+                SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
             }
-            SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
         };
         if(ssl == 0) {
             tasks.add(config);
