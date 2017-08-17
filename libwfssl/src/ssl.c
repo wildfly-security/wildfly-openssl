@@ -345,7 +345,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     REQUIRE_SSL_SYMBOL(SSL_set_session);
     REQUIRE_SSL_SYMBOL(SSL_get_shutdown);
     REQUIRE_SSL_SYMBOL(SSL_get_version);
-    REQUIRE_SSL_SYMBOL(SSL_is_server);
 
     GET_SSL_SYMBOL(SSL_library_init);
     if(ssl_methods.SSL_library_init == NULL) {
