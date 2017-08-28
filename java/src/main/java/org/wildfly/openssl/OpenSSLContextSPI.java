@@ -206,7 +206,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                 LOG.fine("Using alias " + alias + " for " + algorithm);
                             }
                             StringBuilder sb = new StringBuilder(rsa ? BEGIN_RSA_CERT : BEGIN_DSA_CERT);
-                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
+                            byte[] encodedPrivateKey = key.getEncoded();
+                            if (encodedPrivateKey == null) {
+                                throw new KeyManagementException(Messages.MESSAGES.unableToObtainPrivateKey());
+                            }
+                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey));
                             sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
                             SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             break;
