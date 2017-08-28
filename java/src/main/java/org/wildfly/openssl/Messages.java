@@ -65,6 +65,7 @@ public class Messages {
     private static final String MSG33 = formatCode(33);
     private static final String MSG34 = formatCode(34);
     private static final String MSG35 = formatCode(35);
+    private static final String MSG36 = formatCode(36);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -205,5 +206,8 @@ public class Messages {
     }
     public String streamIsClosed() {
         return interpolate(MSG35);
+    }
+    public String unableToObtainPrivateKey() {
+        return interpolate(MSG36);
     }
 }
