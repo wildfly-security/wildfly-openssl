@@ -25,6 +25,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
@@ -43,6 +46,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -233,29 +237,28 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Client certificate verification
 
             SSL.getInstance().setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
-            if (tms != null) {
-                final X509TrustManager manager = chooseTrustManager(tms);
-                if(manager != null) {
-                    SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
-                        X509Certificate[] peerCerts = certificates(chain);
-                        Cipher cipher = Cipher.valueOf(cipherNo);
-                        String auth = cipher == null ? "RSA" : cipher.getAu().toString();
-                        try {
-                            if(server) {
-                                manager.checkClientTrusted(peerCerts, auth);
-                            } else {
-                                manager.checkServerTrusted(peerCerts, auth);
-                            }
-                            return true;
-                        } catch (Exception e) {
-                            if (LOG.isLoggable(Level.FINE)) {
-                                LOG.log(Level.FINE, "Certificate verification failed", e);
-                            }
+            final X509TrustManager manager = chooseTrustManager(tms);
+            if(manager != null) {
+                SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
+                    X509Certificate[] peerCerts = certificates(chain);
+                    Cipher cipher = Cipher.valueOf(cipherNo);
+                    String auth = cipher == null ? "RSA" : cipher.getAu().toString();
+                    try {
+                        if(server) {
+                            manager.checkClientTrusted(peerCerts, auth);
+                        } else {
+                            manager.checkServerTrusted(peerCerts, auth);
                         }
-                        return false;
-                    });
-                }
+                        return true;
+                    } catch (Exception e) {
+                        if (LOG.isLoggable(Level.FINE)) {
+                            LOG.log(Level.FINE, "Certificate verification failed", e);
+                        }
+                    }
+                    return false;
+                });
             }
+
 
             serverSessionContext = new OpenSSLServerSessionContext(ctx);
             serverSessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
@@ -283,6 +286,15 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     static X509TrustManager chooseTrustManager(TrustManager[] managers) {
+        if(managers == null) {
+            try {
+                TrustManagerFactory instance = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                instance.init((KeyStore)null);
+                managers = instance.getTrustManagers();
+            } catch (NoSuchAlgorithmException|KeyStoreException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
         for (TrustManager m : managers) {
             if (m instanceof X509TrustManager) {
                 return (X509TrustManager) m;
