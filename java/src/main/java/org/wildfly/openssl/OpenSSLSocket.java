@@ -484,8 +484,8 @@ public class OpenSSLSocket extends SSLSocket {
 
     public void write(byte[] b, int off, int len) throws IOException {
         runHandshake();
-        try (DefaultByteBufferPool.PooledByteBuffer uncompressedPooled = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
-                try (DefaultByteBufferPool.PooledByteBuffer encryptedPooled = DefaultByteBufferPool.HEAP_POOL.allocate()) {
+        try (DefaultByteBufferPool.PooledByteBuffer uncompressedPooled = DefaultByteBufferPool.WRITE_DIRECT_POOL.allocate()) {
+                try (DefaultByteBufferPool.PooledByteBuffer encryptedPooled = DefaultByteBufferPool.WRITE_HEAP_POOL.allocate()) {
                     ByteBuffer buf = uncompressedPooled.getBuffer();
                     int toWrite = len;
                     int written = 0;
