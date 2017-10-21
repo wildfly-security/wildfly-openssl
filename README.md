@@ -32,7 +32,7 @@ The `wildfly-openssl-java` artifact does not contain any native code. To use it 
 somewhere that it can be found by `System.loadLibrary`, or include a maven artifact that has the library packaged (such as one of
 the platform specific artifacts built by this project).
 
-The `wildfly-openssl` artifact contains binaries for Max, Linux and Windows (all for x86_64). If no other version of these
+The `wildfly-openssl` artifact contains binaries for Mac, Linux and Windows (all for x86_64). If no other version of these
  native libraries is found then these will be extracted to a temporary directory and loaded. This should allow it to run without
  having to worry about how to deal with the native code.
 
