@@ -38,9 +38,10 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 class DefaultByteBufferPool {
 
     //TODO: make configurable
+    static final DefaultByteBufferPool WRITE_DIRECT_POOL = new DefaultByteBufferPool(true, Integer.getInteger("org.wildfly.openssl.write-buffer-size", 16 * 1024));
+
     static final DefaultByteBufferPool DIRECT_POOL = new DefaultByteBufferPool(true, Integer.getInteger("org.wildfly.openssl.buffer-size", 17 * 1024));
     static final DefaultByteBufferPool HEAP_POOL = new DefaultByteBufferPool(false, Integer.getInteger("org.wildfly.openssl.buffer-size", 17 * 1024));
-
 
     private final ThreadLocal<ThreadLocalData> threadLocalCache = new ThreadLocal<>();
     private final List<WeakReference<ThreadLocalData>> threadLocalDataList = Collections.synchronizedList(new ArrayList<WeakReference<ThreadLocalData>>());
