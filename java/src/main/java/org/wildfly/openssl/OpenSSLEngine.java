@@ -493,7 +493,7 @@ public final class OpenSSLEngine extends SSLEngine {
             if (destroyed != 0) {
                 return new SSLEngineResult(SSLEngineResult.Status.CLOSED, SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING, 0, 0);
             }
-            if (src != null && src.remaining() > 0 && src.remaining() < 5) {
+            if (src != null && src.remaining() > 0 && src.remaining() < 5 && remainingInUnwrapRecord == 0) {
                 return new SSLEngineResult(SSLEngineResult.Status.BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
             }
             int oldLimit = -1;
