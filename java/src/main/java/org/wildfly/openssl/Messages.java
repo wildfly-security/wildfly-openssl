@@ -66,6 +66,8 @@ public class Messages {
     private static final String MSG34 = formatCode(34);
     private static final String MSG35 = formatCode(35);
     private static final String MSG36 = formatCode(36);
+    private static final String MSG37 = formatCode(37);
+    private static final String MSG38 = formatCode(38);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -209,5 +211,11 @@ public class Messages {
     }
     public String unableToObtainPrivateKey() {
         return interpolate(MSG36);
+    }
+    public String directBufferDeallocatorInitializationFailed () {
+        return interpolate(MSG37);
+    }
+    public String directBufferDeallocationFailed() {
+        return interpolate(MSG38);
     }
 }
