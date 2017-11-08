@@ -17,28 +17,11 @@
 
 package org.wildfly.openssl;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import org.wildfly.openssl.util.DirectByteBufferDeallocator;
+
 import java.nio.ByteBuffer;
 
 public class ByteBufferUtils {
-
-    private static final Method cleanerMethod;
-    private static final Method cleanMethod;
-
-    static {
-        try {
-            ByteBuffer tempBuffer = ByteBuffer.allocateDirect(0);
-            cleanerMethod = tempBuffer.getClass().getMethod("cleaner");
-            cleanerMethod.setAccessible(true);
-            Object cleanerObject = cleanerMethod.invoke(tempBuffer);
-            cleanMethod = cleanerObject.getClass().getMethod("clean");
-            cleanMethod.invoke(cleanerObject);
-        } catch (IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
 
     private ByteBufferUtils() {
         // Hide the default constructor since this is a utility class.
@@ -51,8 +34,8 @@ public class ByteBufferUtils {
      * while it was in 'read from' mode.
      *
      * @param in Buffer to expand
-     * @return   The expanded buffer with any data from the input buffer copied
-     *           in to it
+     * @return The expanded buffer with any data from the input buffer copied
+     * in to it
      */
     public static ByteBuffer expand(ByteBuffer in) {
         return expand(in, in.capacity() * 2);
@@ -64,11 +47,11 @@ public class ByteBufferUtils {
      * Buffers are assumed to be in 'write to' mode since there would be no need
      * to expand a buffer while it was in 'read from' mode.
      *
-     * @param in        Buffer to expand
-     * @param newSize   The size t which the buffer should be expanded
-     * @return          The expanded buffer with any data from the input buffer
-     *                  copied in to it or the original buffer if there was no
-     *                  need for expansion
+     * @param in      Buffer to expand
+     * @param newSize The size t which the buffer should be expanded
+     * @return The expanded buffer with any data from the input buffer
+     * copied in to it or the original buffer if there was no
+     * need for expansion
      */
     public static ByteBuffer expand(ByteBuffer in, int newSize) {
         if (in.capacity() >= newSize) {
@@ -95,13 +78,8 @@ public class ByteBufferUtils {
         return out;
     }
 
-    public static void cleanDirectBuffer(ByteBuffer buf) {
-        try {
-            cleanMethod.invoke(cleanerMethod.invoke(buf));
-        } catch (IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException | SecurityException e) {
-            // Ignore
-        }
+    public static void cleanDirectBuffer(final ByteBuffer buf) {
+        DirectByteBufferDeallocator.free(buf);
     }
 
 }
