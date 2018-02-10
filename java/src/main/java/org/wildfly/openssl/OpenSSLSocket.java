@@ -385,7 +385,8 @@ public class OpenSSLSocket extends SSLSocket {
 
     public int read() throws IOException {
         byte[] b = new byte[1];
-        read(b);
+        int r = read(b);
+        if (r == -1) return r;
         return b[0] & 0xFF;
     }
 
