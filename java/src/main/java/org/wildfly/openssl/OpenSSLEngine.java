@@ -95,7 +95,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";
 
-    private static final long EMPTY_ADDR = SSL.getInstance().bufferAddress(ByteBuffer.allocate(0));
+	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
 
     // OpenSSL state
     private final long sslCtx;
@@ -207,8 +207,7 @@ public final class OpenSSLEngine extends SSLEngine {
         final int sslWrote;
         initSsl();
         if (src.isDirect()) {
-            final long addr = SSL.getInstance().bufferAddress(src) + pos;
-            sslWrote = SSL.getInstance().writeToSSL(ssl, addr, len);
+			sslWrote = SSL.getInstance().writeToSSL(ssl, src, pos, len);
             if (sslWrote > 0) {
                 src.position(pos + sslWrote);
                 return sslWrote;
@@ -216,14 +215,10 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
 			try (PooledByteBuffer direct = DefaultByteBufferPool.WRITE_DIRECT_POOL.allocate()) {
         		ByteBuffer buf = direct.getBuffer();
-                final long addr = memoryAddress(buf);
-
                 src.limit(pos + len);
-
                 buf.put(src);
                 src.limit(limit);
-
-                sslWrote = SSL.getInstance().writeToSSL(ssl, addr, len);
+				sslWrote = SSL.getInstance().writeToSSL(ssl, buf, 0, len);
                 if (sslWrote > 0) {
                     src.position(pos + sslWrote);
                     return sslWrote;
@@ -243,8 +238,7 @@ public final class OpenSSLEngine extends SSLEngine {
         final int pos = src.position();
         final int len = src.remaining();
         if (src.isDirect()) {
-            final long addr = SSL.getInstance().bufferAddress(src) + pos;
-            final int netWrote = SSL.getInstance().writeToBIO(networkBIO, addr, len);
+			final int netWrote = SSL.getInstance().writeToBIO(networkBIO, src, pos, len);
             if (netWrote >= 0) {
                 src.position(pos + netWrote);
                 return netWrote;
@@ -252,11 +246,8 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
         	try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
         		ByteBuffer buf = direct.getBuffer();
-                final long addr = memoryAddress(buf);
-
                 buf.put(src);
-
-                final int netWrote = SSL.getInstance().writeToBIO(networkBIO, addr, len);
+				final int netWrote = SSL.getInstance().writeToBIO(networkBIO, buf, 0, len);
                 if (netWrote >= 0) {
                     src.position(pos + netWrote);
                     return netWrote;
@@ -276,9 +267,8 @@ public final class OpenSSLEngine extends SSLEngine {
         initSsl();
         if (dst.isDirect()) {
             final int pos = dst.position();
-            final long addr = SSL.getInstance().bufferAddress(dst) + pos;
             final int len = dst.limit() - pos;
-            final int sslRead = SSL.getInstance().readFromSSL(ssl, addr, len);
+			final int sslRead = SSL.getInstance().readFromSSL(ssl, dst, pos, len);
             if (sslRead > 0) {
                 dst.position(pos + sslRead);
                 return sslRead;
@@ -300,9 +290,7 @@ public final class OpenSSLEngine extends SSLEngine {
             final int len = Math.min(MAX_ENCRYPTED_PACKET_LENGTH, limit - pos);
             try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
             	ByteBuffer buf = direct.getBuffer();
-                final long addr = memoryAddress(buf);
-
-                final int sslRead = SSL.getInstance().readFromSSL(ssl, addr, len);
+				final int sslRead = SSL.getInstance().readFromSSL(ssl, buf, 0, len);
                 if (sslRead > 0) {
                     buf.limit(sslRead);
                     dst.limit(pos + sslRead);
@@ -333,8 +321,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private int readEncryptedData(final ByteBuffer dst, final int pending) {
         if (dst.isDirect() && dst.remaining() >= pending) {
             final int pos = dst.position();
-            final long addr = SSL.getInstance().bufferAddress(dst) + pos;
-            final int bioRead = SSL.getInstance().readFromBIO(networkBIO, addr, pending);
+			final int bioRead = SSL.getInstance().readFromBIO(networkBIO, dst, pos, pending);
             if (bioRead > 0) {
                 dst.position(pos + bioRead);
                 return bioRead;
@@ -342,9 +329,7 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
         	try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
         		ByteBuffer buf = direct.getBuffer();
-                final long addr = memoryAddress(buf);
-
-                final int bioRead = SSL.getInstance().readFromBIO(networkBIO, addr, pending);
+				final int bioRead = SSL.getInstance().readFromBIO(networkBIO, buf, 0, pending);
                 if (bioRead > 0) {
                     buf.limit(bioRead);
                     int oldLimit = dst.limit();
@@ -558,7 +543,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 } catch (Exception e) {
                     throw new SSLException(e);
                 }
-                int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
+                int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_BUFFER, 0, 0); // priming read
                 // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
                 // fatal.
                 if (lastPrimingReadResult <= 0) {
@@ -1033,10 +1018,6 @@ public final class OpenSSLEngine extends SSLEngine {
                 throw new SSLException(err);
             }
         }
-    }
-
-    private static long memoryAddress(ByteBuffer buf) {
-        return SSL.getInstance().bufferAddress(buf);
     }
 
     private SSLEngineResult.Status getEngineStatus() {

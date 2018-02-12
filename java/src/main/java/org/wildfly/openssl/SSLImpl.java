@@ -100,10 +100,10 @@ public class SSLImpl extends SSL {
      * @param wbuf
      * @param wlen
      */
-    static native int writeToBIO0(long bio, long wbuf, int wlen);
+    static native int writeToBIO0(long bio, ByteBuffer wbuf, int woffset, int wlen);
 
-    protected int writeToBIO(long bio, long wbuf, int wlen) {
-        return SSLImpl.writeToBIO0(bio, wbuf, wlen);
+    protected int writeToBIO(long bio, ByteBuffer wbuf, int woffset, int wlen) {
+        return SSLImpl.writeToBIO0(bio, wbuf, woffset, wlen);
     }
 
     /**
@@ -111,12 +111,13 @@ public class SSLImpl extends SSL {
      *
      * @param bio
      * @param rbuf
+     * @param roffset
      * @param rlen
      */
-    static native int readFromBIO0(long bio, long rbuf, int rlen);
+    static native int readFromBIO0(long bio, ByteBuffer rbuf, int roffset, int rlen);
 
-    protected int readFromBIO(long bio, long rbuf, int rlen) {
-        return SSLImpl.readFromBIO0(bio, rbuf, rlen);
+    protected int readFromBIO(long bio, ByteBuffer rbuf, int roffset, int rlen) {
+        return SSLImpl.readFromBIO0(bio, rbuf, roffset, rlen);
     }
 
     /**
@@ -124,12 +125,13 @@ public class SSLImpl extends SSL {
      *
      * @param ssl  the SSL instance (SSL *)
      * @param wbuf
+     * @param woffset
      * @param wlen
      */
-    static native int writeToSSL0(long ssl, long wbuf, int wlen);
+    static native int writeToSSL0(long ssl, ByteBuffer wbuf, int woffset, int wlen);
 
-    protected int writeToSSL(long ssl, long wbuf, int wlen) {
-        return SSLImpl.writeToSSL0(ssl, wbuf, wlen);
+    protected int writeToSSL(long ssl, ByteBuffer wbuf, int woffset, int wlen) {
+        return SSLImpl.writeToSSL0(ssl, wbuf, woffset, wlen);
     }
 
     /**
@@ -137,12 +139,13 @@ public class SSLImpl extends SSL {
      *
      * @param ssl  the SSL instance (SSL *)
      * @param rbuf
+     * @param roffset
      * @param rlen
      */
-    static native int readFromSSL0(long ssl, long rbuf, int rlen);
+    static native int readFromSSL0(long ssl, ByteBuffer rbuf, int roffset, int rlen);
 
-    protected int readFromSSL(long ssl, long rbuf, int rlen) {
-        return SSLImpl.readFromSSL0(ssl, rbuf, rlen);
+    protected int readFromSSL(long ssl, ByteBuffer rbuf, int roffset, int rlen) {
+        return SSLImpl.readFromSSL0(ssl, rbuf, roffset, rlen);
     }
 
     /**

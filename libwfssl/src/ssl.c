@@ -69,10 +69,10 @@ WF_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o);
 WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
 WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
-WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */);
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char * */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jobject wbuf /* ByteBuffer */, jint woffset/* offset */, jint wlen /* sizeof(wbuf) */);
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jobject rbuf /* ByteBuffer * */, jint roffset/* offset */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jobject wbuf /* ByteBuffer * */, jint woffset/* offset */, jint wlen /* sizeof(wbuf) */);
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jobject rbuf /* ByteBuffer * */, jint roffset/* offset */, jint rlen /* sizeof(rbuf) - 1 */);
 WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
@@ -1334,36 +1334,52 @@ WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* S
 }
 
 /* Write wlen bytes from wbuf into bio */
-WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jobject wbuf /* ByteBuffer */, jint woffset/* offset */, jint wlen /* sizeof(wbuf) */) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jlong addr;
     UNREFERENCED_STDARGS;
-
-    return crypto_methods.BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
+	if(wbuf == NULL) {
+		throwIllegalArgumentException(e, "Buffer was null");
+	}
+	addr = P2J((*e)->GetDirectBufferAddress(e, wbuf)) + woffset;
+	return crypto_methods.BIO_write(J2P(bio, BIO *), J2P(addr, void *), wlen);
 
 }
 
 /* Read up to rlen bytes from bio into rbuf */
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jobject rbuf /* ByteBuffer * */, jint roffset/* offset */, jint rlen /* sizeof(rbuf) - 1 */) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jlong addr;
     UNREFERENCED_STDARGS;
-
-    return crypto_methods.BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+	if(rbuf == NULL) {
+		throwIllegalArgumentException(e, "Buffer was null");
+	}
+	addr = P2J((*e)->GetDirectBufferAddress(e, rbuf)) + roffset;
+	return crypto_methods.BIO_read(J2P(bio, BIO *), J2P(addr, void *), rlen);
 }
 
 /* Write up to wlen bytes of application data to the ssl BIO (encrypt) */
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char * */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jobject wbuf /* ByteBuffer * */, jint woffset/* offset */, jint wlen /* sizeof(wbuf) */) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jlong addr;
     UNREFERENCED_STDARGS;
-
-    return ssl_methods.SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+	if(wbuf == NULL) {
+		throwIllegalArgumentException(e, "Buffer was null");
+	}
+	addr = P2J((*e)->GetDirectBufferAddress(e, wbuf)) + woffset;
+	return ssl_methods.SSL_write(J2P(ssl, SSL *), J2P(addr, void *), wlen);
 }
 
 /* Read up to rlen bytes of application data from the given SSL BIO (decrypt) */
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jobject rbuf /* ByteBuffer * */, jint roffset/* offset */, jint rlen /* sizeof(rbuf) - 1 */) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jlong addr;
     UNREFERENCED_STDARGS;
-
-    return ssl_methods.SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+	if(rbuf == NULL) {
+		throwIllegalArgumentException(e, "Buffer was null");
+	}
+	addr = P2J((*e)->GetDirectBufferAddress(e, rbuf)) + roffset;
+	return ssl_methods.SSL_read(J2P(ssl, SSL *), J2P(addr, void *), rlen);
 }
 
 /* Get the shutdown status of the engine */

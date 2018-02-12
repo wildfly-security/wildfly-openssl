@@ -52,6 +52,7 @@ public abstract class SSL {
     public SSL() {
     }
 
+    @SuppressWarnings("unused")
     private static Object holder;
 
     private static volatile boolean init = false;
@@ -74,13 +75,13 @@ public abstract class SSL {
                             //try using out pre-packaged version
                             LibraryClassLoader libCl = new LibraryClassLoader(SSL.class.getClassLoader());
                             try {
-                                Class loader = libCl.loadClass(LibraryLoader.class.getName());
+                                Class<?> loader = libCl.loadClass(LibraryLoader.class.getName());
                                 Method load = loader.getDeclaredMethod("load");
-                                Constructor ctor = loader.getDeclaredConstructor();
+                                Constructor<?> ctor = loader.getDeclaredConstructor();
                                 ctor.setAccessible(true);
                                 load.setAccessible(true);
                                 load.invoke(holder = ctor.newInstance());
-                                Class sslClass = libCl.loadClass(SSLImpl.class.getName());
+                                Class<?> sslClass = libCl.loadClass(SSLImpl.class.getName());
                                 instance = (SSL) sslClass.newInstance();
 
                             } catch (Exception e1) {
@@ -579,35 +580,39 @@ public abstract class SSL {
      * @param bio
      * @param wbuf
      * @param wlen
+     * @param woffset
      */
-    protected abstract int writeToBIO(long bio, long wbuf, int wlen);
+    protected abstract int writeToBIO(long bio, ByteBuffer wbuf, int woffset, int wlen);
 
     /**
      * BIO_read.
      *
      * @param bio
      * @param rbuf
+     * @param roffset
      * @param rlen
      */
-    protected abstract int readFromBIO(long bio, long rbuf, int rlen);
+    protected abstract int readFromBIO(long bio, ByteBuffer rbuf, int roffset, int rlen);
 
     /**
      * SSL_write.
      *
      * @param ssl  the SSL instance (SSL *)
      * @param wbuf
+     * @param woffset
      * @param wlen
      */
-    protected abstract int writeToSSL(long ssl, long wbuf, int wlen);
+    protected abstract int writeToSSL(long ssl, ByteBuffer wbuf, int woffset, int wlen);
 
     /**
      * SSL_read
      *
      * @param ssl  the SSL instance (SSL *)
      * @param rbuf
+     * @param roffset
      * @param rlen
      */
-    protected abstract int readFromSSL(long ssl, long rbuf, int rlen);
+    protected abstract int readFromSSL(long ssl, ByteBuffer rbuf, int roffset, int rlen);
 
     /**
      * SSL_get_shutdown
