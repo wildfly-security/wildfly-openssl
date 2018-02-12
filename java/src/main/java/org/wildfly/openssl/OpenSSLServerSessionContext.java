@@ -50,6 +50,11 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
         SSL.getInstance().setSessionCacheSize(context, size);
     }
 
+    synchronized void storeServerSideSession(final long ssl, byte[] sessionId) {
+        final long sessionPointer = SSL.getInstance().getSession(ssl);
+        sessionCreatedCallback(ssl, sessionPointer, sessionId);
+    }
+
     @Override
     public int getSessionCacheSize() {
         return (int) SSL.getInstance().getSessionCacheSize(context);

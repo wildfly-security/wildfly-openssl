@@ -587,8 +587,8 @@ public class SSLImpl extends SSL {
     }
 
     @Override
-    protected boolean setCertificate(long ctx, byte[] cert, byte[] key, int idx) throws Exception {
-        return setCertificate0(ctx, cert, key, idx);
+    protected boolean setCertificate(long ctx, byte[][] certs, byte[] key, int idx) throws Exception {
+        return setCertificate0(ctx, certs, key, idx);
     }
 
     /**
@@ -648,11 +648,11 @@ public class SSLImpl extends SSL {
      * both in parallel (to also allow the use of DSA ciphers, etc.)
      *
      * @param ctx  Server or Client context to use.
-     * @param cert Certificate file.
+     * @param certs Certificate chains.
      * @param key  Private Key file to use if not in cert.
      * @param idx  Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
      */
-    static native boolean setCertificate0(long ctx, byte[] cert,
+    static native boolean setCertificate0(long ctx, byte[][] certs,
                                    byte[] key,
                                    int idx) throws Exception;
 

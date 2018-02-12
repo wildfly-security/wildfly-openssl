@@ -98,7 +98,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                         final long sslCtx = SSL.getInstance().makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
                         try {
                             SSL.getInstance().setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
-                            SSL.getInstance().setCipherSuite(sslCtx, "ALL");
+                            SSL.getInstance().setCipherSuite(sslCtx, "ALL:eNULL");
                             final long ssl = SSL.getInstance().newSSL(sslCtx, true);
                             try {
                                 for (String c : SSL.getInstance().getCiphers(ssl)) {
@@ -200,23 +200,24 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     final String[] aliases = keyManager.getServerAliases(algorithm, null);
                     if (aliases != null && aliases.length != 0) {
                         for(String alias: aliases) {
-
-                            X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                            X509Certificate[] certificates = keyManager.getCertificateChain(alias);
+                            if (certificates == null || certificates.length == 0) continue;
+                            byte[][] certs = new byte[certificates.length][];
+                            int idx = 0;
+                            for (X509Certificate c: certificates) {
+                            	certs[idx++] = c.getEncoded();
+                            }
                             PrivateKey key = keyManager.getPrivateKey(alias);
-                            if(key == null || certificate == null || key.getEncoded() == null) {
+                            if(key == null || key.getEncoded() == null) {
                                 continue;
                             }
                             if (LOG.isLoggable(Level.FINE)) {
                                 LOG.fine("Using alias " + alias + " for " + algorithm);
                             }
                             StringBuilder sb = new StringBuilder(rsa ? BEGIN_RSA_CERT : BEGIN_DSA_CERT);
-                            byte[] encodedPrivateKey = key.getEncoded();
-                            if (encodedPrivateKey == null) {
-                                throw new KeyManagementException(Messages.MESSAGES.unableToObtainPrivateKey());
-                            }
-                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey));
+                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
                             sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
-                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            SSL.getInstance().setCertificate(ctx, certs, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             break;
                         }
                     }

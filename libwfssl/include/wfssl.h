@@ -107,7 +107,7 @@ typedef  unsigned __int64   uint64_t;
 
 #define AJP_TO_JSTRING(V)   (*e)->NewStringUTF((e), (V))
 
-#define SSL_CIPHERS_ALWAYS_DISABLED         ("!aNULL:!eNULL:!EXP:")
+#define SSL_CIPHERS_ALWAYS_DISABLED         ("!aNULL:!EXP:")
 
 
 /* OpenSSL definitions */
@@ -123,6 +123,8 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_VERIFY_PEER                 0x01
 #define SSL_VERIFY_FAIL_IF_NO_PEER_CERT 0x02
 #define SSL_VERIFY_CLIENT_ONCE          0x04
+
+#define VERIFY_DEPTH  10
 
 #define X509_V_OK 0
 #define X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT 18
@@ -145,6 +147,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_SESS_CACHE_BOTH     (SSL_SESS_CACHE_CLIENT|SSL_SESS_CACHE_SERVER)
 
 #define SSL_CTRL_SET_TMP_DH                     3
+#define SSL_CTRL_EXTRA_CHAIN_CERT               14
 #define SSL_CTRL_SESS_NUMBER                    20
 #define SSL_CTRL_SESS_CONNECT                   21
 #define SSL_CTRL_SESS_CONNECT_GOOD              22
@@ -167,6 +170,9 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
+#define SSL_CTRL_CLEAR_EXTRA_CHAIN_CERTS        83
+#define SSL_CTRL_BUILD_CERT_CHAIN               105
+
 
 #define SSL_TXT_DH              "DH"
 #define SSL_TXT_DHE             "DHE"/* alias for EDH */
@@ -235,6 +241,18 @@ typedef  unsigned __int64   uint64_t;
 #define MAX_ALPN_NPN_PROTO_SIZE 65535
 
 /* OpenSSL end */
+
+/* Flags for building certificate chains */
+/* Treat any existing certificates as untrusted CAs */
+# define SSL_BUILD_CHAIN_FLAG_UNTRUSTED          0x1
+/* Don't include root CA in chain */
+# define SSL_BUILD_CHAIN_FLAG_NO_ROOT            0x2
+/* Just check certificates already there */
+# define SSL_BUILD_CHAIN_FLAG_CHECK              0x4
+/* Ignore verification errors */
+# define SSL_BUILD_CHAIN_FLAG_IGNORE_ERROR       0x8
+/* Clear verification errors from queue */
+# define SSL_BUILD_CHAIN_FLAG_CLEAR_ERROR        0x10
 
 
 #define SSL_AIDX_RSA     (0)

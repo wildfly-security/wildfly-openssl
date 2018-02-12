@@ -34,6 +34,8 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
+import org.wildfly.openssl.DefaultByteBufferPool.PooledByteBuffer;
+
 public final class OpenSSLEngine extends SSLEngine {
 
     private static final Logger LOG = Logger.getLogger(OpenSSLEngine.class.getName());
@@ -212,8 +214,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return sslWrote;
             }
         } else {
-            ByteBuffer buf = ByteBuffer.allocateDirect(len);
-            try {
+			try (PooledByteBuffer direct = DefaultByteBufferPool.WRITE_DIRECT_POOL.allocate()) {
+        		ByteBuffer buf = direct.getBuffer();
                 final long addr = memoryAddress(buf);
 
                 src.limit(pos + len);
@@ -228,9 +230,6 @@ public final class OpenSSLEngine extends SSLEngine {
                 } else {
                     src.position(pos);
                 }
-            } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
 
@@ -251,8 +250,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return netWrote;
             }
         } else {
-            ByteBuffer buf = ByteBuffer.allocateDirect(len);
-            try {
+        	try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
+        		ByteBuffer buf = direct.getBuffer();
                 final long addr = memoryAddress(buf);
 
                 buf.put(src);
@@ -264,9 +263,6 @@ public final class OpenSSLEngine extends SSLEngine {
                 } else {
                     src.position(pos);
                 }
-            } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
 
@@ -302,8 +298,8 @@ public final class OpenSSLEngine extends SSLEngine {
             final int pos = dst.position();
             final int limit = dst.limit();
             final int len = Math.min(MAX_ENCRYPTED_PACKET_LENGTH, limit - pos);
-            final ByteBuffer buf = ByteBuffer.allocateDirect(len);
-            try {
+            try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
+            	ByteBuffer buf = direct.getBuffer();
                 final long addr = memoryAddress(buf);
 
                 final int sslRead = SSL.getInstance().readFromSSL(ssl, addr, len);
@@ -325,9 +321,6 @@ public final class OpenSSLEngine extends SSLEngine {
                         throw new SSLException(err);
                     }
                 }
-            } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
 
@@ -347,8 +340,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return bioRead;
             }
         } else {
-            final ByteBuffer buf = ByteBuffer.allocateDirect(pending);
-            try {
+        	try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
+        		ByteBuffer buf = direct.getBuffer();
                 final long addr = memoryAddress(buf);
 
                 final int bioRead = SSL.getInstance().readFromBIO(networkBIO, addr, pending);
@@ -360,9 +353,6 @@ public final class OpenSSLEngine extends SSLEngine {
                     dst.limit(oldLimit);
                     return bioRead;
                 }
-            } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
 
@@ -927,23 +917,14 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
             if (accepted > 0) {
                 renegotiate();
+            } else {
+            	registerAPLN();
             }
             accepted = 2;
         }
     }
 
-    private void beginHandshakeImplicitly() throws SSLException {
-        if (engineClosed || destroyed != 0) {
-            throw ENGINE_CLOSED;
-        }
-
-        if (accepted == 0) {
-            handshake();
-            accepted = 1;
-        }
-    }
-
-    private void handshake() throws SSLException {
+    private void registerAPLN() throws SSLException {
         initSsl();
         if (!alpnRegistered) {
             alpnRegistered = true;
@@ -979,6 +960,24 @@ public final class OpenSSLEngine extends SSLEngine {
                 SSL.getInstance().setAlpnProtos(ssl, applicationProtocols);
             }
         }
+    }
+
+    private void beginHandshakeImplicitly() throws SSLException {
+        if (engineClosed || destroyed != 0) {
+            throw ENGINE_CLOSED;
+        }
+
+        if (accepted == 0) {
+            handshake();
+            accepted = 1;
+        }
+    }
+
+    private void handshake() throws SSLException {
+        initSsl();
+        if (!alpnRegistered) {
+        	registerAPLN();
+        }
         int code = SSL.getInstance().doHandshake(ssl);
         if (code <= 0) {
             // Check for OpenSSL errors caused by the handshake
@@ -1004,13 +1003,15 @@ public final class OpenSSLEngine extends SSLEngine {
         if(isClientMode() && applicationProtocols != null) {
             selectedApplicationProtocol = SSL.getInstance().getAlpnSelected(ssl);
         }
-        if(handshakeSession != null || clientMode) {
+        if(handshakeSession != null) {
             byte[] sessionId = SSL.getInstance().getSessionId(ssl);
             if (handshakeSession != null) {
                 getSessionContext().mergeHandshakeSession(handshakeSession, sessionId);
             }
             if (clientMode) {
                 openSSLContextSPI.engineGetClientSessionContext().storeClientSideSession(ssl, host, port, sessionId);
+            } else {
+            	openSSLContextSPI.engineGetServerSessionContext().storeServerSideSession(ssl, sessionId);
             }
         }
     }

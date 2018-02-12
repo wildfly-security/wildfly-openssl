@@ -17,14 +17,15 @@
 
 package org.wildfly.openssl;
 
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSessionContext;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionContext;
 
 /**
  * OpenSSL specific {@link SSLSessionContext} implementation.
@@ -57,7 +58,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
             @Override
             public byte[] nextElement() {
-                return keys.next().data;
+                return keys.next().getData();
             }
         };
     }

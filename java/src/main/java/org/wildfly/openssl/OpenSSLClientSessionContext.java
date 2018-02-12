@@ -78,6 +78,7 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     }
 
     synchronized void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
+    	final long sessionPointer = SSL.getInstance().getSession(ssl);
         if (host != null && port >= 0) {
             final ClientSessionKey key = new ClientSessionKey(host, port);
             // set with the session pointer from the found session
@@ -89,10 +90,9 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
                     removeCacheEntry(key, false);
                 }
             }
-            final long sessionPointer = SSL.getInstance().getSession(ssl);
             addCacheEntry(key, new ClientSessionInfo(sessionPointer, sessionId, System.currentTimeMillis()));
-            clientSessionCreated(ssl, sessionPointer, sessionId);
         }
+        clientSessionCreated(ssl, sessionPointer, sessionId);
     }
 
     void tryAttachClientSideSession(final long ssl, final String host, final int port) {

@@ -17,6 +17,12 @@
 
 package org.wildfly.openssl;
 
+import java.security.Principal;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
@@ -24,11 +30,6 @@ import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateException;
 import javax.security.cert.X509Certificate;
-import java.security.Principal;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Stuart Douglas

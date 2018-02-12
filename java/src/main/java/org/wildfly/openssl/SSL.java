@@ -975,11 +975,11 @@ public abstract class SSL {
      * both in parallel (to also allow the use of DSA ciphers, etc.)
      *
      * @param ctx  Server or Client context to use.
-     * @param cert Certificate file.
+     * @param certs Certificate chains
      * @param key  Private Key file to use if not in cert.
      * @param idx  Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
      */
-    protected abstract boolean setCertificate(long ctx, byte[] cert,
+    protected abstract boolean setCertificate(long ctx, byte[][] certs,
                                               byte[] key,
                                               int idx)
             throws Exception;
