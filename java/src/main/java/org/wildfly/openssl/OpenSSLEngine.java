@@ -95,8 +95,6 @@ public final class OpenSSLEngine extends SSLEngine {
 
     static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";
 
-	private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
-
     // OpenSSL state
     private final long sslCtx;
     private long ssl = 0;
@@ -138,6 +136,8 @@ public final class OpenSSLEngine extends SSLEngine {
     private List<Runnable> tasks = new ArrayList<>();
 
     private int remainingInUnwrapRecord = 0;
+
+	private byte[] sessionId;
 
     /**
      * Creates a new instance
@@ -213,7 +213,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 return sslWrote;
             }
         } else {
-			try (PooledByteBuffer direct = DefaultByteBufferPool.WRITE_DIRECT_POOL.allocate()) {
+			try (PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()) {
         		ByteBuffer buf = direct.getBuffer();
                 src.limit(pos + len);
                 buf.put(src);
@@ -272,9 +272,8 @@ public final class OpenSSLEngine extends SSLEngine {
             if (sslRead > 0) {
                 dst.position(pos + sslRead);
                 return sslRead;
-            } else {
-                long error = SSL.getInstance().getLastErrorNumber();
-                if (error != SSL.SSL_ERROR_NONE) {
+			} else if (sslRead < 0) {
+				long error = -sslRead;
                     String err = SSL.getInstance().getErrorString(error);
                     if (LOG.isLoggable(Level.FINE)) {
                         LOG.fine(MESSAGES.readFromSSLFailed(error, sslRead, err));
@@ -283,7 +282,6 @@ public final class OpenSSLEngine extends SSLEngine {
                     shutdown();
                     throw new SSLException(err);
                 }
-            }
         } else {
             final int pos = dst.position();
             final int limit = dst.limit();
@@ -297,9 +295,8 @@ public final class OpenSSLEngine extends SSLEngine {
                     dst.put(buf);
                     dst.limit(limit);
                     return sslRead;
-                } else {
-                    long error = SSL.getInstance().getLastErrorNumber();
-                    if (error != SSL.SSL_ERROR_NONE) {
+				} else if (sslRead < 0) {
+					long error = -sslRead;
                         String err = SSL.getInstance().getErrorString(error);
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine(MESSAGES.readFromSSLFailed(error, sslRead, err));
@@ -310,7 +307,6 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                 }
             }
-        }
 
         return 0;
     }
@@ -543,13 +539,12 @@ public final class OpenSSLEngine extends SSLEngine {
                 } catch (Exception e) {
                     throw new SSLException(e);
                 }
-                int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_BUFFER, 0, 0); // priming read
+                int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, null, 0, 0); // priming read
                 // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
                 // fatal.
-                if (lastPrimingReadResult <= 0) {
+				if (lastPrimingReadResult < 0) {
                     // Check for OpenSSL errors caused by the priming read
-                    long error = SSL.getInstance().getLastErrorNumber();
-                    if (error != SSL.SSL_ERROR_NONE) {
+					long error = -lastPrimingReadResult;
                         String err = SSL.getInstance().getErrorString(error);
                         if (LOG.isLoggable(Level.FINE)) {
                             LOG.fine(MESSAGES.readFromSSLFailed(error, lastPrimingReadResult, err));
@@ -558,7 +553,6 @@ public final class OpenSSLEngine extends SSLEngine {
                         shutdown();
                         throw new SSLException(err);
                     }
-                }
 
                 // There won't be any application data until we're done handshaking
                 //
@@ -864,7 +858,10 @@ public final class OpenSSLEngine extends SSLEngine {
         if (!handshakeFinished) {
             return getHandshakeSession();
         }
-        SSLSession session = getSessionContext().getSession(SSL.getInstance().getSessionId(getSsl()));
+		if (sessionId == null) {
+			sessionId = SSL.getInstance().getSessionId(getSsl());
+		}
+		SSLSession session = getSessionContext().getSession(sessionId);
         if(session == null) {
             if(handshakeSession == null) {
                 handshakeSession = new OpenSSlSession(!clientMode, getSessionContext());
@@ -989,7 +986,9 @@ public final class OpenSSLEngine extends SSLEngine {
             selectedApplicationProtocol = SSL.getInstance().getAlpnSelected(ssl);
         }
         if(handshakeSession != null) {
-            byte[] sessionId = SSL.getInstance().getSessionId(ssl);
+			if (this.sessionId == null) {
+				sessionId = SSL.getInstance().getSessionId(ssl);
+			}
             if (handshakeSession != null) {
                 getSessionContext().mergeHandshakeSession(handshakeSession, sessionId);
             }
