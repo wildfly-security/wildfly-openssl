@@ -36,6 +36,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     private final OpenSSLSessionStats stats;
     final long context;
+    static final SSL SSL_INSTANCE = SSL.getInstance();
 
     OpenSSLSessionContext(long context) {
         this.context = context;
@@ -70,7 +71,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         if (keys == null) {
             throw new IllegalArgumentException("null ticket keys");
         }
-        SSL.getInstance().setSessionTicketKeys(context, keys);
+        SSL_INSTANCE.setSessionTicketKeys(context, keys);
     }
 
     /**

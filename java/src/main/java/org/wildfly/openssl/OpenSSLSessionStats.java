@@ -25,6 +25,7 @@ package org.wildfly.openssl;
 public final class OpenSSLSessionStats {
 
     private final long context;
+    private static final SSL SSL_INSTANCE = SSL.getInstance();
 
     OpenSSLSessionStats(long context) {
         this.context = context;
@@ -34,49 +35,49 @@ public final class OpenSSLSessionStats {
      * Returns the current number of sessions in the internal session cache.
      */
     public long number() {
-        return SSL.getInstance().sessionNumber(context);
+        return SSL_INSTANCE.sessionNumber(context);
     }
 
     /**
      * Returns the number of started SSL/TLS handshakes in client mode.
      */
     public long connect() {
-        return SSL.getInstance().sessionConnect(context);
+        return SSL_INSTANCE.sessionConnect(context);
     }
 
     /**
      * Returns the number of successfully established SSL/TLS sessions in client mode.
      */
     public long connectGood() {
-        return SSL.getInstance().sessionConnectGood(context);
+        return SSL_INSTANCE.sessionConnectGood(context);
     }
 
     /**
      * Returns the number of start renegotiations in client mode.
      */
     public long connectRenegotiate() {
-        return SSL.getInstance().sessionConnectRenegotiate(context);
+        return SSL_INSTANCE.sessionConnectRenegotiate(context);
     }
 
     /**
      * Returns the number of started SSL/TLS handshakes in server mode.
      */
     public long accept() {
-        return SSL.getInstance().sessionAccept(context);
+        return SSL_INSTANCE.sessionAccept(context);
     }
 
     /**
      * Returns the number of successfully established SSL/TLS sessions in server mode.
      */
     public long acceptGood() {
-        return SSL.getInstance().sessionAcceptGood(context);
+        return SSL_INSTANCE.sessionAcceptGood(context);
     }
 
     /**
      * Returns the number of start renegotiations in server mode.
      */
     public long acceptRenegotiate() {
-        return SSL.getInstance().sessionAcceptRenegotiate(context);
+        return SSL_INSTANCE.sessionAcceptRenegotiate(context);
     }
 
     /**
@@ -85,14 +86,14 @@ public final class OpenSSLSessionStats {
      * external cache is counted as a hit.
      */
     public long hits() {
-        return SSL.getInstance().sessionHits(context);
+        return SSL_INSTANCE.sessionHits(context);
     }
 
     /**
      * Returns the number of successfully retrieved sessions from the external session cache in server mode.
      */
     public long cbHits() {
-        return SSL.getInstance().sessionCbHits(context);
+        return SSL_INSTANCE.sessionCbHits(context);
     }
 
     /**
@@ -100,7 +101,7 @@ public final class OpenSSLSessionStats {
      * in server mode.
      */
     public long misses() {
-        return SSL.getInstance().sessionMisses(context);
+        return SSL_INSTANCE.sessionMisses(context);
     }
 
     /**
@@ -109,13 +110,13 @@ public final class OpenSSLSessionStats {
      * count.
      */
     public long timeouts() {
-        return SSL.getInstance().sessionTimeouts(context);
+        return SSL_INSTANCE.sessionTimeouts(context);
     }
 
     /**
      * Returns the number of sessions that were removed because the maximum session cache size was exceeded.
      */
     public long cacheFull() {
-        return SSL.getInstance().sessionCacheFull(context);
+        return SSL_INSTANCE.sessionCacheFull(context);
     }
 }

@@ -17,12 +17,22 @@
 
 package org.wildfly.openssl;
 
+import java.lang.reflect.Field;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 /**
  * Class that contains all static native methods to interact with OpenSSL
  */
 public class SSLImpl extends SSL {
+	static Field directAddress;
+	static {
+		try {
+			directAddress = Buffer.class.getDeclaredField("address");
+			directAddress.setAccessible(true);
+		} catch (Exception e) {
+		}
+	}
 
     public SSLImpl() {
     }
@@ -100,10 +110,10 @@ public class SSLImpl extends SSL {
      * @param wbuf
      * @param wlen
      */
-    static native int writeToBIO0(long bio, ByteBuffer wbuf, int woffset, int wlen);
+    static native int writeToBIO0(long bio, long wbuf, int wlen);
 
-    protected int writeToBIO(long bio, ByteBuffer wbuf, int woffset, int wlen) {
-        return SSLImpl.writeToBIO0(bio, wbuf, woffset, wlen);
+    protected int writeToBIO(long bio, long wbuf, int wlen) {
+        return SSLImpl.writeToBIO0(bio, wbuf, wlen);
     }
 
     /**
@@ -111,13 +121,12 @@ public class SSLImpl extends SSL {
      *
      * @param bio
      * @param rbuf
-     * @param roffset
      * @param rlen
      */
-    static native int readFromBIO0(long bio, ByteBuffer rbuf, int roffset, int rlen);
+    static native int readFromBIO0(long bio, long rbuf, int rlen);
 
-    protected int readFromBIO(long bio, ByteBuffer rbuf, int roffset, int rlen) {
-        return SSLImpl.readFromBIO0(bio, rbuf, roffset, rlen);
+    protected int readFromBIO(long bio, long rbuf, int rlen) {
+        return SSLImpl.readFromBIO0(bio, rbuf, rlen);
     }
 
     /**
@@ -125,13 +134,12 @@ public class SSLImpl extends SSL {
      *
      * @param ssl  the SSL instance (SSL *)
      * @param wbuf
-     * @param woffset
      * @param wlen
      */
-    static native int writeToSSL0(long ssl, ByteBuffer wbuf, int woffset, int wlen);
+    static native int writeToSSL0(long ssl, long wbuf, int wlen);
 
-    protected int writeToSSL(long ssl, ByteBuffer wbuf, int woffset, int wlen) {
-        return SSLImpl.writeToSSL0(ssl, wbuf, woffset, wlen);
+    protected int writeToSSL(long ssl, long wbuf, int wlen) {
+        return SSLImpl.writeToSSL0(ssl, wbuf, wlen);
     }
 
     /**
@@ -139,13 +147,12 @@ public class SSLImpl extends SSL {
      *
      * @param ssl  the SSL instance (SSL *)
      * @param rbuf
-     * @param roffset
      * @param rlen
      */
-    static native int readFromSSL0(long ssl, ByteBuffer rbuf, int roffset, int rlen);
+    static native int readFromSSL0(long ssl, long rbuf, int rlen);
 
-    protected int readFromSSL(long ssl, ByteBuffer rbuf, int roffset, int rlen) {
-        return SSLImpl.readFromSSL0(ssl, rbuf, roffset, rlen);
+    protected int readFromSSL(long ssl, long rbuf, int rlen) {
+        return SSLImpl.readFromSSL0(ssl, rbuf, rlen);
     }
 
     /**
@@ -485,6 +492,11 @@ public class SSLImpl extends SSL {
     static native long bufferAddress0(ByteBuffer buffer);
 
     protected long bufferAddress(ByteBuffer buffer) {
+    	if (buffer.isDirect() && directAddress != null) {
+    		try {
+    			return directAddress.getLong(buffer);
+    		} catch (Exception e) {}
+    	}
         return SSLImpl.bufferAddress0(buffer);
     }
 

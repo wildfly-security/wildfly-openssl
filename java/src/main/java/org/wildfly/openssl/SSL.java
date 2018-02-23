@@ -580,29 +580,26 @@ public abstract class SSL {
      * @param bio
      * @param wbuf
      * @param wlen
-     * @param woffset
      */
-    protected abstract int writeToBIO(long bio, ByteBuffer wbuf, int woffset, int wlen);
+    protected abstract int writeToBIO(long bio, long wbuf, int wlen);
 
     /**
      * BIO_read.
      *
      * @param bio
      * @param rbuf
-     * @param roffset
      * @param rlen
      */
-    protected abstract int readFromBIO(long bio, ByteBuffer rbuf, int roffset, int rlen);
+    protected abstract int readFromBIO(long bio, long rbuf, int rlen);
 
     /**
      * SSL_write.
      *
      * @param ssl  the SSL instance (SSL *)
      * @param wbuf
-     * @param woffset
      * @param wlen
      */
-    protected abstract int writeToSSL(long ssl, ByteBuffer wbuf, int woffset, int wlen);
+    protected abstract int writeToSSL(long ssl, long wbuf, int wlen);
 
     /**
      * SSL_read
@@ -612,7 +609,7 @@ public abstract class SSL {
      * @param roffset
      * @param rlen
      */
-    protected abstract int readFromSSL(long ssl, ByteBuffer rbuf, int roffset, int rlen);
+    protected abstract int readFromSSL(long ssl, long rbuf, int rlen);
 
     /**
      * SSL_get_shutdown
