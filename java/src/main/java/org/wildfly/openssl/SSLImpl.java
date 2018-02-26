@@ -18,6 +18,7 @@
 package org.wildfly.openssl;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
@@ -25,12 +26,16 @@ import java.nio.ByteBuffer;
  * Class that contains all static native methods to interact with OpenSSL
  */
 public class SSLImpl extends SSL {
-	static Field directAddress;
+	private static Field directAddress1;
+	private static Method directAddress2;
 	static {
 		try {
-			directAddress = Buffer.class.getDeclaredField("address");
-			directAddress.setAccessible(true);
+			directAddress1 = Buffer.class.getDeclaredField("address");
+			directAddress1.setAccessible(true);
 		} catch (Exception e) {
+			try {
+				directAddress2 = Class.forName("sun.nio.ch.DirectBuffer").getMethod("address");
+			} catch (Exception e1) {}
 		}
 	}
 
@@ -492,12 +497,14 @@ public class SSLImpl extends SSL {
     static native long bufferAddress0(ByteBuffer buffer);
 
     protected long bufferAddress(ByteBuffer buffer) {
-    	if (buffer.isDirect() && directAddress != null) {
     		try {
-    			return directAddress.getLong(buffer);
-    		} catch (Exception e) {}
+	    	if (directAddress1 != null) {
+	    		return directAddress1.getLong(buffer);
+	    	} else if (directAddress2 != null) {
+	    		return (Long)directAddress2.invoke(buffer);
     	}
-        return SSLImpl.bufferAddress0(buffer);
+    	} catch (Exception e) {}
+    	return bufferAddress0(buffer);
     }
 
     @Override

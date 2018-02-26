@@ -55,152 +55,139 @@ public abstract class SSL {
     @SuppressWarnings("unused")
     private static Object holder;
 
-    private static volatile boolean init = false;
-
     public static SSL getInstance() {
-        init();
         return instance;
     }
 
-    static void init() {
-        if (!init) {
-            synchronized (SSL.class) {
-                if (!init) {
-                    String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
-                    if (libPath == null || libPath.isEmpty()) {
-                        try {
-                            System.loadLibrary("wfssl");
-                            instance = new SSLImpl();
-                        } catch (Throwable e) {
-                            //try using out pre-packaged version
-                            LibraryClassLoader libCl = new LibraryClassLoader(SSL.class.getClassLoader());
-                            try {
-                                Class<?> loader = libCl.loadClass(LibraryLoader.class.getName());
-                                Method load = loader.getDeclaredMethod("load");
-                                Constructor<?> ctor = loader.getDeclaredConstructor();
-                                ctor.setAccessible(true);
-                                load.setAccessible(true);
-                                load.invoke(holder = ctor.newInstance());
-                                Class<?> sslClass = libCl.loadClass(SSLImpl.class.getName());
-                                instance = (SSL) sslClass.newInstance();
+    static {
+        String libPath = System.getProperty(ORG_WILDFLY_LIBWFSSL_PATH);
+        if (libPath == null || libPath.isEmpty()) {
+            try {
+                System.loadLibrary("wfssl");
+                instance = new SSLImpl();
+            } catch (Throwable e) {
+                //try using out pre-packaged version
+                LibraryClassLoader libCl = new LibraryClassLoader(SSL.class.getClassLoader());
+                try {
+                    Class<?> loader = libCl.loadClass(LibraryLoader.class.getName());
+                    Method load = loader.getDeclaredMethod("load");
+                    Constructor<?> ctor = loader.getDeclaredConstructor();
+                    ctor.setAccessible(true);
+                    load.setAccessible(true);
+                    load.invoke(holder = ctor.newInstance());
+                    Class<?> sslClass = libCl.loadClass(SSLImpl.class.getName());
+                    instance = (SSL) sslClass.newInstance();
 
-                            } catch (Exception e1) {
-                                throw new RuntimeException(e1);
-                            }
-                        }
-                    } else {
-                        Runtime.getRuntime().load(libPath);
-                        instance = new SSLImpl();
-                    }
-                    String specifiedPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
-
-                    if (specifiedPath != null && specifiedPath.isEmpty()) {
-                        specifiedPath = null;
-                    }
-                    if (specifiedPath != null && !specifiedPath.endsWith(File.separator)) {
-                        specifiedPath = specifiedPath + File.separator;
-                    }
-                    //mac OS ships with an old version of OpenSSL by default that we know won't work
-                    //as a workaround we look for the one installed by brew instead
-                    //so the oder goes:
-                    //1) user specified location
-                    //2) homebrew default location
-                    //3) system default
-                    String path = specifiedPath;
-                    if (path == null) {
-                        String os = System.getProperty("os.name").toLowerCase();
-                        if (os.contains("mac")) {
-                            File file = new File(MAC_HOMEBREW_OPENSSL_PATH);
-                            if (file.exists()) {
-                                path = MAC_HOMEBREW_OPENSSL_PATH;
-                            }
-                        }
-                    }
-                    String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
-                    String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
-                    List<String> paths = new ArrayList<>();
-                    if (specifiedPath != null) {
-                        paths.add(specifiedPath);
-                    } else {
-                        if (path != null) {
-                            paths.add(path);
-                        }
-                        for (String p : System.getProperty("java.library.path").split(File.pathSeparator)) {
-                            if (p != null) {
-                                paths.add(p);
-                            }
-                        }
-                    }
-                    List<String> attemptedSSL = new ArrayList<>();
-                    List<String> attemptedCrypto = new ArrayList<>();
-                    VersionedLibrary sslVersion = null;
-                    for (String p : paths) {
-                        if (sslPath != null && cryptoPath != null) {
-                            break;
-                        }
-                        if (sslPath == null) {
-                            for (String ssl : LIBSSL_NAMES) {
-                                String lib = System.mapLibraryName(ssl);
-                                File file = new File(p, lib);
-                                if (file.exists()) {
-                                    sslPath = file.getAbsolutePath();
-                                    break;
-                                }
-                                attemptedSSL.add(file.getAbsolutePath());
-                            }
-                            if (sslPath == null) {
-                                for (String ssl : LIBSSL_NAMES) {
-                                    String lib = System.mapLibraryName(ssl);
-                                    sslVersion = searchForVersionedLibrary(p, lib, null);
-                                    if (sslVersion != null) {
-                                        sslPath = sslVersion.file;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (sslPath != null) {
-                            for (String crypto : LIBCRYPTO_NAMES) {
-                                String lib = System.mapLibraryName(crypto);
-                                File file = new File(p, lib);
-                                if (file.exists()) {
-                                    cryptoPath = file.getAbsolutePath();
-                                    break;
-                                }
-                                attemptedCrypto.add(file.getAbsolutePath());
-                            }
-                            if (cryptoPath == null && sslVersion != null) {
-                                for (String crypto : LIBCRYPTO_NAMES) {
-                                    String lib = System.mapLibraryName(crypto);
-                                    VersionedLibrary cryptoVersion = searchForVersionedLibrary(p, lib, sslVersion.versionPart);
-                                    if (cryptoVersion != null) {
-                                        cryptoPath = cryptoVersion.file;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (cryptoPath == null) {
-                                //we need them to match, if we find one but not the other we look elsewhere
-                                sslPath = null;
-                                sslVersion = null;
-                            }
-                        }
-                    }
-                    if (sslPath == null) {
-                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH, attemptedSSL.toString()));
-                    }
-                    if (cryptoPath == null) {
-                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attemptedCrypto.toString()));
-                    }
-                    instance.initialize(cryptoPath, sslPath);
-                    String version = instance.version();
-                    logger.info(Messages.MESSAGES.openSSLVersion(version));
-
-
-                    init = true;
+                } catch (Exception e1) {
+                    throw new RuntimeException(e1);
+                }
+            }
+        } else {
+            Runtime.getRuntime().load(libPath);
+            instance = new SSLImpl();
+        }
+        String specifiedPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
+        if (specifiedPath != null && specifiedPath.isEmpty()) {
+            specifiedPath = null;
+        }
+        if (specifiedPath != null && !specifiedPath.endsWith(File.separator)) {
+            specifiedPath = specifiedPath + File.separator;
+        }
+        //mac OS ships with an old version of OpenSSL by default that we know won't work
+        //as a workaround we look for the one installed by brew instead
+        //so the oder goes:
+        //1) user specified location
+        //2) homebrew default location
+        //3) system default
+        String path = specifiedPath;
+        if (path == null) {
+            String os = System.getProperty("os.name").toLowerCase();
+            if (os.contains("mac")) {
+                File file = new File(MAC_HOMEBREW_OPENSSL_PATH);
+                if (file.exists()) {
+                    path = MAC_HOMEBREW_OPENSSL_PATH;
                 }
             }
         }
+        String sslPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBSSL);
+        String cryptoPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO);
+        List<String> paths = new ArrayList<>();
+        if (specifiedPath != null) {
+            paths.add(specifiedPath);
+        } else {
+            if (path != null) {
+                paths.add(path);
+            }
+            for (String p : System.getProperty("java.library.path").split(File.pathSeparator)) {
+                if (p != null) {
+                    paths.add(p);
+                }
+            }
+        }
+        List<String> attemptedSSL = new ArrayList<>();
+        List<String> attemptedCrypto = new ArrayList<>();
+        VersionedLibrary sslVersion = null;
+        for (String p : paths) {
+            if (sslPath != null && cryptoPath != null) {
+                break;
+            }
+            if (sslPath == null) {
+                for (String ssl : LIBSSL_NAMES) {
+                    String lib = System.mapLibraryName(ssl);
+                    File file = new File(p, lib);
+                    if (file.exists()) {
+                        sslPath = file.getAbsolutePath();
+                        break;
+                    }
+                    attemptedSSL.add(file.getAbsolutePath());
+                }
+                if (sslPath == null) {
+                    for (String ssl : LIBSSL_NAMES) {
+                        String lib = System.mapLibraryName(ssl);
+                        sslVersion = searchForVersionedLibrary(p, lib, null);
+                        if (sslVersion != null) {
+                            sslPath = sslVersion.file;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (sslPath != null) {
+                for (String crypto : LIBCRYPTO_NAMES) {
+                    String lib = System.mapLibraryName(crypto);
+                    File file = new File(p, lib);
+                    if (file.exists()) {
+                        cryptoPath = file.getAbsolutePath();
+                        break;
+                    }
+                    attemptedCrypto.add(file.getAbsolutePath());
+                }
+                if (cryptoPath == null && sslVersion != null) {
+                    for (String crypto : LIBCRYPTO_NAMES) {
+                        String lib = System.mapLibraryName(crypto);
+                        VersionedLibrary cryptoVersion = searchForVersionedLibrary(p, lib, sslVersion.versionPart);
+                        if (cryptoVersion != null) {
+                            cryptoPath = cryptoVersion.file;
+                            break;
+                        }
+                    }
+                }
+                if (cryptoPath == null) {
+                    //we need them to match, if we find one but not the other we look elsewhere
+                    sslPath = null;
+                    sslVersion = null;
+                }
+            }
+        }
+        if (sslPath == null) {
+            throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH, attemptedSSL.toString()));
+        }
+        if (cryptoPath == null) {
+            throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attemptedCrypto.toString()));
+        }
+        instance.initialize(cryptoPath, sslPath);
+        String version = instance.version();
+        logger.info(Messages.MESSAGES.openSSLVersion(version));
     }
 
     private static VersionedLibrary searchForVersionedLibrary(String path, String lib, String requiredVersion) {

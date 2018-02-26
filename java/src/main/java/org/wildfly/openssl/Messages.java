@@ -18,7 +18,6 @@
 package org.wildfly.openssl;
 
 import java.text.DecimalFormat;
-import java.util.Formatter;
 import java.util.ResourceBundle;
 
 /**
@@ -80,10 +79,7 @@ public class Messages {
     }
 
     private String interpolate(String messageid, Object ... arguments) {
-        StringBuilder sb = new StringBuilder(messageid);
-        sb.append(' ');
-        new Formatter(sb).format(properties.getString(messageid), (Object[]) arguments);
-        return sb.toString();
+		return messageid + " " + String.format(properties.getString(messageid), arguments);
     }
 
     public String couldNotFindLibSSL(String systemProperty, String attempted) {
