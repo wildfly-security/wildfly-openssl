@@ -69,10 +69,10 @@ WF_OPENSSL(jint, renegotiate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o);
 WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
 WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
-WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* ByteBuffer */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* ByteBuffer * */, jint rlen /* sizeof(rbuf) - 1 */);
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* ByteBuffer * */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* ByteBuffer * */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */);
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */);
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */);
 WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
@@ -454,7 +454,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
 }
 
 
-WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) {
+WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     jclass clazz;
     jclass sClazz;
@@ -1149,7 +1150,8 @@ static void ssl_info_callback(SSL *ssl, int where, int ret) {
     }
 }
 
-WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server) {
+WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     int *handshakeCount = malloc(sizeof(int));
@@ -1201,7 +1203,8 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
 
 
 /* Free the SSL * and its associated internal BIO */
-WF_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     tcn_ssl_conn_t *con;
@@ -1232,7 +1235,8 @@ WF_OPENSSL(jlong, bufferAddress)(JNIEnv *e, jobject o, jobject bb)
 
 
 /* Make a BIO pair (network and internal) for the provided SSL * and return the network BIO */
-WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *internal_bio;
@@ -1257,8 +1261,8 @@ WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     return 0;
 }
 
-
-WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
@@ -1271,8 +1275,8 @@ WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     return ssl_methods.SSL_do_handshake(ssl_);
 }
 
-
-WF_OPENSSL(void, saveServerCipher)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jint server_cipher) {
+WF_OPENSSL(void, saveServerCipher)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jint server_cipher) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     tcn_ssl_conn_t *con;
@@ -1318,7 +1322,8 @@ WF_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o) {
     return crypto_methods.ERR_get_error();
 }
 
-WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */) {
+WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 
@@ -1326,7 +1331,8 @@ WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jl
 }
 
 /* How much is available for reading in the given SSL struct? */
-WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 
@@ -1335,7 +1341,8 @@ WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* S
 
 
 /* Write wlen bytes from wbuf into bio */
-WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* ByteBuffer */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 	jint r;
     UNREFERENCED_STDARGS;
@@ -1347,7 +1354,8 @@ WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO
 }
 
 /* Read up to rlen bytes from bio into rbuf */
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* ByteBuffer * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 	jint r;
     UNREFERENCED_STDARGS;
@@ -1359,7 +1367,8 @@ WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BI
 }
 
 /* Write up to wlen bytes of application data to the ssl BIO (encrypt) */
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* ByteBuffer * */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 	jint r;
     UNREFERENCED_STDARGS;
@@ -1371,7 +1380,8 @@ WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL
 }
 
 /* Read up to rlen bytes of application data from the given SSL BIO (decrypt) */
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* ByteBuffer * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
 	jint r;
     UNREFERENCED_STDARGS;
@@ -1383,7 +1393,8 @@ WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SS
 }
 
 /* Get the shutdown status of the engine */
-WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 
