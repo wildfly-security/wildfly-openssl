@@ -27,13 +27,13 @@
 
     <groupId>org.wildfly.openssl</groupId>
     <artifactId>wildfly-openssl-parent</artifactId>
-    <version>1.0.4.Final</version>
+    <version>1.0.5.Final-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.org.wildfly.checkstyle>1.0.4.Final</version.org.wildfly.checkstyle>
+        <version.org.wildfly.checkstyle>1.0.5.Final-SNAPSHOT</version.org.wildfly.checkstyle>
 
         <openssl.path></openssl.path>
         <cmake.generator>Unix Makefiles</cmake.generator>
