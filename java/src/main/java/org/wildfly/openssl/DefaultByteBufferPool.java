@@ -68,7 +68,7 @@ class DefaultByteBufferPool {
      * @param bufferSize The buffer size to use
      */
     DefaultByteBufferPool(boolean direct, int bufferSize) {
-        this(direct, bufferSize, -1, 12, 0);
+        this(direct, bufferSize, -1, Integer.getInteger("org.wildfly.openssl.thread-cache", 32), 0);
     }
 
     /**
@@ -177,6 +177,9 @@ class DefaultByteBufferPool {
         do {
             size = currentQueueLength;
             if (size > maximumPoolSize) {
+            	if (buffer.isDirect()) {
+            		ByteBufferUtils.cleanDirectBuffer(buffer);
+            	}
                 return;
             }
         } while (!currentQueueLengthUpdater.compareAndSet(this, size, currentQueueLength + 1));

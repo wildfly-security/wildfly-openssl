@@ -54,7 +54,8 @@ WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
 WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
 WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ciphers);
 WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring file, jstring path);
-WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jbyteArray javaKey, jint idx);
+WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jobjectArray javaCerts, jbyteArray javaKey,
+                                     jint idx);
 WF_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject verifier);
 WF_OPENSSL(jboolean, setSessionIdContext)(JNIEnv *e, jobject o, jlong ctx, jbyteArray sidCtx);
 WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server);
@@ -69,9 +70,9 @@ WF_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o);
 WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
 WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */);
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char * */, jint wlen /* sizeof(wbuf) */);
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */);
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */);
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */);
 WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jint, isInInit)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */);
@@ -453,7 +454,8 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
 }
 
 
-WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) {
+WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     jclass clazz;
     jclass sClazz;
@@ -607,7 +609,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
     /* Set default Certificate verification level
      * and depth for the Client Authentication
      */
-    c->verify_depth  = 1;
+	c->verify_depth  = VERIFY_DEPTH;
     c->verify_mode   = SSL_CVERIFY_UNSET;
     c->shutdown_type = SSL_SHUTDOWN_TYPE_UNSET;
 
@@ -881,88 +883,138 @@ cleanup:
     return rv;
 }
 
-WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jbyteArray javaKey, jint idx)
+# define SSL_CTX_add_extra_chain_cert(ctx,x509) \
+	ssl_methods.SSL_CTX_ctrl(ctx, SSL_CTRL_EXTRA_CHAIN_CERT, 0, (char *)x509)
+# define SSL_CTX_clear_extra_chain_certs(ctx) \
+	ssl_methods.SSL_CTX_ctrl(ctx, SSL_CTRL_CLEAR_EXTRA_CHAIN_CERTS, 0, NULL)
+# define SSL_CTX_build_cert_chain(ctx, flags) \
+	ssl_methods.SSL_CTX_ctrl(ctx,SSL_CTRL_BUILD_CERT_CHAIN, flags, NULL)
+
+WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jobjectArray javaCerts, jbyteArray javaKey,jint idx) 
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     /* we get the key contents into a byte array */
     unsigned char* cert;
     char err[256];
-    jboolean rv;
     const unsigned char *tmp;
     jsize lengthOfCert;
-    jbyte* bufferPtr = (*e)->GetByteArrayElements(e, javaKey, NULL);
-    jsize lengthOfKey = (*e)->GetArrayLength(e, javaKey);
-    unsigned char* key = malloc(lengthOfKey);
     tcn_ssl_ctxt_t *c;
     BIO * bio;
-
-    memmove(key, bufferPtr, lengthOfKey);
-    (*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
-    bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
-    lengthOfCert = (*e)->GetArrayLength(e, javaCert);
-    cert = malloc(lengthOfCert);
-    memmove(cert, bufferPtr, lengthOfCert);
-    (*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
+	jbyteArray javaCert;
+	X509* x509;
+	int i;
+	jsize chain;
+	jsize lengthOfKey;
+	jbyte* bufferPtr;
+	unsigned char* key;
 
     c = J2P(ctx, tcn_ssl_ctxt_t *);
-    rv = JNI_TRUE;
 
     TCN_ASSERT(ctx != 0);
 
     if (idx < 0 || idx >= SSL_AIDX_MAX) {
         throwIllegalStateException(e, "Invalid key type");
-        rv = JNI_FALSE;
-        goto cleanup;
-    }
-    tmp = (const unsigned char *)cert;
-    if ((c->certs[idx] = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
-        throwIllegalStateException(e, err);
-        rv = JNI_FALSE;
-        goto cleanup;
+		return JNI_FALSE;
     }
 
     if(c->keys[idx] != NULL) {
         free(c->keys[idx]);
     }
 
+	bufferPtr = (*e)->GetByteArrayElements(e, javaKey, NULL);
+	lengthOfKey = (*e)->GetArrayLength(e, javaKey);
+	key = malloc(lengthOfKey);
+	memmove(key, bufferPtr, lengthOfKey);
+	(*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
+
     bio = crypto_methods.BIO_new(crypto_methods.BIO_s_mem());
     crypto_methods.BIO_write(bio, key, lengthOfKey);
 
     c->keys[idx] = crypto_methods.PEM_read_bio_PrivateKey(bio, NULL, 0, NULL);
     crypto_methods.BIO_free(bio);
+	free(key);
     if (c->keys[idx] == NULL) {
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
-        rv = JNI_FALSE;
-        goto cleanup;
+		return JNI_FALSE;
+	}
+
+	chain = (*e)->GetArrayLength(e, javaCerts);
+	TCN_ASSERT(chain != 0);
+
+	javaCert = (*e)->GetObjectArrayElement(e, javaCerts, 0);
+	bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
+	lengthOfCert = (*e)->GetArrayLength(e, javaCert);
+	cert = malloc(lengthOfCert);
+	memmove(cert, bufferPtr, lengthOfCert);
+	(*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
+
+	tmp = (const unsigned char *)cert;
+	c->certs[idx] = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert);
+	free(cert);
+	if (c->certs[idx] == NULL) {
+		crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+		throwIllegalStateException(e, err);
+		return JNI_FALSE;
     }
 
     if (ssl_methods.SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Error setting certificate (%s)", err);
-        rv = JNI_FALSE;
-        goto cleanup;
+		return JNI_FALSE;
+	}
+
+	if (!ssl_methods.SSL_CTX_ctrl(c->ctx, SSL_CTRL_CLEAR_EXTRA_CHAIN_CERTS,0,NULL)) {
+		crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+		tcn_Throw(e, "Error chear certificate chain (%s)", err);
+		return JNI_FALSE;
     }
+
+	SSL_CTX_clear_extra_chain_certs(c->ctx);
+	for (i = 1; i < chain; i++) {
+		javaCert = (*e)->GetObjectArrayElement(e, javaCerts, i);
+		bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
+		lengthOfCert = (*e)->GetArrayLength(e, javaCert);
+		cert = malloc(lengthOfCert);
+		memmove(cert, bufferPtr, lengthOfCert);
+		(*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
+
+		tmp = (const unsigned char *)cert;
+		x509 = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert);
+		free(cert);
+		if (x509 == NULL) {
+			crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+			SSL_CTX_clear_extra_chain_certs(c->ctx);
+			throwIllegalStateException(e, err);
+			return JNI_FALSE;
+		}
+		if (SSL_CTX_add_extra_chain_cert(c->ctx, x509) <= 0) {
+			crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+			SSL_CTX_clear_extra_chain_certs(c->ctx);
+			throwIllegalStateException(e, err);
+			return JNI_FALSE;
+		}
+	}
+
     if (ssl_methods.SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Error setting private key (%s)", err);
-        rv = JNI_FALSE;
-        goto cleanup;
+		return JNI_FALSE;
     }
     if (ssl_methods.SSL_CTX_check_private_key(c->ctx) <= 0) {
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
-        tcn_Throw(e, "Private key does not match the certificate public key (%s)",
-                  err);
-        rv = JNI_FALSE;
-        goto cleanup;
+		tcn_Throw(e, "Private key does not match the certificate public key (%s)", err);
+		return JNI_FALSE;
     }
-
-
-cleanup:
-    free(key);
-    free(cert);
-    return rv;
+/*
+	if (SSL_CTX_build_cert_chain(c->ctx, SSL_BUILD_CHAIN_FLAG_IGNORE_ERROR) <= 0) {
+		crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+		SSL_CTX_clear_extra_chain_certs(c->ctx);
+		throwIllegalStateException(e, err);
+		return JNI_FALSE;
+	}
+*/	
+	return JNI_TRUE;
 }
 
 
@@ -1098,7 +1150,8 @@ static void ssl_info_callback(SSL *ssl, int where, int ret) {
     }
 }
 
-WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server) {
+WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
     int *handshakeCount = malloc(sizeof(int));
@@ -1150,7 +1203,8 @@ WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */
 
 
 /* Free the SSL * and its associated internal BIO */
-WF_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(void, freeSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     tcn_ssl_conn_t *con;
@@ -1181,7 +1235,8 @@ WF_OPENSSL(jlong, bufferAddress)(JNIEnv *e, jobject o, jobject bb)
 
 
 /* Make a BIO pair (network and internal) for the provided SSL * and return the network BIO */
-WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     BIO *internal_bio;
@@ -1206,8 +1261,8 @@ WF_OPENSSL(jlong, makeNetworkBIO)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     return 0;
 }
 
-
-WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     if (ssl_ == NULL) {
@@ -1220,8 +1275,8 @@ WF_OPENSSL(jint, doHandshake)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
     return ssl_methods.SSL_do_handshake(ssl_);
 }
 
-
-WF_OPENSSL(void, saveServerCipher)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jint server_cipher) {
+WF_OPENSSL(void, saveServerCipher)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jint server_cipher) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
     tcn_ssl_conn_t *con;
@@ -1267,7 +1322,8 @@ WF_OPENSSL(jint, getLastErrorNumber)(JNIEnv *e, jobject o) {
     return crypto_methods.ERR_get_error();
 }
 
-WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */) {
+WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 
@@ -1275,48 +1331,70 @@ WF_OPENSSL(jint /* nbytes */, pendingWrittenBytesInBIO)(JNIEnv *e, jobject o, jl
 }
 
 /* How much is available for reading in the given SSL struct? */
-WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint, pendingReadableBytesInSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 
     return ssl_methods.SSL_pending(J2P(ssl, SSL *));
 }
 
+
 /* Write wlen bytes from wbuf into bio */
-WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jint r;
     UNREFERENCED_STDARGS;
-
-    return crypto_methods.BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
-
+	r = crypto_methods.BIO_write(J2P(bio, BIO *), J2P(wbuf, void *), wlen);
+	if (r <= 0) {
+		r = -crypto_methods.ERR_get_error();
+	}
+	return r;
 }
 
 /* Read up to rlen bytes from bio into rbuf */
-WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jint r;
     UNREFERENCED_STDARGS;
-
-    return crypto_methods.BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+	r = crypto_methods.BIO_read(J2P(bio, BIO *), J2P(rbuf, void *), rlen);
+	if (r <= 0) {
+		r = -crypto_methods.ERR_get_error();
+	}
+	return r;
 }
 
 /* Write up to wlen bytes of application data to the ssl BIO (encrypt) */
-WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char * */, jint wlen /* sizeof(wbuf) */) {
+WF_OPENSSL(jint /* status */, writeToSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong wbuf /* char* */, jint wlen /* sizeof(wbuf) */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jint r;
     UNREFERENCED_STDARGS;
-
-    return ssl_methods.SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+	r = ssl_methods.SSL_write(J2P(ssl, SSL *), J2P(wbuf, void *), wlen);
+	if (r <= 0) {
+		r = -crypto_methods.ERR_get_error();
+	}
+	return r;
 }
 
 /* Read up to rlen bytes of application data from the given SSL BIO (decrypt) */
-WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char * */, jint rlen /* sizeof(rbuf) - 1 */) {
+WF_OPENSSL(jint /* status */, readFromSSL)(JNIEnv *e, jobject o, jlong ssl /* SSL * */, jlong rbuf /* char* */, jint rlen /* sizeof(rbuf) - 1 */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+	jint r;
     UNREFERENCED_STDARGS;
-
-    return ssl_methods.SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+	r = ssl_methods.SSL_read(J2P(ssl, SSL *), J2P(rbuf, void *), rlen);
+	if (r <= 0) {
+		r = -crypto_methods.ERR_get_error();
+	}
+	return r;
 }
 
 /* Get the shutdown status of the engine */
-WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) {
+WF_OPENSSL(jint /* status */, getShutdown)(JNIEnv *e, jobject o, jlong ssl /* SSL * */) 
+{
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     UNREFERENCED_STDARGS;
 

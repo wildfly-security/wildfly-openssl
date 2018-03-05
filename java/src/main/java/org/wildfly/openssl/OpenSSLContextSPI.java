@@ -56,15 +56,12 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     public static final int DEFAULT_SESSION_CACHE_SIZE = 1000;
 
-    private static final String BEGIN_RSA_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
+    private static final String BEGIN_CERT = "-----BEGIN %s PRIVATE KEY-----\n";
 
-    private static final String END_RSA_CERT = "\n-----END RSA PRIVATE KEY-----";
+    private static final String END_CERT = "\n-----END %s PRIVATE KEY-----";
 
-    private static final String BEGIN_DSA_CERT = "-----BEGIN DSA PRIVATE KEY-----\n";
 
-    private static final String END_DSA_CERT = "\n-----END DSA PRIVATE KEY-----";
-
-    private static final String[] ALGORITHMS = {"RSA", "DSA"};
+    private static final String[] ALGORITHMS = {"RSA", "DSA", "EC"};
 
     private OpenSSLServerSessionContext serverSessionContext;
     private OpenSSLClientSessionContext clientSessionContext;
@@ -76,6 +73,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
 
     private volatile String[] ciphers;
+    private static SSL SSL_INSTANCE;
 
     static final CertificateFactory X509_CERT_FACTORY;
     private boolean initialized = false;
@@ -95,13 +93,13 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                     final Set<String> availableCipherSuites = new LinkedHashSet<>(128);
                     try {
-                        final long sslCtx = SSL.getInstance().makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
+                        final long sslCtx = SSL_INSTANCE.makeSSLContext(SSL.SSL_PROTOCOL_ALL, SSL.SSL_MODE_SERVER);
                         try {
-                            SSL.getInstance().setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
-                            SSL.getInstance().setCipherSuite(sslCtx, "ALL");
-                            final long ssl = SSL.getInstance().newSSL(sslCtx, true);
+                            SSL_INSTANCE.setSSLContextOptions(sslCtx, SSL.SSL_OP_ALL);
+                            SSL_INSTANCE.setCipherSuite(sslCtx, "ALL:eNULL");
+                            final long ssl = SSL_INSTANCE.newSSL(sslCtx, true);
                             try {
-                                for (String c : SSL.getInstance().getCiphers(ssl)) {
+                                for (String c : SSL_INSTANCE.getCiphers(ssl)) {
                                     // Filter out bad input.
                                     if (c == null || c.length() == 0 || availableCipherSuites.contains(c)) {
                                         continue;
@@ -109,10 +107,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                     availableCipherSuites.add(CipherSuiteConverter.toJava(c, "TLS"));
                                 }
                             } finally {
-                                SSL.getInstance().freeSSL(ssl);
+                                SSL_INSTANCE.freeSSL(ssl);
                             }
                         } finally {
-                            SSL.getInstance().freeSSLContext(sslCtx);
+                            SSL_INSTANCE.freeSSLContext(sslCtx);
                         }
                     } catch (Exception e) {
                         LOG.log(Level.WARNING, Messages.MESSAGES.failedToInitializeCiphers(), e);
@@ -126,11 +124,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     OpenSSLContextSPI(final int value) throws SSLException {
         this.supportedCiphers = value;
-        SSL.init();
+        SSL_INSTANCE = SSL.getInstance();
         try {
             // Create SSL Context
             try {
-                ctx = SSL.getInstance().makeSSLContext(value, SSL.SSL_MODE_COMBINED);
+                ctx = SSL_INSTANCE.makeSSLContext(value, SSL.SSL_MODE_COMBINED);
             } catch (Exception e) {
                 // If the sslEngine is disabled on the AprLifecycleListener
                 // there will be an Exception here but there is no way to check
@@ -139,16 +137,16 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
             try {
                 //disable unsafe renegotiation
-                SSL.getInstance().clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+                SSL_INSTANCE.clearSSLContextOptions(ctx, SSL.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
             }
             // Disable compression
             boolean disableCompressionSupported = false;
             try {
-                disableCompressionSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_COMPRESSION);
+                disableCompressionSupported = SSL_INSTANCE.hasOp(SSL.SSL_OP_NO_COMPRESSION);
                 if (disableCompressionSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
+                    SSL_INSTANCE.setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -160,9 +158,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Disable TLS Session Tickets (RFC4507) to protect perfect forward secrecy
             boolean disableSessionTicketsSupported = false;
             try {
-                disableSessionTicketsSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_TICKET);
+                disableSessionTicketsSupported = SSL_INSTANCE.hasOp(SSL.SSL_OP_NO_TICKET);
                 if (disableSessionTicketsSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
+                    SSL_INSTANCE.setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
                 }
             } catch (UnsatisfiedLinkError e) {
                 // Ignore
@@ -189,34 +187,44 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             LOG.warning(Messages.MESSAGES.ignoringSecondInit());
             return;
         }
-
+        SSL_INSTANCE = SSL.getInstance();
         try {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
             if (keyManager != null) {
                 for (String algorithm : ALGORITHMS) {
-
-                    boolean rsa = algorithm.equals("RSA");
                     final String[] aliases = keyManager.getServerAliases(algorithm, null);
                     if (aliases != null && aliases.length != 0) {
                         for(String alias: aliases) {
-
-                            X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                            X509Certificate[] certificates = keyManager.getCertificateChain(alias);
+                            if (certificates == null || certificates.length == 0) continue;
+                            byte[][] certs = new byte[certificates.length][];
+                            int idx = 0;
+                            for (X509Certificate c: certificates) {
+                            	certs[idx++] = c.getEncoded();
+                            }
                             PrivateKey key = keyManager.getPrivateKey(alias);
-                            if(key == null || certificate == null || key.getEncoded() == null) {
+                            if(key == null || key.getEncoded() == null) {
                                 continue;
                             }
                             if (LOG.isLoggable(Level.FINE)) {
                                 LOG.fine("Using alias " + alias + " for " + algorithm);
                             }
-                            StringBuilder sb = new StringBuilder(rsa ? BEGIN_RSA_CERT : BEGIN_DSA_CERT);
-                            byte[] encodedPrivateKey = key.getEncoded();
-                            if (encodedPrivateKey == null) {
-                                throw new KeyManagementException(Messages.MESSAGES.unableToObtainPrivateKey());
-                            }
-                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey));
-                            sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
-                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            StringBuilder sb = new StringBuilder(String.format(BEGIN_CERT, algorithm));
+                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(key.getEncoded()));
+                            sb.append(String.format(END_CERT, algorithm));
+                            switch (algorithm) {
+							case "RSA":
+								idx = SSL.SSL_AIDX_RSA;
+								break;
+							case "DSA":
+								idx = SSL.SSL_AIDX_DSA;
+								break;
+							case "EC":
+								idx = SSL.SSL_AIDX_ECC;
+								break;
+							}
+                            SSL_INSTANCE.setCertificate(ctx, certs, sb.toString().getBytes(StandardCharsets.US_ASCII), idx);
                             break;
                         }
                     }
@@ -224,11 +232,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
             /*
             // Support Client Certificates
-            SSL.getInstance().setCACertificate(ctx,
+            SSL_INSTANCE.setCACertificate(ctx,
                     SSLHostConfig.adjustRelativePath(sslHostConfig.getCaCertificateFile()),
                     SSLHostConfig.adjustRelativePath(sslHostConfig.getCaCertificatePath()));
             // Set revocation
-            SSL.getInstance().setCARevocation(ctx,
+            SSL_INSTANCE.setCARevocation(ctx,
                     SSLHostConfig.adjustRelativePath(
                             sslHostConfig.getCertificateRevocationListFile()),
                     SSLHostConfig.adjustRelativePath(
@@ -236,10 +244,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             */
             // Client certificate verification
 
-            SSL.getInstance().setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
+            SSL_INSTANCE.setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
             final X509TrustManager manager = chooseTrustManager(tms);
             if(manager != null) {
-                SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
+                SSL_INSTANCE.setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
                     X509Certificate[] peerCerts = certificates(chain);
                     Cipher cipher = Cipher.valueOf(cipherNo);
                     String auth = cipher == null ? "RSA" : cipher.getAu().toString();
@@ -266,7 +274,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             initialized = true;
 
             //TODO: ALPN must be optional
-            SSL.getInstance().enableAlpn(ctx);
+            SSL_INSTANCE.enableAlpn(ctx);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -342,7 +350,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         super.finalize();
         synchronized (OpenSSLContextSPI.class) {
             if (ctx != 0) {
-                SSL.getInstance().freeSSLContext(ctx);
+                SSL_INSTANCE.freeSSLContext(ctx);
             }
         }
     }

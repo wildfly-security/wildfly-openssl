@@ -31,14 +31,16 @@ public final class OpenSSLProvider extends Provider {
 
     public OpenSSLProvider() {
         super("openssl", 1.0, "OpenSSL provider");
-        put("SSLContext.openssl.TLS", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLSContextSpi.class.getSimpleName());
-        put("SSLContext.openssl.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
-        put("SSLContext.openssl.TLSv1.1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getSimpleName());
-        put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
-        put("SSLContext.TLS", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLSContextSpi.class.getSimpleName());
-        put("SSLContext.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
-        put("SSLContext.TLSv1.1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getSimpleName());
-        put("SSLContext.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
+        put("SSLContext.openssl.TLS", OpenSSLContextSPI.OpenSSLTLSContextSpi.class.getName());
+        put("SSLContext.openssl.TLSv1", OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getName());
+        put("SSLContext.openssl.TLSv1.1", OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getName());
+        put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getName());
+        put("SSLContext.openssl.DEFAULT", get("SSLContext.openssl.TLSv1.2"));
+        put("SSLContext.TLS", get("SSLContext.openssl.TLS"));
+        put("SSLContext.TLSv1", get("SSLContext.openssl.TLSv1"));
+        put("SSLContext.TLSv1.1", get("SSLContext.openssl.TLSv1.1"));
+        put("SSLContext.TLSv1.2", get("SSLContext.openssl.TLSv1.2"));
+        put("SSLContext.DEFAULT", get("SSLContext.TLSv1.2"));
     }
 
     public static synchronized void register() {

@@ -17,6 +17,12 @@
 
 package org.wildfly.openssl;
 
+import java.security.Principal;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
@@ -24,11 +30,6 @@ import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateException;
 import javax.security.cert.X509Certificate;
-import java.security.Principal;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Stuart Douglas
@@ -55,6 +56,7 @@ class OpenSSlSession implements SSLSession {
     private volatile boolean valid = true;
     private String cipherSuite = OpenSSLEngine.INVALID_CIPHER;
     private String protocol = "TLS";
+    private static final SSL SSL_INSTANCE = SSL.getInstance();
 
     OpenSSlSession(boolean server, OpenSSLSessionContext sessionContext) {
         this.server = server;
@@ -88,7 +90,7 @@ class OpenSSlSession implements SSLSession {
     public synchronized void invalidate() {
         if (valid) {
             if(sessionPointer > 0) {
-                SSL.getInstance().invalidateSession(sessionPointer);
+                SSL_INSTANCE.invalidateSession(sessionPointer);
             }
             sessionContext.remove(sessionId);
             sessionPointer = 0;
@@ -239,14 +241,14 @@ class OpenSSlSession implements SSLSession {
 
 
     private void initPeerCertChain(long ssl) {
-        byte[][] chain = SSL.getInstance().getPeerCertChain(ssl);
+        byte[][] chain = SSL_INSTANCE.getPeerCertChain(ssl);
         byte[] clientCert;
         if (server) {
             // if used on the server side SSL_get_peer_cert_chain(...) will not include the remote peer certificate.
             // We use SSL_get_peer_certificate to get it in this case and add it to our array later.
             //
             // See https://www.openssl.org/docs/ssl/SSL_get_peer_cert_chain.html
-            clientCert = SSL.getInstance().getPeerCertificate(ssl);
+            clientCert = SSL_INSTANCE.getPeerCertificate(ssl);
         } else {
             clientCert = null;
         }
@@ -298,11 +300,11 @@ class OpenSSlSession implements SSLSession {
     }
 
     private void initProtocol(long ssl) {
-        protocol = SSL.getInstance().getVersion(ssl);
+        protocol = SSL_INSTANCE.getVersion(ssl);
     }
 
     private void initCipherSuite(long ssl) {
-        String c = OpenSSLEngine.toJavaCipherSuite(SSL.getInstance().getCipherForSSL(ssl), ssl);
+        String c = OpenSSLEngine.toJavaCipherSuite(SSL_INSTANCE.getCipherForSSL(ssl), ssl);
         if (c != null) {
             cipherSuite = c;
         }

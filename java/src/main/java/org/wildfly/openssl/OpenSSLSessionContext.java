@@ -17,14 +17,15 @@
 
 package org.wildfly.openssl;
 
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSessionContext;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionContext;
 
 /**
  * OpenSSL specific {@link SSLSessionContext} implementation.
@@ -35,6 +36,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     private final OpenSSLSessionStats stats;
     final long context;
+    static final SSL SSL_INSTANCE = SSL.getInstance();
 
     OpenSSLSessionContext(long context) {
         this.context = context;
@@ -57,7 +59,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
             @Override
             public byte[] nextElement() {
-                return keys.next().data;
+                return keys.next().getData();
             }
         };
     }
@@ -69,7 +71,7 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         if (keys == null) {
             throw new IllegalArgumentException("null ticket keys");
         }
-        SSL.getInstance().setSessionTicketKeys(context, keys);
+        SSL_INSTANCE.setSessionTicketKeys(context, keys);
     }
 
     /**
