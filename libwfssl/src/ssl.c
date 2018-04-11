@@ -54,7 +54,7 @@ WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
 WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
 WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ciphers);
 WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring file, jstring path);
-WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jbyteArray javaKey, jint idx);
+WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jobjectArray intermediateCerts, jbyteArray javaKey, jint idx);
 WF_OPENSSL(void, setCertVerifyCallback)(JNIEnv *e, jobject o, jlong ctx, jobject verifier);
 WF_OPENSSL(jboolean, setSessionIdContext)(JNIEnv *e, jobject o, jlong ctx, jbyteArray sidCtx);
 WF_OPENSSL(jlong, newSSL)(JNIEnv *e, jobject o, jlong ctx /* tcn_ssl_ctxt_t * */, jboolean server);
@@ -881,11 +881,12 @@ cleanup:
     return rv;
 }
 
-WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jbyteArray javaKey, jint idx)
+WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jobjectArray intermediateCerts, jbyteArray javaKey, jint idx)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     /* we get the key contents into a byte array */
     unsigned char* cert;
+    unsigned char* intCert;
     char err[256];
     jboolean rv;
     const unsigned char *tmp;
@@ -895,14 +896,20 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
     unsigned char* key = malloc(lengthOfKey);
     tcn_ssl_ctxt_t *c;
     BIO * bio;
+    X509* tmpIntCert;
+    int intermediateLength;
+    jbyteArray byteArray;
 
     memmove(key, bufferPtr, lengthOfKey);
     (*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
+
+
     bufferPtr = (*e)->GetByteArrayElements(e, javaCert, NULL);
     lengthOfCert = (*e)->GetArrayLength(e, javaCert);
     cert = malloc(lengthOfCert);
     memmove(cert, bufferPtr, lengthOfCert);
     (*e)->ReleaseByteArrayElements(e, javaCert, bufferPtr, 0);
+
 
     c = J2P(ctx, tcn_ssl_ctxt_t *);
     rv = JNI_TRUE;
@@ -944,6 +951,40 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
         rv = JNI_FALSE;
         goto cleanup;
     }
+
+    /*intermediate certs */
+    intermediateLength = (*e)->GetArrayLength(e, intermediateCerts);
+    for(int i = 0; i < intermediateLength; ++i ) {
+
+        byteArray = (*e)->GetObjectArrayElement(e, intermediateCerts, i);
+        bufferPtr = (*e)->GetByteArrayElements(e, byteArray, NULL);
+        lengthOfCert = (*e)->GetArrayLength(e, byteArray);
+        intCert = malloc(lengthOfCert);
+        memmove(intCert, bufferPtr, lengthOfCert);
+        (*e)->ReleaseByteArrayElements(e, byteArray, bufferPtr, 0);
+
+        tmp = (const unsigned char *)intCert;
+
+
+        if ((tmpIntCert = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
+            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            throwIllegalStateException(e, err);
+            rv = JNI_FALSE;
+            free(intCert);
+            goto cleanup;
+        }
+
+        if (ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_EXTRA_CHAIN_CERT,0,(char *)tmpIntCert) <= 0) {
+            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            tcn_Throw(e, "Error setting certificate (%s)", err);
+            rv = JNI_FALSE;
+            free(intCert);
+            goto cleanup;
+        }
+        free(intCert);
+    }
+
+
     if (ssl_methods.SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         tcn_Throw(e, "Error setting private key (%s)", err);

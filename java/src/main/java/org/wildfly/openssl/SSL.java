@@ -973,14 +973,14 @@ public abstract class SSL {
      * to point at the key file.  Keep in mind that if
      * you've both a RSA and a DSA private key you can configure
      * both in parallel (to also allow the use of DSA ciphers, etc.)
-     *
-     * @param ctx  Server or Client context to use.
+     *  @param ctx  Server or Client context to use.
      * @param cert Certificate file.
+     * @param encodedIntermediaries
      * @param key  Private Key file to use if not in cert.
      * @param idx  Certificate index SSL_AIDX_RSA or SSL_AIDX_DSA.
      */
     protected abstract boolean setCertificate(long ctx, byte[] cert,
-                                              byte[] key,
+                                              byte[][] encodedIntermediaries, byte[] key,
                                               int idx)
             throws Exception;
 

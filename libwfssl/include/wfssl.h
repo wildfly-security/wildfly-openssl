@@ -145,6 +145,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_SESS_CACHE_BOTH     (SSL_SESS_CACHE_CLIENT|SSL_SESS_CACHE_SERVER)
 
 #define SSL_CTRL_SET_TMP_DH                     3
+#define SSL_CTRL_EXTRA_CHAIN_CERT               14
 #define SSL_CTRL_SESS_NUMBER                    20
 #define SSL_CTRL_SESS_CONNECT                   21
 #define SSL_CTRL_SESS_CONNECT_GOOD              22

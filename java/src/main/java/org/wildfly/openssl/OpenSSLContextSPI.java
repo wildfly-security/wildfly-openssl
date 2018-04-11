@@ -201,9 +201,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                     if (aliases != null && aliases.length != 0) {
                         for(String alias: aliases) {
 
-                            X509Certificate certificate = keyManager.getCertificateChain(alias)[0];
+                            X509Certificate[] certificateChain = keyManager.getCertificateChain(alias);
                             PrivateKey key = keyManager.getPrivateKey(alias);
-                            if(key == null || certificate == null || key.getEncoded() == null) {
+                            if(key == null || certificateChain == null || key.getEncoded() == null) {
                                 continue;
                             }
                             if (LOG.isLoggable(Level.FINE)) {
@@ -216,7 +216,13 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                             }
                             sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey));
                             sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
-                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+
+                            byte[][] encodedIntermediaries = new byte[certificateChain.length - 1][];
+                            for(int i = 1; i < certificateChain.length; ++i) {
+                                encodedIntermediaries[i - 1] = certificateChain[i].getEncoded();
+                            }
+                            X509Certificate certificate = certificateChain[0];
+                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), encodedIntermediaries, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             break;
                         }
                     }
