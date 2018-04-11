@@ -899,6 +899,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
     X509* tmpIntCert;
     int intermediateLength;
     jbyteArray byteArray;
+    int i;
 
     memmove(key, bufferPtr, lengthOfKey);
     (*e)->ReleaseByteArrayElements(e, javaKey, bufferPtr, 0);
@@ -954,7 +955,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
 
     /*intermediate certs */
     intermediateLength = (*e)->GetArrayLength(e, intermediateCerts);
-    for(int i = 0; i < intermediateLength; ++i ) {
+    for(i = 0; i < intermediateLength; ++i ) {
 
         byteArray = (*e)->GetObjectArrayElement(e, intermediateCerts, i);
         bufferPtr = (*e)->GetByteArrayElements(e, byteArray, NULL);
