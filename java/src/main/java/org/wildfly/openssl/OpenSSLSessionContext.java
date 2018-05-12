@@ -46,6 +46,10 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         return sessions.get(new Key(bytes));
     }
 
+    OpenSSlSession getOpenSSlSession(final byte[] sessionId) {
+        return sessions.get(new Key(sessionId));
+    }
+
     @Override
     public Enumeration<byte[]> getIds() {
         final Iterator<Key> keys = new HashSet<>(sessions.keySet()).iterator();

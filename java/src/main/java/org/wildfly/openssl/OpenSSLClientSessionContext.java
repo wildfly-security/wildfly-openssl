@@ -101,10 +101,15 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
             // set with the session pointer from the found session
             final ClientSessionInfo foundSessionPtr = getCacheValue(key);
             if (foundSessionPtr != null) {
-                if(getSession(foundSessionPtr.sessionId) == null) {
+                final OpenSSlSession existingSession = getOpenSSlSession(foundSessionPtr.sessionId);
+                if(existingSession == null) {
                     removeCacheEntry(key);
                 } else {
-                    SSL.getInstance().setSession(ssl, foundSessionPtr.session);
+                    synchronized (existingSession) {
+                        if (existingSession.isValid()) {
+                            SSL.getInstance().setSession(ssl, foundSessionPtr.session);
+                        }
+                    }
                 }
             }
         }
