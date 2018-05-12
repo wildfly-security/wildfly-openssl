@@ -83,6 +83,20 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         this.sessions.remove(new Key(session));
     }
 
+    /**
+     * Removes a cached session, represented by the {@code sessionId} and
+     * {@link SSLSession#invalidate() invalidates} it
+     *
+     * @param sessionId The session id
+     */
+    void invalidateIfPresent(final byte[] sessionId) {
+        final OpenSSlSession session = this.sessions.remove(new Key(sessionId));
+        if (session == null) {
+            return;
+        }
+        session.invalidate();
+    }
+
     synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
         final OpenSSlSession openSSlSession = new OpenSSlSession(true, this);
         openSSlSession.initialised(session, ssl, sessionId);

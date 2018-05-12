@@ -19,6 +19,14 @@
 
 package org.wildfly.openssl;
 
+import org.junit.Assert;
+import org.junit.Test;
+
+import javax.net.ssl.HandshakeCompletedEvent;
+import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSessionContext;
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -26,21 +34,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.HandshakeCompletedEvent;
-import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSessionContext;
-import javax.net.ssl.SSLSocket;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
@@ -171,6 +175,36 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
         }
     }
 
+
+    /**
+     * Tests that invalidation of a client session, for whatever reason, when multiple threads
+     * are involved in interacting with the server through a SSL socket, doesn't lead to a JVM crash
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testClientSessionInvalidationMultiThreadAccess() throws Exception {
+        final int port = SSLTestUtils.PORT;
+        final int numThreads = 10;
+        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket(port)) {
+            final Thread acceptThread = startServer(serverSocket);
+            final SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.2");
+            final List<Future<Void>> taskResults = new ArrayList<>();
+            for (int i = 0; i < numThreads; i++) {
+                taskResults.add(executor.submit(new SocketWriter(clientContext, SSLTestUtils.HOST, port)));
+            }
+            // wait for results
+            for (int i = 0; i < numThreads; i++) {
+                taskResults.get(i).get(10, TimeUnit.SECONDS);
+            }
+            serverSocket.close();
+            acceptThread.join();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     private void testSessionId(final SSLContext sslContext) throws IOException, InterruptedException {
         final int iterations = 10;
         final Collection<SSLSocket> toClose = new ArrayList<>();
@@ -292,6 +326,32 @@ public class ClientSessionTest extends AbstractOpenSSLTest {
         @Override
         public byte[] get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             return get();
+        }
+    }
+
+    private class SocketWriter implements Callable<Void> {
+        private final SSLContext sslClientContext;
+        private final String host;
+        private final int port;
+
+        SocketWriter(final SSLContext sslClientContext, final String host, final int port) {
+            this.sslClientContext = sslClientContext;
+            this.host = host;
+            this.port = port;
+        }
+
+        @Override
+        public Void call() {
+            // create a socket, connect, write some data, invalidate the session
+            try (final SSLSocket socket = (SSLSocket) this.sslClientContext.getSocketFactory().createSocket()) {
+                socket.connect(new InetSocketAddress(this.host, this.port));
+                socket.getOutputStream().write(HELLO_WORLD);
+                socket.getOutputStream().flush();
+                socket.getSession().invalidate();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return null;
         }
     }
 }
