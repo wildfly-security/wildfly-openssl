@@ -46,6 +46,10 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
         return sessions.get(new Key(bytes));
     }
 
+    OpenSSlSession getOpenSSlSession(final byte[] sessionId) {
+        return sessions.get(new Key(sessionId));
+    }
+
     @Override
     public Enumeration<byte[]> getIds() {
         final Iterator<Key> keys = new HashSet<>(sessions.keySet()).iterator();
@@ -81,6 +85,20 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
 
     void remove(byte[] session) {
         this.sessions.remove(new Key(session));
+    }
+
+    /**
+     * Removes a cached session, represented by the {@code sessionId} and
+     * {@link SSLSession#invalidate() invalidates} it
+     *
+     * @param sessionId The session id
+     */
+    void invalidateIfPresent(final byte[] sessionId) {
+        final OpenSSlSession session = this.sessions.remove(new Key(sessionId));
+        if (session == null) {
+            return;
+        }
+        session.invalidate();
     }
 
     synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
