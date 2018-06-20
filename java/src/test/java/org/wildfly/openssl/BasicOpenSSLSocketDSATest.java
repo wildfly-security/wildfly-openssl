@@ -73,6 +73,7 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
             final SSLContext sslContext = SSLTestUtils.createClientDSASSLContext("openssl.TLSv1");
             InetSocketAddress socketAddress = (InetSocketAddress) SSLTestUtils.createSocketAddress();
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket(socketAddress.getAddress(), socketAddress.getPort());
+            socket.setEnabledCipherSuites(new String[] {"TLS_DHE_DSS_WITH_AES_128_CBC_SHA"});
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().flush();
             byte[] data = new byte[100];
