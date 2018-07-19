@@ -37,6 +37,15 @@ public class AbstractOpenSSLTest {
                 System.setProperty("javax.net.ssl.trustStore", "java/src/test/resources/client.truststore");
                 System.setProperty("javax.net.ssl.keyStorePassword", "password");
             }
+            final String openSSLVersion = SSL.getInstance().version();
+            // very crude (but acceptable) way to check the version
+            if (openSSLVersion.contains("1.0.2")) {
+                // 1.0.2 doesn't support "Extended master secret" extension, which is enabled in
+                // Java by default. here we disable that extension on the Java side to allow
+                // session resumption tests to pass
+                // @see http://www.oracle.com/technetwork/java/javase/8u161-relnotes-4021379.html#JDK-8148421
+                System.setProperty("jdk.tls.useExtendedMasterSecret", "false");
+            }
         }
     }
 
