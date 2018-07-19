@@ -438,14 +438,14 @@ public class SSLImpl extends SSL {
     static native long getSession0(long ssl);
 
     @Override
-    protected long getSession(final long ssl) {
+    protected long getSession(long ssl) {
         return SSLImpl.getSession0(ssl);
     }
 
-    static native void setSession0(final long ssl, final long session);
+    static native void setSession0(long ssl, long session);
 
     @Override
-    protected void setSession(final long ssl, final long session) {
+    protected void setSession(long ssl, final long session) {
         SSLImpl.setSession0(ssl, session);
     }
 

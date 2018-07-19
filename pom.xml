@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>21</version>
+        <version>28</version>
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
@@ -44,8 +44,6 @@
         <org.wildfly.openssl.test.host>localhost</org.wildfly.openssl.test.host>
         <org.wildfly.openssl.test.port>7676</org.wildfly.openssl.test.port>
         <org.wildfly.openssl.test.secondary.port>7686</org.wildfly.openssl.test.secondary.port>
-
-        <version.jar.plugin>2.6</version.jar.plugin>
     </properties>
 
     <licenses>

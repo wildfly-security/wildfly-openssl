@@ -238,7 +238,7 @@ public abstract class SSL {
             for (String path : Identification.NATIVE_SEARCH_PATHS) {
                 String complete = path + "/" + mapped;
                 try {
-                    try (final InputStream resource = SSL.class.getClassLoader().getResourceAsStream(complete)) {
+                    try (InputStream resource = SSL.class.getClassLoader().getResourceAsStream(complete)) {
                         if (resource != null) {
                             File temp = File.createTempFile("tmp-", "openssl");
                             temp.delete();
