@@ -349,7 +349,11 @@ public class OpenSSLSocket extends SSLSocket {
                                 }
 
                         }
-                    } finally {
+                    } catch (IOException | RuntimeException e) {
+                        this.close();
+                        throw e;
+                    }
+                    finally {
                         if(freeIndirect) {
                             indirectPooled.close();
                         }
