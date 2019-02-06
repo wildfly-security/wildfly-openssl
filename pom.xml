@@ -140,6 +140,7 @@
             <activation>
                 <os>
                     <family>linux</family>
+                    <arch>amd64</arch>
                 </os>
                 <property>
                     <name>sun.arch.data.model</name>
