@@ -573,6 +573,17 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
         if (!(protocol & SSL_PROTOCOL_TLSV1_2))
             ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_2),NULL);
     }
+
+    /* We need to disable TLSv1.3 if running on OpenSSL 1.1.0+ */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    /* This is equivalent to this macro:
+        # define SSL_set_max_proto_version(s, version) \
+                SSL_ctrl(s, SSL_CTRL_SET_MAX_PROTO_VERSION, version, NULL)
+        Reference: https://www.openssl.org/docs/manmaster/man3/SSL_set_max_proto_version.html
+    */
+    ssl_methods.SSL_CTX_ctrl((c->ctx), SSL_CTRL_SET_MAX_PROTO_VERSION, (TLS1_2_VERSION), NULL);
+#endif
+
     /*
      * Configure additional context ingredients
      */

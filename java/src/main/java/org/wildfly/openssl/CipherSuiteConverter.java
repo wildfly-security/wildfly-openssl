@@ -81,6 +81,9 @@ public final class CipherSuiteConverter {
     private static final Pattern JAVA_AES_PATTERN = Pattern.compile("^(AES)_([0-9]+)_(.*)$");
     private static final Pattern OPENSSL_AES_CBC_PATTERN = Pattern.compile("^(AES)([0-9]+)$");
     private static final Pattern OPENSSL_AES_PATTERN = Pattern.compile("^(AES)([0-9]+)-(.*)$");
+    // Covers TLSv1.3 ciphers and help avoid weird behaviours like what happens in
+    // BasicOpenSSLEngineTest#testWrongClientSideTrustManagerFailsValidation:70
+    private static final Pattern OPENSSL_TLSv13_PATTERN = Pattern.compile("^(TLS)_(AES|CHACHA20)_(POLY1305|[0-9]+)_(.*)$");
 
     /**
      * Java-to-OpenSSL cipher suite conversion map
@@ -296,7 +299,12 @@ public final class CipherSuiteConverter {
         }
 
         final String javaCipherSuiteSsl = "SSL_" + javaCipherSuiteSuffix;
-        final String javaCipherSuiteTls = "TLS_" + javaCipherSuiteSuffix;
+        final String javaCipherSuiteTls;
+        if (openSslCipherSuite.startsWith("TLS_")) {
+            javaCipherSuiteTls = javaCipherSuiteSuffix;
+        } else {
+            javaCipherSuiteTls = "TLS_" + javaCipherSuiteSuffix;
+        }
 
         // Cache the mapping.
         final Map<String, String> p2j = new HashMap<>(4);
@@ -319,6 +327,11 @@ public final class CipherSuiteConverter {
 
     static String toJavaUncached(String openSslCipherSuite) {
         Matcher m = OPENSSL_CIPHERSUITE_PATTERN.matcher(openSslCipherSuite);
+
+        if (openSslCipherSuite.startsWith("TLS_")) {
+            m = OPENSSL_TLSv13_PATTERN.matcher(openSslCipherSuite);
+        }
+
         if (!m.matches()) {
             return null;
         }
@@ -339,9 +352,20 @@ public final class CipherSuiteConverter {
         }
 
         handshakeAlgo = toJavaHandshakeAlgo(handshakeAlgo, export);
-        String bulkCipher = toJavaBulkCipher(m.group(2), export);
-        String hmacAlgo = toJavaHmacAlgo(m.group(3));
+        String bulkCipher;
+        String hmacAlgo;
+        if ("TLS".equals(handshakeAlgo)) {
+            String groups = m.group(2) + "_" + m.group(3);
+            bulkCipher = toJavaBulkCipher(groups, export);
+            hmacAlgo = m.group(4);
+        } else {
+            bulkCipher = toJavaBulkCipher(m.group(2), export);
+            hmacAlgo = toJavaHmacAlgo(m.group(3));
+        }
 
+        if ("TLS".equals(handshakeAlgo)) {
+            return handshakeAlgo + "_" + bulkCipher + "_" + hmacAlgo;
+        }
         return handshakeAlgo + "_WITH_" + bulkCipher + '_' + hmacAlgo;
     }
 
