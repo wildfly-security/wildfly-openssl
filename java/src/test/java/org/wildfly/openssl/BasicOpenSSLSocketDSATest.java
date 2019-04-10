@@ -26,13 +26,21 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
  * @author Stuart Douglas
  */
 public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
+    @Before
+    public void testOpenSSLVersion() {
+        String openSSLVersion = SSL.getInstance().version().split(" ")[1];
+        Assume.assumeThat(openSSLVersion.startsWith("1.1."), CoreMatchers.is(false));
+    }
 
     @Test
     public void basicOpenSSLTest1() throws IOException, NoSuchAlgorithmException, InterruptedException {

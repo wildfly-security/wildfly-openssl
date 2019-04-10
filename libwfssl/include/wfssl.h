@@ -62,6 +62,8 @@ typedef  unsigned __int64   uint64_t;
 #define TCN_ASSERT(x) (void)0
 #endif
 
+/* We need to know about OPENSSL_VERSION_NUMBER */
+#include <openssl/opensslv.h>
 
 
 #define P2J(P)          ((jlong)LLT(P))
@@ -191,6 +193,11 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_OP_NO_TLSv1_1                               0x10000000L
 #define SSL_OP_SINGLE_ECDH_USE                          0x00080000L
 #define SSL_OP_SINGLE_DH_USE                            0x00100000L
+
+#define TLS1_VERSION                    0x0301
+#define TLS1_1_VERSION                  0x0302
+#define TLS1_2_VERSION                  0x0303
+#define TLS1_3_VERSION                  0x0304
 
 #define X509_FILETYPE_PEM       1
 #define X509_L_FILE_LOAD        1
@@ -560,6 +567,13 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_method)(void);
     evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
+
+    /* For OpenSSL 1.1.0+ */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    # define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+    # define SSL_CTRL_SET_MAX_PROTO_VERSION          124
+#endif
+
 } ssl_dynamic_methods;
 
 typedef struct {
