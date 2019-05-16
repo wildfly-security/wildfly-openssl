@@ -118,6 +118,8 @@ class Identification {
                             cpuName = "i686";
                         } else if (sysArch.startsWith("X32")) {
                             cpuName = "x32";
+                        } else if (sysArch.startsWith("PPC64LE")) {
+                            cpuName = "ppc64le";
                         } else if (sysArch.startsWith("PPC64")) {
                             cpuName = "ppc64";
                         } else if (sysArch.startsWith("PPC") || sysArch.startsWith("POWER")) {

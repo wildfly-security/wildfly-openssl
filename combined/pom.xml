@@ -99,6 +99,22 @@
             </dependencies>
         </profile>
         <profile>
+            <id>linux-ppc64le</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>ppc64le</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-linux-ppc64le</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>linux-i386</id>
             <activation>
                 <os>
