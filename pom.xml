@@ -144,6 +144,18 @@
             </modules>
         </profile>
         <profile>
+            <id>linux-s390x</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>s390x</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>linux-s390x</module>
+            </modules>
+        </profile>
+        <profile>
             <id>linux-i386</id>
             <activation>
                 <os>

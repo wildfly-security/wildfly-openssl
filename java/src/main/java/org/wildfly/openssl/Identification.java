@@ -176,6 +176,8 @@ class Identification {
                             cpuName = "alpha";
                         } else if (sysArch.startsWith("MIPS")) {
                             cpuName = "mips";
+                        } else if (sysArch.startsWith("S390X")) {
+                            cpuName = "s390x";
                         } else {
                             knownCpu = false;
                             cpuName = "unknown";
