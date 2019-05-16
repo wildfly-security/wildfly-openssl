@@ -120,6 +120,18 @@
             </modules>
         </profile>
         <profile>
+            <id>linux-aarch64</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>linux-aarch64</module>
+            </modules>
+        </profile>
+        <profile>
             <id>linux-i386</id>
             <activation>
                 <os>
