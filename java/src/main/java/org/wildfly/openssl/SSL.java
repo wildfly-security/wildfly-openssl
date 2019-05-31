@@ -810,6 +810,9 @@ public abstract class SSL {
     protected abstract boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
 
+    protected abstract boolean setServerNameIndication(long ssl,
+                                                       String hostName);
+
     /**
      * Returns the pointer reference to the SSL session.
      * <a href="https://www.openssl.org/docs/manmaster/ssl/SSL_get_session.html">https://www.openssl.org/docs/manmaster/ssl/SSL_get_session.html</a>

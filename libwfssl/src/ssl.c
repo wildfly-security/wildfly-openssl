@@ -47,6 +47,7 @@ WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstri
 WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode);
 WF_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl, jstring ciphers);
+WF_OPENSSL(jboolean, setServerNameIndication)(JNIEnv *e, jobject o, jlong ssl, jstring ciphers);
 WF_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx);
 WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt);
 WF_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt);
@@ -841,6 +842,34 @@ WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ci
     free(buf);
 #endif
     TCN_FREE_CSTRING(ciphers);
+    return rv;
+}
+
+WF_OPENSSL(jboolean, setServerNameIndication)(JNIEnv *e, jobject o, jlong ssl,
+jstring hostName)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    jboolean rv = JNI_TRUE;
+    SSL *ssl_ = J2P(ssl, SSL *);
+    TCN_ALLOC_CSTRING(hostName);
+
+    if (ssl_ == NULL) {
+        throwIllegalStateException(e, "ssl is null");
+        return JNI_FALSE;
+    }
+
+    UNREFERENCED(o);
+    if (!J2S(hostName)) {
+        return JNI_FALSE;
+    }
+    if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
+    TLSEXT_NAMETYPE_host_name, J2S(hostName))) {
+        char err[256];
+        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        throwIllegalStateException(e, err);
+        rv = JNI_FALSE;
+    }
+    TCN_FREE_CSTRING(hostName);
     return rv;
 }
 

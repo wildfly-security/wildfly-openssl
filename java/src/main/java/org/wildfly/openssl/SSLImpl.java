@@ -428,6 +428,13 @@ public class SSLImpl extends SSL {
         return setCipherSuites0(ssl, ciphers);
     }
 
+    static native boolean setServerNameIndication0(long ssl, String hostName);
+
+    @Override
+    protected boolean setServerNameIndication(long ssl, String hostName) {
+        return setServerNameIndication0(ssl, hostName);
+    }
+
     /**
      * Returns the pointer reference to the SSL session.
      *

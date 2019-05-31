@@ -167,6 +167,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_GET_SESS_CACHE_MODE            45
 #define SSL_CTRL_SET_TLSEXT_SERVERNAME_CB       53
 #define SSL_CTRL_SET_TLSEXT_SERVERNAME_ARG      54
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
 #define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
@@ -550,6 +551,7 @@ typedef struct {
     void (*SSL_set_accept_state)(SSL *s);
     void (*SSL_set_bio)(SSL *s, BIO *rbio, BIO *wbio);
     int (*SSL_set_cipher_list)(SSL *s, const char *str);
+    int (*SSL_set_tlsext_host_name)(SSL *s, const char *hostName);
     void (*SSL_set_connect_state)(SSL *s);
     void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
     void (*SSL_set_verify_result)(SSL *ssl, long v);
