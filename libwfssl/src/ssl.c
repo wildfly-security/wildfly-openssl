@@ -854,12 +854,14 @@ jstring hostName)
     TCN_ALLOC_CSTRING(hostName);
 
     if (ssl_ == NULL) {
+        TCN_FREE_CSTRING(hostName);
         throwIllegalStateException(e, "ssl is null");
         return JNI_FALSE;
     }
 
     UNREFERENCED(o);
     if (!J2S(hostName)) {
+        TCN_FREE_CSTRING(hostName);
         return JNI_FALSE;
     }
     if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,

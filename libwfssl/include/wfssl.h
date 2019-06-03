@@ -551,7 +551,6 @@ typedef struct {
     void (*SSL_set_accept_state)(SSL *s);
     void (*SSL_set_bio)(SSL *s, BIO *rbio, BIO *wbio);
     int (*SSL_set_cipher_list)(SSL *s, const char *str);
-    int (*SSL_set_tlsext_host_name)(SSL *s, const char *hostName);
     void (*SSL_set_connect_state)(SSL *s);
     void (*SSL_set_verify)(SSL *s, int mode, int (*callback) (int ok, X509_STORE_CTX *ctx));
     void (*SSL_set_verify_result)(SSL *ssl, long v);

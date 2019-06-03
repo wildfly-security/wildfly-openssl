@@ -16,6 +16,7 @@
  */
 package org.wildfly.openssl;
 
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -1307,8 +1308,12 @@ public final class OpenSSLEngine extends SSLEngine {
                 List<SNIServerName> sniHostNames = sslParameters.getServerNames();
                 if(sniHostNames != null && !sniHostNames.isEmpty()) {
                     for(SNIServerName serverName : sniHostNames) {
-                        SSL.getInstance().setServerNameIndication(ssl,
-                            serverName.toString());
+                        // Ignore SNI if not SNIHostName instance.
+                        if(serverName instanceof  SNIHostName) {
+                            SNIHostName hostName = (SNIHostName) serverName;
+                            SSL.getInstance().setServerNameIndication(ssl,
+                                hostName.getAsciiName());
+                        }
                     }
                 }
             }
