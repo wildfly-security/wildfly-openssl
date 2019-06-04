@@ -16,8 +16,13 @@
  */
 package org.wildfly.openssl;
 
-import static org.wildfly.openssl.Messages.MESSAGES;
-
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.ArrayList;
@@ -28,11 +33,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSession;
+
+import static org.wildfly.openssl.Messages.MESSAGES;
 
 public final class OpenSSLEngine extends SSLEngine {
 
@@ -160,6 +162,7 @@ public final class OpenSSLEngine extends SSLEngine {
         this.openSSLContextSPI = openSSLContextSPI;
         this.host = host;
         this.port = port;
+        this.setServerNameIndication(host);
     }
 
     void initSsl() {
@@ -1242,6 +1245,24 @@ public final class OpenSSLEngine extends SSLEngine {
         return handshakeFinished;
     }
 
+    private void setServerNameIndication(String host) {
+        Runnable config = () -> {
+            if (clientMode) {
+                if (host != null && !host.isEmpty()) {
+                    SSL.getInstance().setServerNameIndication(ssl, host);
+                }
+            }
+        };
+
+        if (clientMode) {
+            if (ssl == 0) {
+                tasks.add(config);
+            } else {
+                config.run();
+            }
+        }
+    }
+
     @Override
     public SSLParameters getSSLParameters() {
         return super.getSSLParameters();
@@ -1282,6 +1303,20 @@ public final class OpenSSLEngine extends SSLEngine {
                 }
                 SSL.getInstance().setSSLVerify(ssl, value, DEFAULT_CERTIFICATE_VALIDATION_DEPTH);
             }
+
+            if(clientMode) {
+                List<SNIServerName> sniHostNames = sslParameters.getServerNames();
+                if(sniHostNames != null && !sniHostNames.isEmpty()) {
+                    for(SNIServerName serverName : sniHostNames) {
+                        // Ignore SNI if not SNIHostName instance.
+                        if(serverName instanceof  SNIHostName) {
+                            SNIHostName hostName = (SNIHostName) serverName;
+                            SSL.getInstance().setServerNameIndication(ssl,
+                                hostName.getAsciiName());
+                        }
+                    }
+                }
+            }
         };
         if(ssl == 0) {
             tasks.add(config);
@@ -1293,6 +1328,7 @@ public final class OpenSSLEngine extends SSLEngine {
 
     void setHost(final String host) {
         this.host = host;
+        this.setServerNameIndication(host);
     }
 
     void setPort(final int port) {

@@ -167,6 +167,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_GET_SESS_CACHE_MODE            45
 #define SSL_CTRL_SET_TLSEXT_SERVERNAME_CB       53
 #define SSL_CTRL_SET_TLSEXT_SERVERNAME_ARG      54
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
 #define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
