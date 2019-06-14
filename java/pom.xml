@@ -128,6 +128,57 @@
             </dependencies>
         </profile>
         <profile>
+            <id>linux-aarch64</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-linux-aarch64</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>linux-ppc64le</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>ppc64le</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-linux-ppc64le</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>linux-s390x</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>s390x</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-linux-s390x</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>linux-i386</id>
             <activation>
                 <os>
@@ -152,6 +203,7 @@
             <activation>
                 <os>
                     <family>linux</family>
+                    <arch>amd64</arch>
                 </os>
                 <property>
                     <name>sun.arch.data.model</name>

@@ -120,6 +120,42 @@
             </modules>
         </profile>
         <profile>
+            <id>linux-aarch64</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>linux-aarch64</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>linux-ppc64le</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>ppc64le</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>linux-ppc64le</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>linux-s390x</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                    <arch>s390x</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>linux-s390x</module>
+            </modules>
+        </profile>
+        <profile>
             <id>linux-i386</id>
             <activation>
                 <os>
@@ -140,6 +176,7 @@
             <activation>
                 <os>
                     <family>linux</family>
+                    <arch>amd64</arch>
                 </os>
                 <property>
                     <name>sun.arch.data.model</name>
