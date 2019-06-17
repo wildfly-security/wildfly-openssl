@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>28</version>
+        <version>35</version>
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
@@ -33,7 +33,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <version.org.wildfly.checkstyle>1.0.5.Final</version.org.wildfly.checkstyle>
+        <version.org.wildfly.checkstyle>1.0.8.Final</version.org.wildfly.checkstyle>
 
         <openssl.path></openssl.path>
         <cmake.generator>Unix Makefiles</cmake.generator>
