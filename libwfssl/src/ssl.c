@@ -865,7 +865,7 @@ jstring hostName)
         return JNI_FALSE;
     }
     if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
-    TLSEXT_NAMETYPE_host_name, J2S(hostName))) {
+    TLSEXT_NAMETYPE_host_name, (void *)J2S(hostName))) {
         char err[256];
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
