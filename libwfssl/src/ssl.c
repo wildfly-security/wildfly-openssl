@@ -852,7 +852,8 @@ jstring hostName)
     jboolean rv = JNI_TRUE;
     SSL *ssl_ = J2P(ssl, SSL *);
     TCN_ALLOC_CSTRING(hostName);
-
+    const char * hostNameString;
+    hostNameString = J2S(hostName);
     if (ssl_ == NULL) {
         TCN_FREE_CSTRING(hostName);
         throwIllegalStateException(e, "ssl is null");
@@ -860,12 +861,12 @@ jstring hostName)
     }
 
     UNREFERENCED(o);
-    if (!J2S(hostName)) {
+    if (hostNameString == NULL) {
         TCN_FREE_CSTRING(hostName);
         return JNI_FALSE;
     }
-    if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
-    TLSEXT_NAMETYPE_host_name, J2S(hostName))) {
+    if (ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
+    TLSEXT_NAMETYPE_host_name, (void *)hostNameString)) {
         char err[256];
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
         throwIllegalStateException(e, err);
