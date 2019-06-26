@@ -865,7 +865,7 @@ jstring hostName)
         TCN_FREE_CSTRING(hostName);
         return JNI_FALSE;
     }
-    if (ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
+    if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
     TLSEXT_NAMETYPE_host_name, (void *)hostNameString)) {
         char err[256];
         crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
