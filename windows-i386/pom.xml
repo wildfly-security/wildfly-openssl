@@ -22,13 +22,13 @@
     <parent>
         <groupId>org.wildfly.openssl</groupId>
         <artifactId>wildfly-openssl-parent</artifactId>
-        <version>1.0.8.Final-SNAPSHOT</version>
+        <version>1.0.8.Final</version>
         <relativePath>../</relativePath>
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
     <artifactId>wildfly-openssl-windows-i386</artifactId>
-    <version>1.0.8.Final-SNAPSHOT</version>
+    <version>1.0.8.Final</version>
 
     <packaging>jar</packaging>
 
