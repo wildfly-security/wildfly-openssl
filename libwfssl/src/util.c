@@ -13,6 +13,7 @@ static jmethodID jString_getBytes;
 int tcn_parent_pid = 0;
 
 extern ssl_dynamic_methods ssl_methods;
+extern crypto_dynamic_methods crypto_methods;
 
 /* Called by the JVM when APR_JAVA is loaded */
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -83,15 +84,13 @@ jint throwIllegalArgumentException( JNIEnv *env, char *message )
 }
 
 void tcn_Throw(JNIEnv *env, char *fmt, ...) {
-    throwIllegalStateException(env, fmt);
-/*
-    char msg[8124] = {'\0'};
+    char msg[4096];
     va_list ap;
 
     va_start(ap, fmt);
-    snprintf(msg, 8124, fmt, ap);
+    vsnprintf(msg, sizeof(msg), fmt, ap);
+    va_end(ap);
     throwIllegalStateException(env, msg);
-    va_end(ap);*/
 }
 
 jint tcn_get_java_env(JNIEnv **env)
@@ -136,4 +135,23 @@ jstring tcn_new_stringn(JNIEnv *env, const char *str, size_t l)
         return result;
     } /* else fall through */
     return NULL;
+}
+
+void generate_openssl_stack_error(JNIEnv *e, char *buf, long len) {
+    BIO *bio;
+    char *bio_buf;
+    long bio_len;
+
+    bio = crypto_methods.BIO_new(crypto_methods.BIO_s_mem());
+    if (bio == NULL) {
+        throwIllegalStateException(e, "Failed to allocate BIO");
+    }
+    crypto_methods.ERR_print_errors(bio);
+    bio_len = BIO_get_mem_data(bio, &bio_buf);
+    if (bio_len > len) {
+        bio_len = len;
+    }
+    memcpy(buf, bio_buf, bio_len);
+    buf[bio_len] = '\0';
+    crypto_methods.BIO_free(bio);
 }

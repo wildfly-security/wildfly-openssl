@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.Assert;
+import org.junit.internal.matchers.StringContains;
 
 /**
  * A really hacky test that all methods are implemented
@@ -63,6 +65,29 @@ public class TestAllMethodsImplemented extends AbstractOpenSSLTest  {
         }
         if(!implemented.isEmpty()) {
             throw new RuntimeException("Not needed " + implemented);
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testOpenSSLMessagesAreIncluded() throws Exception {
+        SSL ssl = null;
+        long ctx = 0;
+        try {
+            ssl = SSL.getInstance();
+            ctx = ssl.makeSSLContext(SSLImpl.SSL_PROTOCOL_SSLV2, SSL.SSL_MODE_CLIENT);
+            ssl.setCipherSuite(ctx, "invalid-cypher");
+        } catch (RuntimeException e) {
+            // check the root cause has the OpenSSL stack-trace message
+            Throwable rootCause = e;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+            Assert.assertThat(rootCause.getMessage(), StringContains.containsString(":no cipher match:"));
+            throw e;
+        } finally {
+            if (ssl != null && ctx != 0) {
+                ssl.freeSSLContext(ctx);
+            }
         }
     }
 
