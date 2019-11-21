@@ -83,6 +83,11 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o, jlong ssl /* SS
 WF_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jstring, version)(JNIEnv *e);
+WF_OPENSSL(jlong, versionNumber)(JNIEnv *e);
+WF_OPENSSL(void, setMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version);
+WF_OPENSSL(void, setMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version);
+WF_OPENSSL(jint, getMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(jint, getMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl);
 void init_app_data_idx(void);
 void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg);
 void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg);
@@ -1572,6 +1577,49 @@ WF_OPENSSL(jstring, version)(JNIEnv *e)
     char * version = ssl_methods.SSLeay_version(0);
     return (*e)->NewStringUTF(e, version);
 }
+
+WF_OPENSSL(jlong, versionNumber)(JNIEnv *e)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    return ssl_methods.SSLeay();
+}
+
+WF_OPENSSL(void, setMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    ssl_methods.SSL_ctrl(c, SSL_CTRL_SET_MIN_PROTO_VERSION, (version), NULL);
+}
+
+WF_OPENSSL(void, setMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    ssl_methods.SSL_ctrl(c, SSL_CTRL_SET_MAX_PROTO_VERSION, (version), NULL);
+}
+
+WF_OPENSSL(jint, getMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    return ssl_methods.SSL_ctrl(c, SSL_CTRL_GET_MIN_PROTO_VERSION, 0, NULL);
+}
+
+WF_OPENSSL(jint, getMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    return ssl_methods.SSL_ctrl(c, SSL_CTRL_GET_MAX_PROTO_VERSION, 0, NULL);
+}
+
 
 /* sets up diffie hellman params using the apps/dh2048.pem file from openssl */
 void setupDH(JNIEnv *e, SSL_CTX * ctx)

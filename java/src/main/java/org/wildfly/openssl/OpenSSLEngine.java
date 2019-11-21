@@ -35,6 +35,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.wildfly.openssl.Messages.MESSAGES;
+import static org.wildfly.openssl.SSL.VERSION_1_1_0;
+import static org.wildfly.openssl.SSL.VERSION_1_1_0_F;
 
 public final class OpenSSLEngine extends SSLEngine {
 
@@ -68,6 +70,19 @@ public final class OpenSSLEngine extends SSLEngine {
             SSL.SSL_PROTO_TLSv1_2
     };
     private static final Set<String> SUPPORTED_PROTOCOLS_SET = new HashSet<>(Arrays.asList(SUPPORTED_PROTOCOLS));
+
+    private static final int OPENSSL_PROTOCOL_INDEX_SSLV2 = 0;
+    private static final int OPENSSL_PROTOCOL_INDEX_SSLV3 = 1;
+    private static final int OPENSSL_PROTOCOL_INDEX_TLSv1 = 2;
+    private static final int OPENSSL_PROTOCOL_INDEX_TLSv1_1 = 3;
+    private static final int OPENSSL_PROTOCOL_INDEX_TLSv1_2 = 4;
+    private static final int[] OPENSSL_PROTOCOLS = {
+            SSL.SSL3_VERSION, // SSLv2 cannot be used as the min or max protocol version, using SSLv3 as a placeholder instead
+            SSL.SSL3_VERSION,
+            SSL.TLS1_VERSION,
+            SSL.TLS1_1_VERSION,
+            SSL.TLS1_2_VERSION
+    };
 
     // Header (5) + Data (2^14) + Compression (1024) + Encryption (1024) + MAC (20) + Padding (256)
     static final int MAX_ENCRYPTED_PACKET_LENGTH = MAX_CIPHERTEXT_LENGTH + 5 + 20 + 256;
@@ -801,26 +816,57 @@ public final class OpenSSLEngine extends SSLEngine {
         List<String> enabled = new ArrayList<>();
         // Seems like there is no way to explict disable SSLv2Hello in openssl so it is always enabled
         enabled.add(SSL.SSL_PROTO_SSLv2Hello);
-        int opts;
-        if(ssl != 0) {
-            opts = SSL.getInstance().getOptions(ssl);
+        boolean isOpenSSL110FOrLower = isOpenSSL110FOrLower();
+        if (isOpenSSL10() || isOpenSSL110FOrLower || ssl == 0) {
+            if (isOpenSSL110FOrLower) {
+                // OpenSSL 1.1.0 versions f and lower do not provide a reliable way to determine the protocols
+                // that are actually enabled which means that all supported protocols will be returned here
+                // (the correct protocols will actually be used though)
+                LOG.log(Level.WARNING, Messages.MESSAGES.getEnabledProtocolsMayNotBeAccurate());
+            }
+            int opts;
+            if (ssl != 0 && ! isOpenSSL110FOrLower) {
+                opts = SSL.getInstance().getOptions(ssl);
+            } else {
+                opts = openSSLContextSPI.supportedCiphers;
+            }
+            // use the SSL options to determine the protocols that are actually enabled
+            if ((opts & SSL.SSL_OP_NO_TLSv1) == 0) {
+                enabled.add(SSL.SSL_PROTO_TLSv1);
+            }
+            if ((opts & SSL.SSL_OP_NO_TLSv1_1) == 0) {
+                enabled.add(SSL.SSL_PROTO_TLSv1_1);
+            }
+            if ((opts & SSL.SSL_OP_NO_TLSv1_2) == 0) {
+                enabled.add(SSL.SSL_PROTO_TLSv1_2);
+            }
+            if ((opts & SSL.SSL_OP_NO_SSLv2) == 0) {
+                enabled.add(SSL.SSL_PROTO_SSLv2);
+            }
+            if ((opts & SSL.SSL_OP_NO_SSLv3) == 0) {
+                enabled.add(SSL.SSL_PROTO_SSLv3);
+            }
         } else {
-            opts = openSSLContextSPI.supportedCiphers;
-        }
-        if ((opts & SSL.SSL_OP_NO_TLSv1) == 0) {
-            enabled.add(SSL.SSL_PROTO_TLSv1);
-        }
-        if ((opts & SSL.SSL_OP_NO_TLSv1_1) == 0) {
-            enabled.add(SSL.SSL_PROTO_TLSv1_1);
-        }
-        if ((opts & SSL.SSL_OP_NO_TLSv1_2) == 0) {
-            enabled.add(SSL.SSL_PROTO_TLSv1_2);
-        }
-        if ((opts & SSL.SSL_OP_NO_SSLv2) == 0) {
-            enabled.add(SSL.SSL_PROTO_SSLv2);
-        }
-        if ((opts & SSL.SSL_OP_NO_SSLv3) == 0) {
-            enabled.add(SSL.SSL_PROTO_SSLv3);
+            // getMinProtoVersion and getMaxProtoVersion are only supported in OpenSSL 1.1.0g or higher
+            int minVersion = SSL.getInstance().getMinProtoVersion(ssl); // 0 indicates the lowest supported version
+            int maxVersion = SSL.getInstance().getMaxProtoVersion(ssl); // 0 indicates the highest supported version
+            int minVersionIndex = minVersion == 0 ? 0 : getOpenSSLProtocolIndexForProtocol(minVersion);
+            int maxVersionIndex = maxVersion == 0 ? OPENSSL_PROTOCOLS.length - 1 : getOpenSSLProtocolIndexForProtocol(maxVersion);
+            if (isProtocolWithinEnabledRange(minVersionIndex, maxVersionIndex, OPENSSL_PROTOCOL_INDEX_TLSv1)) {
+                enabled.add(SSL.SSL_PROTO_TLSv1);
+            }
+            if (isProtocolWithinEnabledRange(minVersionIndex, maxVersionIndex, OPENSSL_PROTOCOL_INDEX_TLSv1_1)) {
+                enabled.add(SSL.SSL_PROTO_TLSv1_1);
+            }
+            if (isProtocolWithinEnabledRange(minVersionIndex, maxVersionIndex, OPENSSL_PROTOCOL_INDEX_TLSv1_2)) {
+                enabled.add(SSL.SSL_PROTO_TLSv1_2);
+            }
+            if (isProtocolWithinEnabledRange(minVersionIndex, maxVersionIndex, OPENSSL_PROTOCOL_INDEX_SSLV2)) {
+                enabled.add(SSL.SSL_PROTO_SSLv2);
+            }
+            if (isProtocolWithinEnabledRange(minVersionIndex, maxVersionIndex, OPENSSL_PROTOCOL_INDEX_SSLV3)) {
+                enabled.add(SSL.SSL_PROTO_SSLv3);
+            }
         }
         int size = enabled.size();
         if (size == 0) {
@@ -843,39 +889,82 @@ public final class OpenSSLEngine extends SSLEngine {
             boolean tlsv1 = false;
             boolean tlsv1_1 = false;
             boolean tlsv1_2 = false;
+            int minProtocolIndex = OPENSSL_PROTOCOLS.length;
+            int maxProtocolIndex = 0;
+
             for (String p : protocols) {
                 if (!SUPPORTED_PROTOCOLS_SET.contains(p)) {
                     throw new IllegalArgumentException(MESSAGES.unsupportedProtocol(p));
                 }
                 if (p.equals(SSL.SSL_PROTO_SSLv2)) {
                     sslv2 = true;
+                    if (minProtocolIndex > OPENSSL_PROTOCOL_INDEX_SSLV2) {
+                        minProtocolIndex = OPENSSL_PROTOCOL_INDEX_SSLV2;
+                    }
+                    if (maxProtocolIndex < OPENSSL_PROTOCOL_INDEX_SSLV2) {
+                        maxProtocolIndex = OPENSSL_PROTOCOL_INDEX_SSLV2;
+                    }
                 } else if (p.equals(SSL.SSL_PROTO_SSLv3)) {
                     sslv3 = true;
+                    if (minProtocolIndex > OPENSSL_PROTOCOL_INDEX_SSLV3) {
+                        minProtocolIndex = OPENSSL_PROTOCOL_INDEX_SSLV3;
+                    }
+                    if (maxProtocolIndex < OPENSSL_PROTOCOL_INDEX_SSLV3) {
+                        maxProtocolIndex = OPENSSL_PROTOCOL_INDEX_SSLV3;
+                    }
                 } else if (p.equals(SSL.SSL_PROTO_TLSv1)) {
                     tlsv1 = true;
+                    if (minProtocolIndex > OPENSSL_PROTOCOL_INDEX_TLSv1) {
+                        minProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1;
+                    }
+                    if (maxProtocolIndex < OPENSSL_PROTOCOL_INDEX_TLSv1) {
+                        maxProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1;
+                    }
                 } else if (p.equals(SSL.SSL_PROTO_TLSv1_1)) {
                     tlsv1_1 = true;
+                    if (minProtocolIndex > OPENSSL_PROTOCOL_INDEX_TLSv1_1) {
+                        minProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1_1;
+                    }
+                    if (maxProtocolIndex < OPENSSL_PROTOCOL_INDEX_TLSv1_1) {
+                        maxProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1_1;
+                    }
                 } else if (p.equals(SSL.SSL_PROTO_TLSv1_2)) {
                     tlsv1_2 = true;
+                    if (minProtocolIndex > OPENSSL_PROTOCOL_INDEX_TLSv1_2) {
+                        minProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1_2;
+                    }
+                    if (maxProtocolIndex < OPENSSL_PROTOCOL_INDEX_TLSv1_2) {
+                        maxProtocolIndex = OPENSSL_PROTOCOL_INDEX_TLSv1_2;
+                    }
                 }
             }
-            // Enable all and then disable what we not want
-            SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
+            if (isOpenSSL10()) {
+                // Enable all using SSL_OP_ALL and then disable what we don't want using SSL_OP_NO_*
+                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
 
-            if (!sslv2) {
-                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv2);
-            }
-            if (!sslv3) {
-                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv3);
-            }
-            if (!tlsv1) {
-                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1);
-            }
-            if (!tlsv1_1) {
-                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_1);
-            }
-            if (!tlsv1_2) {
-                SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
+                if (! sslv2) {
+                    SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv2);
+                }
+                if (! sslv3) {
+                    SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_SSLv3);
+                }
+                if (! tlsv1) {
+                    SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1);
+                }
+                if (! tlsv1_1) {
+                    SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_1);
+                }
+                if (! tlsv1_2) {
+                    SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
+                }
+            } else {
+                // OpenSSL 1.1.0 or higher is in use. In order to ensure that the configured
+                // enabled protocols are actually used, we need to set the min and max protocol
+                // versions. Configuring the protocol versions using the old deprecated approach
+                // does not work with OpenSSL 1.1.0 or higher. Getting the value of the min and
+                // max protocol versions is only possible in OpenSSL 1.1.0g or higher.
+                SSL.getInstance().setMinProtoVersion(ssl, OPENSSL_PROTOCOLS[minProtocolIndex]);
+                SSL.getInstance().setMaxProtoVersion(ssl, OPENSSL_PROTOCOLS[maxProtocolIndex]);
             }
         };
         if(ssl == 0) {
@@ -1333,6 +1422,40 @@ public final class OpenSSLEngine extends SSLEngine {
 
     void setPort(final int port) {
         this.port = port;
+    }
+
+    /**
+     * Checks for OpenSSL 1.0.x
+     */
+    private static boolean isOpenSSL10() {
+        return SSL.getInstance().versionNumber() < VERSION_1_1_0;
+    }
+
+    /**
+     * Checks for OpenSSL 1.1.0 versions f and lower
+     */
+    private static boolean isOpenSSL110FOrLower() {
+        long versionNumber = SSL.getInstance().versionNumber();
+        return versionNumber >= VERSION_1_1_0 && versionNumber <= VERSION_1_1_0_F;
+    }
+
+    private static int getOpenSSLProtocolIndexForProtocol(int version) {
+        switch (version) {
+            case SSL.SSL3_VERSION:
+                return OPENSSL_PROTOCOL_INDEX_SSLV3;
+            case SSL.TLS1_VERSION:
+                return OPENSSL_PROTOCOL_INDEX_TLSv1;
+            case SSL.TLS1_1_VERSION:
+                return OPENSSL_PROTOCOL_INDEX_TLSv1_1;
+            case SSL.TLS1_2_VERSION:
+                return OPENSSL_PROTOCOL_INDEX_TLSv1_2;
+            default:
+                throw new IllegalArgumentException(MESSAGES.unsupportedProtocolVersion(version));
+        }
+    }
+
+    private static boolean isProtocolWithinEnabledRange(int minVersionIndex, int maxVersionIndex, int version) {
+        return version >= minVersionIndex && version <= maxVersionIndex;
     }
 
 }

@@ -172,6 +172,15 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
 
+/* Introduced in OpenSSL 1.1.0 */
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
+
+/* Introduced in OpenSSL 1.1.0g and 1.1.1 */
+#define SSL_CTRL_GET_MIN_PROTO_VERSION          130
+#define SSL_CTRL_GET_MAX_PROTO_VERSION          131
+
+
 #define SSL_TXT_DH              "DH"
 #define SSL_TXT_DHE             "DHE"/* alias for EDH */
 #define SSL_TXT_RSA             "RSA"
@@ -195,6 +204,7 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_OP_SINGLE_ECDH_USE                          0x00080000L
 #define SSL_OP_SINGLE_DH_USE                            0x00100000L
 
+#define SSL3_VERSION                    0x0300
 #define TLS1_VERSION                    0x0301
 #define TLS1_1_VERSION                  0x0302
 #define TLS1_2_VERSION                  0x0303
@@ -568,13 +578,10 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_method)(void);
     evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
-
-    /* For OpenSSL 1.1.0+ */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    # define SSL_CTRL_SET_MIN_PROTO_VERSION          123
-    # define SSL_CTRL_SET_MAX_PROTO_VERSION          124
-#endif
-
+    int (*SSL_set_min_proto_version)(SSL *ssl, int version);
+    int (*SSL_set_max_proto_version)(SSL *ssl, int version);
+    int (*SSL_get_min_proto_version)(SSL *ssl);
+    int (*SSL_get_max_proto_version)(SSL *ssl);
 } ssl_dynamic_methods;
 
 typedef struct {

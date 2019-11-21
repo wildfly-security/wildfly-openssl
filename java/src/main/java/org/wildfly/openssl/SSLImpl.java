@@ -33,11 +33,19 @@ public class SSLImpl extends SSL {
         SSLImpl.initialize0(libCryptoPath, libSslPath);
     }
 
-    /* Return OpenSSL version number */
+    /* Return OpenSSL version number as a string */
     static native String version0();
 
     protected String version() {
         return SSLImpl.version0();
+    }
+
+    /* Return OpenSSL version number */
+    static native long versionNumber0();
+
+    @Override
+    protected long versionNumber() {
+        return SSLImpl.versionNumber0();
     }
 
     /**
@@ -874,5 +882,29 @@ public class SSLImpl extends SSL {
 
     protected boolean setSessionIdContext(long ctx, byte[] sidCtx) {
         return SSLImpl.setSessionIdContext0(ctx, sidCtx);
+    }
+
+    static native void setMinProtoVersion0(long ssl, int version);
+
+    protected void setMinProtoVersion(long ssl, int version) {
+        SSLImpl.setMinProtoVersion0(ssl, version);
+    }
+
+    static native void setMaxProtoVersion0(long ssl, int version);
+
+    protected void setMaxProtoVersion(long ssl, int version) {
+        SSLImpl.setMaxProtoVersion0(ssl, version);
+    }
+
+    static native int getMinProtoVersion0(long ssl);
+
+    protected int getMinProtoVersion(long ssl) {
+        return SSLImpl.getMinProtoVersion0(ssl);
+    }
+
+    static native int getMaxProtoVersion0(long ssl);
+
+    protected int getMaxProtoVersion(long ssl) {
+        return SSLImpl.getMaxProtoVersion0(ssl);
     }
 }
