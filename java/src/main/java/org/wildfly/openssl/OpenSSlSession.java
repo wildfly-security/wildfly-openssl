@@ -188,7 +188,7 @@ class OpenSSlSession implements SSLSession {
         if (peer == null || peer.length == 0) {
             return null;
         }
-        return principal(peer);
+        return firstCertificate(peer).getSubjectX500Principal();
     }
 
     @Override
@@ -197,11 +197,11 @@ class OpenSSlSession implements SSLSession {
         if (local == null || local.length == 0) {
             return null;
         }
-        return principal(local);
+        return firstCertificate(local).getSubjectX500Principal();
     }
 
-    private Principal principal(Certificate[] certs) {
-        return ((java.security.cert.X509Certificate) certs[0]).getIssuerX500Principal();
+    private java.security.cert.X509Certificate firstCertificate(Certificate[] certs) {
+        return ((java.security.cert.X509Certificate) certs[0]);
     }
 
     @Override
