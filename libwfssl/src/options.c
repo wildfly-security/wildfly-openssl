@@ -19,8 +19,8 @@ extern ssl_dynamic_methods ssl_methods;
  * reported by versions that actually support that specific workaround.
  */
 
-WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl);
-WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
+WF_OPENSSL(jlong, getOptions)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt);
 WF_OPENSSL(jboolean, hasOp)(JNIEnv *e, jobject o, jint op);
 
 static const jint supported_ssl_opts = 0
@@ -159,7 +159,7 @@ static const jint supported_ssl_opts = 0
 
 
 
-WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
+WF_OPENSSL(jlong, getOptions)(JNIEnv *e, jobject o, jlong ssl)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -171,10 +171,30 @@ WF_OPENSSL(jint, getOptions)(JNIEnv *e, jobject o, jlong ssl)
         return 0;
     }
 
-    return ssl_methods.SSL_ctrl(ssl_,SSL_CTRL_OPTIONS,0,NULL);
+    if (ssl_methods.SSL_get_options != NULL) {
+        return ssl_methods.SSL_get_options(ssl_);
+    } else {
+        return ssl_methods.SSL_ctrl(ssl_,SSL_CTRL_OPTIONS,0,NULL);
+    }
 }
 
-WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
+long set_options_internal(SSL *ssl, long options) {
+    if (ssl_methods.SSL_set_options != NULL) {
+        return ssl_methods.SSL_set_options(ssl, options);
+    } else {
+        return ssl_methods.SSL_ctrl(ssl, SSL_CTRL_OPTIONS, options, NULL);
+    }
+}
+
+long set_CTX_options_internal(SSL_CTX *ctx, long options) {
+    if (ssl_methods.SSL_CTX_set_options != NULL) {
+        return ssl_methods.SSL_CTX_set_options(ctx, options);
+    } else {
+        return ssl_methods.SSL_CTX_ctrl(ctx, SSL_CTRL_OPTIONS, options, NULL);
+    }
+}
+
+WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *ssl_ = J2P(ssl, SSL *);
@@ -192,7 +212,7 @@ WF_OPENSSL(void, setOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
         opt &= ~0x00040000;
     }
 #endif
-    ssl_methods.SSL_ctrl(ssl_,SSL_CTRL_OPTIONS,opt,NULL);
+    set_options_internal(ssl_, opt);
 }
 
 

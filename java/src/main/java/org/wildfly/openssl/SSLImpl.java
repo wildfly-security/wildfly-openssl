@@ -401,9 +401,9 @@ public class SSLImpl extends SSL {
      * @param ssl     the SSL instance (SSL *)
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    static native void setOptions0(long ssl, int options);
+    static native void setOptions0(long ssl, long options);
 
-    protected void setOptions(long ssl, int options) {
+    protected void setOptions(long ssl, long options) {
         SSLImpl.setOptions0(ssl, options);
     }
 
@@ -413,9 +413,9 @@ public class SSLImpl extends SSL {
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
      */
-    static native int getOptions0(long ssl);
+    static native long getOptions0(long ssl);
 
-    protected int getOptions(long ssl) {
+    protected long getOptions(long ssl) {
         return SSLImpl.getOptions0(ssl);
     }
 
@@ -549,9 +549,9 @@ public class SSLImpl extends SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    static native void setSSLContextOptions0(long ctx, int options);
+    static native void setSSLContextOptions0(long ctx, long options);
 
-    protected void setSSLContextOptions(long ctx, int options) {
+    protected void setSSLContextOptions(long ctx, long options) {
         SSLImpl.setSSLContextOptions0(ctx, options);
     }
 
@@ -561,9 +561,9 @@ public class SSLImpl extends SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    static native void clearSSLContextOptions0(long ctx, int options);
+    static native void clearSSLContextOptions0(long ctx, long options);
 
-    protected void clearSSLContextOptions(long ctx, int options) {
+    protected void clearSSLContextOptions(long ctx, long options) {
         SSLImpl.clearSSLContextOptions0(ctx, options);
     }
 
@@ -573,9 +573,9 @@ public class SSLImpl extends SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    static native void setSSLOptions0(long ssl, int options);
+    static native void setSSLOptions0(long ssl, long options);
 
-    protected void setSSLOptions(long ssl, int options) {
+    protected void setSSLOptions(long ssl, long options) {
         SSLImpl.setSSLOptions0(ssl, options);
     }
 
@@ -585,9 +585,9 @@ public class SSLImpl extends SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    static native void clearSSLOptions0(long ssl, int options);
+    static native void clearSSLOptions0(long ssl, long options);
 
-    protected void clearSSLOptions(long ssl, int options) {
+    protected void clearSSLOptions(long ssl, long options) {
         SSLImpl.clearSSLOptions0(ssl, options);
     }
 

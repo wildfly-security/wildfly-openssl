@@ -578,6 +578,12 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_method)(void);
     evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
+    long (*SSL_set_options)(SSL *s, long op);
+    long (*SSL_get_options)(const SSL *s);
+    long (*SSL_clear_options)(SSL *ssl, long options);
+    long (*SSL_CTX_set_options)(SSL_CTX *ctx, long options);
+    long (*SSL_CTX_get_options)(SSL_CTX *ctx);
+    long (*SSL_CTX_clear_options)(SSL_CTX *ctx, long options);
     int (*SSL_set_min_proto_version)(SSL *ssl, int version);
     int (*SSL_set_max_proto_version)(SSL *ssl, int version);
     int (*SSL_get_min_proto_version)(SSL *ssl);
@@ -672,6 +678,8 @@ tcn_ssl_conn_t *SSL_get_app_data1(const SSL *ssl);
 tcn_ssl_ctxt_t *SSL_get_app_data2(const SSL *ssl);
 tcn_ssl_ctxt_t *SSL_CTX_get_app_data1(const SSL_CTX *ssl);
 void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c);
+long set_options_internal(SSL *ssl, long options);
+long set_CTX_options_internal(SSL_CTX *ctx, long options);
 /*thread setup function*/
 void ssl_thread_setup(void);
 

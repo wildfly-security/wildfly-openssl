@@ -818,14 +818,8 @@ public final class OpenSSLEngine extends SSLEngine {
         enabled.add(SSL.SSL_PROTO_SSLv2Hello);
         boolean isOpenSSL110FOrLower = isOpenSSL110FOrLower();
         if (isOpenSSL10() || isOpenSSL110FOrLower || ssl == 0) {
-            if (isOpenSSL110FOrLower) {
-                // OpenSSL 1.1.0 versions f and lower do not provide a reliable way to determine the protocols
-                // that are actually enabled which means that all supported protocols will be returned here
-                // (the correct protocols will actually be used though)
-                LOG.log(Level.WARNING, Messages.MESSAGES.getEnabledProtocolsMayNotBeAccurate());
-            }
-            int opts;
-            if (ssl != 0 && ! isOpenSSL110FOrLower) {
+            long opts;
+            if (ssl != 0) {
                 opts = SSL.getInstance().getOptions(ssl);
             } else {
                 opts = openSSLContextSPI.supportedCiphers;
@@ -938,7 +932,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                 }
             }
-            if (isOpenSSL10()) {
+            if (isOpenSSL10() || isOpenSSL110FOrLower()) {
                 // Enable all using SSL_OP_ALL and then disable what we don't want using SSL_OP_NO_*
                 SSL.getInstance().setOptions(ssl, SSL.SSL_OP_ALL);
 
@@ -958,11 +952,8 @@ public final class OpenSSLEngine extends SSLEngine {
                     SSL.getInstance().setOptions(ssl, SSL.SSL_OP_NO_TLSv1_2);
                 }
             } else {
-                // OpenSSL 1.1.0 or higher is in use. In order to ensure that the configured
-                // enabled protocols are actually used, we need to set the min and max protocol
-                // versions. Configuring the protocol versions using the old deprecated approach
-                // does not work with OpenSSL 1.1.0 or higher. Getting the value of the min and
-                // max protocol versions is only possible in OpenSSL 1.1.0g or higher.
+                // OpenSSL 1.1.0g or higher is in use. In order to ensure that the configured enabled
+                // protocols are actually used, we should set the min and max protocol versions
                 SSL.getInstance().setMinProtoVersion(ssl, OPENSSL_PROTOCOLS[minProtocolIndex]);
                 SSL.getInstance().setMaxProtoVersion(ssl, OPENSSL_PROTOCOLS[maxProtocolIndex]);
             }

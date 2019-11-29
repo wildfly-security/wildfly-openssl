@@ -788,7 +788,7 @@ public abstract class SSL {
      * @param ssl     the SSL instance (SSL *)
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setOptions(long ssl, int options);
+    protected abstract void setOptions(long ssl, long options);
 
     /**
      * Get OpenSSL Option.
@@ -796,7 +796,7 @@ public abstract class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
      */
-    protected abstract int getOptions(long ssl);
+    protected abstract long getOptions(long ssl);
 
     /**
      * Returns all Returns the cipher suites that are available for negotiation in an SSL handshake.
@@ -907,7 +907,7 @@ public abstract class SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setSSLContextOptions(long ctx, int options);
+    protected abstract void setSSLContextOptions(long ctx, long options);
 
     /**
      * Clears OpenSSL Options.
@@ -915,7 +915,7 @@ public abstract class SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void clearSSLContextOptions(long ctx, int options);
+    protected abstract void clearSSLContextOptions(long ctx, long options);
 
     /**
      * Set OpenSSL Option.
@@ -923,7 +923,7 @@ public abstract class SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setSSLOptions(long ssl, int options);
+    protected abstract void setSSLOptions(long ssl, long options);
 
     /**
      * Clears OpenSSL Options.
@@ -931,7 +931,7 @@ public abstract class SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void clearSSLOptions(long ssl, int options);
+    protected abstract void clearSSLOptions(long ssl, long options);
 
     /**
      * Cipher Suite available for negotiation in SSL handshake.
