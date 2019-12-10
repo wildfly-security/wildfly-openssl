@@ -62,10 +62,6 @@ typedef  unsigned __int64   uint64_t;
 #define TCN_ASSERT(x) (void)0
 #endif
 
-/* We need to know about OPENSSL_VERSION_NUMBER */
-#include <openssl/opensslv.h>
-
-
 #define P2J(P)          ((jlong)LLT(P))
 #define J2P(P, T)       ((T)LLT((jlong)P))
 #define J2S(V)  c##V
@@ -171,6 +167,8 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
 
 #define SSL_TXT_DH              "DH"
 #define SSL_TXT_DHE             "DHE"/* alias for EDH */
@@ -568,13 +566,6 @@ typedef struct {
     const SSL_METHOD *(*SSLv23_method)(void);
     evp_pkey_st *(*SSL_get_privatekey)(SSL *ssl);
     const char *(*SSL_get_servername)(const SSL *s, const int type);
-
-    /* For OpenSSL 1.1.0+ */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    # define SSL_CTRL_SET_MIN_PROTO_VERSION          123
-    # define SSL_CTRL_SET_MAX_PROTO_VERSION          124
-#endif
-
 } ssl_dynamic_methods;
 
 typedef struct {
