@@ -347,6 +347,12 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_INFO_SERVER_CERT                (0x0207)
 #define SSL_INFO_CLIENT_CERT_CHAIN          (0x0400)
 
+/* Defines for BIO */
+
+# define BIO_CTRL_INFO           3/* opt - extra tit-bits */
+
+# define BIO_get_mem_data(b,pp)  crypto_methods.BIO_ctrl(b,BIO_CTRL_INFO,0,(char *)(pp))
+
 /*  Use "weak" to redeclare optional features */
 #define weak __attribute__((weak))
 
@@ -601,6 +607,7 @@ typedef struct {
     void (*CRYPTO_set_locking_callback)(void (*func) (int mode, int type,const char *file,int line));
     int (*CRYPTO_set_mem_functions)(void *(*m)(size_t),void *(*r)(void *,size_t), void (*f)(void *));
     char *(*ERR_error_string)(unsigned long e, char *buf);
+    void (*ERR_print_errors)(BIO *bp);
 
     unsigned long (*ERR_get_error)(void);
     void (*ERR_load_crypto_strings)(void);
@@ -653,6 +660,7 @@ typedef struct {
     DH *(*PEM_read_bio_DHparams)(BIO *bp, DH **x, pem_password_cb *cb, void *u);
 } crypto_dynamic_methods;
 
+void generate_openssl_stack_error(JNIEnv *e, char *buf, long len);
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);
 jint throwIllegalArgumentException( JNIEnv *env, char *message);

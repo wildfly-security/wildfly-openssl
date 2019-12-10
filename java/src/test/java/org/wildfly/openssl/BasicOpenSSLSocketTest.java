@@ -43,18 +43,19 @@ public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, SSLTestUtils.createSSLContext("TLSv1"), sessionID));
             acceptThread.start();
             final SSLContext sslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
-            final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
-            socket.connect(SSLTestUtils.createSocketAddress());
-            socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
-            socket.getOutputStream().flush();
-            byte[] data = new byte[100];
-            int read = socket.getInputStream().read(data);
+            try (final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket()) {
+                socket.connect(SSLTestUtils.createSocketAddress());
+                socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
+                socket.getOutputStream().flush();
+                byte[] data = new byte[100];
+                int read = socket.getInputStream().read(data);
 
-            Assert.assertEquals("hello world", new String(data, 0, read));
-            //TODO: fix client session id
-            //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-            serverSocket.close();
-            acceptThread.join();
+                Assert.assertEquals("hello world", new String(data, 0, read));
+                //TODO: fix client session id
+                //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                serverSocket.close();
+                acceptThread.join();
+            }
         }
     }
 
@@ -68,17 +69,18 @@ public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
             acceptThread.start();
             final SSLContext sslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1");
             InetSocketAddress socketAddress = (InetSocketAddress) SSLTestUtils.createSocketAddress();
-            final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket(socketAddress.getAddress(), socketAddress.getPort());
-            socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
-            socket.getOutputStream().flush();
-            byte[] data = new byte[100];
-            int read = socket.getInputStream().read(data);
+            try (final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket(socketAddress.getAddress(), socketAddress.getPort())) {
+                socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
+                socket.getOutputStream().flush();
+                byte[] data = new byte[100];
+                int read = socket.getInputStream().read(data);
 
-            Assert.assertEquals("hello world", new String(data, 0, read));
-            //TODO: fix client session id
-            //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-            serverSocket.close();
-            acceptThread.join();
+                Assert.assertEquals("hello world", new String(data, 0, read));
+                //TODO: fix client session id
+                //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                serverSocket.close();
+                acceptThread.join();
+            }
         }
     }
 }
