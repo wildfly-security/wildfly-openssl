@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -146,6 +147,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private String[] userSetEnabledProtocols;
     private String selectedApplicationProtocol;
     private SSLSession handshakeSession;
+    private BiFunction<SSLEngine, List<String>, String> protocolSelector;
 
     private String host;
     private int port;
@@ -1035,7 +1037,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     @Override
                     public String select(String[] data) {
                         String version = SSL.getInstance().getVersion(ssl);
-                        if(applicationProtocols == null || version == null || !version.equals("TLSv1.2")) {
+                        if((protocolSelector == null && applicationProtocols == null) || version == null || !version.equals("TLSv1.2")) {
                             //only offer ALPN on TLS 1.2, try and force http/1.1 if it is offered, otherwise fail the connection
                             //it seems wrong to hard code protocols in the SSL impl, but openssl does not really allow alpn to be enabled
                             //on a per engine basis
@@ -1044,7 +1046,12 @@ public final class OpenSSLEngine extends SSLEngine {
                                     return i;
                                 }
                             }
+                            selectedApplicationProtocol = "";
                             return null;
+                        }
+                        if (protocolSelector != null) {
+                            selectedApplicationProtocol = protocolSelector.apply(OpenSSLEngine.this, Arrays.asList(data));
+                            return selectedApplicationProtocol;
                         }
 
                         for (String proto : applicationProtocols) {
@@ -1055,6 +1062,7 @@ public final class OpenSSLEngine extends SSLEngine {
                                 }
                             }
                         }
+                        selectedApplicationProtocol = "";
                         return null;
                     }
                 });
@@ -1447,6 +1455,32 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private static boolean isProtocolWithinEnabledRange(int minVersionIndex, int maxVersionIndex, int version) {
         return version >= minVersionIndex && version <= maxVersionIndex;
+    }
+
+    public String getApplicationProtocol() {
+        if (handshakeFinished) {
+            return selectedApplicationProtocol == null ? "" : selectedApplicationProtocol;
+        } else {
+            return null;
+        }
+
+    }
+
+    public String getHandshakeApplicationProtocol() {
+        if(handshakeFinished) {
+            return null;
+        } else {
+            return selectedApplicationProtocol;
+        }
+    }
+
+    public void setHandshakeApplicationProtocolSelector(
+          BiFunction<SSLEngine, List<String>, String> selector) {
+        this.protocolSelector = selector;
+    }
+
+    public BiFunction<SSLEngine, List<String>, String> getHandshakeApplicationProtocolSelector() {
+        return protocolSelector;
     }
 
 }

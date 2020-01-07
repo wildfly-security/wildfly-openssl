@@ -411,6 +411,7 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     GET_CRYPTO_SYMBOL(CRYPTO_set_locking_callback);
     REQUIRE_CRYPTO_SYMBOL(CRYPTO_set_mem_functions);
     REQUIRE_CRYPTO_SYMBOL(ERR_error_string);
+    REQUIRE_CRYPTO_SYMBOL(ERR_print_errors);
     REQUIRE_CRYPTO_SYMBOL(ERR_get_error);
     GET_CRYPTO_SYMBOL(ERR_load_crypto_strings);
     GET_CRYPTO_SYMBOL(OPENSSL_add_all_algorithms_noconf);
@@ -463,7 +464,6 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
 
     return 0;
 }
-
 
 WF_OPENSSL(jint, initialize) (JNIEnv *e, jobject o, jstring libCryptoPath, jstring libSSLPath) {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
@@ -556,8 +556,8 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
             ctx = ssl_methods.SSL_CTX_new(ssl_methods.SSLv23_method());
     }
     if (!ctx) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         throwIllegalStateException(e, err);
         goto init_failed;
     }
@@ -587,14 +587,14 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
     }
 
     /* We need to disable TLSv1.3 if running on OpenSSL 1.1.0+ */
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
-    /* This is equivalent to this macro:
-        # define SSL_set_max_proto_version(s, version) \
-                SSL_ctrl(s, SSL_CTRL_SET_MAX_PROTO_VERSION, version, NULL)
-        Reference: https://www.openssl.org/docs/manmaster/man3/SSL_set_max_proto_version.html
-    */
-    ssl_methods.SSL_CTX_ctrl((c->ctx), SSL_CTRL_SET_MAX_PROTO_VERSION, (TLS1_2_VERSION), NULL);
-#endif
+    if (ssl_methods.SSLeay() >= 0x10100000L) {
+        /* This is equivalent to this macro:
+            # define SSL_set_max_proto_version(s, version) \
+                    SSL_ctrl(s, SSL_CTRL_SET_MAX_PROTO_VERSION, version, NULL)
+            Reference: https://www.openssl.org/docs/manmaster/man3/SSL_set_max_proto_version.html
+        */
+        ssl_methods.SSL_CTX_ctrl((c->ctx), SSL_CTRL_SET_MAX_PROTO_VERSION, (TLS1_2_VERSION), NULL);
+    }
 
     /*
      * Configure additional context ingredients
@@ -714,8 +714,8 @@ WF_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl, jstring c
         return JNI_FALSE;
     }
     if (!ssl_methods.SSL_set_cipher_list(ssl_, J2S(ciphers))) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
     }
@@ -852,8 +852,8 @@ WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ci
 #else
     if (!ssl_methods.SSL_CTX_set_cipher_list(c->ctx, J2S(ciphers))) {
 #endif
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Unable to configure permitted SSL ciphers (%s)", err);
         rv = JNI_FALSE;
     }
@@ -886,8 +886,8 @@ jstring hostName)
     }
     if (!ssl_methods.SSL_ctrl(ssl_, SSL_CTRL_SET_TLSEXT_HOSTNAME,
         TLSEXT_NAMETYPE_host_name, (void *)hostNameString)) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
     }
@@ -903,7 +903,7 @@ WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring f
     TCN_ALLOC_CSTRING(path);
     jboolean rv = JNI_FALSE;
     X509_LOOKUP *lookup;
-    char err[256];
+    char err[2048];
 
     UNREFERENCED(o);
     TCN_ASSERT(ctx != 0);
@@ -917,7 +917,7 @@ WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring f
     if (J2S(file)) {
         lookup = crypto_methods.X509_STORE_add_lookup(c->crl, crypto_methods.X509_LOOKUP_file());
         if (lookup == NULL) {
-            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            generate_openssl_stack_error(e, err, sizeof(err));
             crypto_methods.X509_STORE_free(c->crl);
             c->crl = NULL;
             tcn_Throw(e, "Lookup failed for file %s (%s)", J2S(file), err);
@@ -928,7 +928,7 @@ WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring f
     if (J2S(path)) {
         lookup = crypto_methods.X509_STORE_add_lookup(c->crl, crypto_methods.X509_LOOKUP_hash_dir());
         if (lookup == NULL) {
-            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            generate_openssl_stack_error(e, err, sizeof(err));
             crypto_methods.X509_STORE_free(c->crl);
             c->crl = NULL;
             tcn_Throw(e, "Lookup failed for path %s (%s)", J2S(file), err);
@@ -949,7 +949,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
     /* we get the key contents into a byte array */
     unsigned char* cert;
     unsigned char* intCert;
-    char err[256];
+    char err[2048];
     jboolean rv;
     const unsigned char *tmp;
     jsize lengthOfCert;
@@ -986,7 +986,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
     }
     tmp = (const unsigned char *)cert;
     if ((c->certs[idx] = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
         goto cleanup;
@@ -1002,14 +1002,14 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
     c->keys[idx] = crypto_methods.PEM_read_bio_PrivateKey(bio, NULL, 0, NULL);
     crypto_methods.BIO_free(bio);
     if (c->keys[idx] == NULL) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         throwIllegalStateException(e, err);
         rv = JNI_FALSE;
         goto cleanup;
     }
 
     if (ssl_methods.SSL_CTX_use_certificate(c->ctx, c->certs[idx]) <= 0) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Error setting certificate (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
@@ -1030,7 +1030,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
 
 
         if ((tmpIntCert = crypto_methods.d2i_X509(NULL, &tmp, lengthOfCert)) == NULL) {
-            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            generate_openssl_stack_error(e, err, sizeof(err));
             throwIllegalStateException(e, err);
             rv = JNI_FALSE;
             free(intCert);
@@ -1038,7 +1038,7 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
         }
 
         if (ssl_methods.SSL_CTX_ctrl(c->ctx,SSL_CTRL_EXTRA_CHAIN_CERT,0,(char *)tmpIntCert) <= 0) {
-            crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+            generate_openssl_stack_error(e, err, sizeof(err));
             tcn_Throw(e, "Error setting certificate (%s)", err);
             rv = JNI_FALSE;
             free(intCert);
@@ -1049,13 +1049,13 @@ WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray
 
 
     if (ssl_methods.SSL_CTX_use_PrivateKey(c->ctx, c->keys[idx]) <= 0) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Error setting private key (%s)", err);
         rv = JNI_FALSE;
         goto cleanup;
     }
     if (ssl_methods.SSL_CTX_check_private_key(c->ctx) <= 0) {
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Private key does not match the certificate public key (%s)",
                   err);
         rv = JNI_FALSE;
@@ -1456,7 +1456,7 @@ WF_OPENSSL(void, freeBIO)(JNIEnv *e, jobject o, jlong bio /* BIO * */) {
 WF_OPENSSL(jstring, getErrorString)(JNIEnv *e, jobject o, jlong number)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
-    char buf[256];
+    char buf[2048];
     UNREFERENCED(o);
     crypto_methods.ERR_error_string(number, buf);
     return tcn_new_string(e, buf);
@@ -1666,8 +1666,8 @@ static unsigned char dhparams[]={
     0x2D, 0x2D, 0x2D, 0x2D, 0x2D, };
     bio = crypto_methods.BIO_new(crypto_methods.BIO_s_mem());
     if (!bio) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Error while configuring DH %s", err);
         return;
     }
@@ -1676,16 +1676,16 @@ static unsigned char dhparams[]={
     dh = crypto_methods.PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     crypto_methods.BIO_free(bio);
     if (!dh) {
-        char err[256];
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        char err[2048];
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Error while configuring DH: no DH parameter found (%s)", err);
         return;
     }
 
     if (1 != ssl_methods.SSL_CTX_ctrl(ctx,SSL_CTRL_SET_TMP_DH,0,(char *)dh)) {
-        char err[256];
+        char err[2048];
         crypto_methods.DH_free(dh);
-        crypto_methods.ERR_error_string(crypto_methods.ERR_get_error(), err);
+        generate_openssl_stack_error(e, err, sizeof(err));
         tcn_Throw(e, "Error while configuring DH: %s", err);
     }
 

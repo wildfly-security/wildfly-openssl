@@ -62,10 +62,6 @@ typedef  unsigned __int64   uint64_t;
 #define TCN_ASSERT(x) (void)0
 #endif
 
-/* We need to know about OPENSSL_VERSION_NUMBER */
-#include <openssl/opensslv.h>
-
-
 #define P2J(P)          ((jlong)LLT(P))
 #define J2P(P, T)       ((T)LLT((jlong)P))
 #define J2S(V)  c##V
@@ -171,6 +167,8 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_CTRL_GET_TLSEXT_TICKET_KEYS         58
 #define SSL_CTRL_SET_TLSEXT_TICKET_KEYS         59
 #define SSL_CTRL_CLEAR_OPTIONS                  77
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
 
 /* Introduced in OpenSSL 1.1.0 */
 #define SSL_CTRL_SET_MIN_PROTO_VERSION          123
@@ -356,6 +354,12 @@ typedef  unsigned __int64   uint64_t;
 #define SSL_INFO_SERVER_A_KEY               (0x0206)
 #define SSL_INFO_SERVER_CERT                (0x0207)
 #define SSL_INFO_CLIENT_CERT_CHAIN          (0x0400)
+
+/* Defines for BIO */
+
+# define BIO_CTRL_INFO           3/* opt - extra tit-bits */
+
+# define BIO_get_mem_data(b,pp)  crypto_methods.BIO_ctrl(b,BIO_CTRL_INFO,0,(char *)(pp))
 
 /*  Use "weak" to redeclare optional features */
 #define weak __attribute__((weak))
@@ -614,6 +618,7 @@ typedef struct {
     void (*CRYPTO_set_locking_callback)(void (*func) (int mode, int type,const char *file,int line));
     int (*CRYPTO_set_mem_functions)(void *(*m)(size_t),void *(*r)(void *,size_t), void (*f)(void *));
     char *(*ERR_error_string)(unsigned long e, char *buf);
+    void (*ERR_print_errors)(BIO *bp);
 
     unsigned long (*ERR_get_error)(void);
     void (*ERR_load_crypto_strings)(void);
@@ -666,6 +671,7 @@ typedef struct {
     DH *(*PEM_read_bio_DHparams)(BIO *bp, DH **x, pem_password_cb *cb, void *u);
 } crypto_dynamic_methods;
 
+void generate_openssl_stack_error(JNIEnv *e, char *buf, long len);
 void tcn_Throw(JNIEnv *env, char *fmt, ...);
 jint throwIllegalStateException( JNIEnv *env, char *message);
 jint throwIllegalArgumentException( JNIEnv *env, char *message);
