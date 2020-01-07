@@ -422,6 +422,11 @@ public abstract class SSL {
     static final int SSL_OP_NO_TLSv1_2 = 0x08000000;
     static final int SSL_OP_NO_TLSv1_1 = 0x10000000;
 
+    static final int SSL3_VERSION = 0x0300;
+    static final int TLS1_VERSION = 0x0301;
+    static final int TLS1_1_VERSION = 0x0302;
+    static final int TLS1_2_VERSION = 0x0303;
+
     static final int SSL_OP_NO_TICKET = 0x00004000;
 
     // SSL_OP_PKCS1_CHECK_1 and SSL_OP_PKCS1_CHECK_2 flags are unsupported
@@ -515,6 +520,9 @@ public abstract class SSL {
 
     static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
     static final int SSL_SELECTOR_FAILURE_CHOOSE_MY_LAST_PROTOCOL = 1;
+
+    static final long VERSION_1_1_0 = 0x10100000L;
+    static final long VERSION_1_1_0_F = 0x1010006fL;
 
     /* Return OpenSSL version number */
     protected abstract String version();
@@ -671,6 +679,12 @@ public abstract class SSL {
     protected abstract String getVersion(long ssl);
 
     /**
+     * Return OpenSSL version number.
+     * @return the version number
+     */
+    protected abstract long versionNumber();
+
+    /**
      * SSL_do_handshake
      *
      * @param ssl the SSL instance (SSL *)
@@ -774,7 +788,7 @@ public abstract class SSL {
      * @param ssl     the SSL instance (SSL *)
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setOptions(long ssl, int options);
+    protected abstract void setOptions(long ssl, long options);
 
     /**
      * Get OpenSSL Option.
@@ -782,7 +796,7 @@ public abstract class SSL {
      * @param ssl the SSL instance (SSL *)
      * @return options  See SSL.SSL_OP_* for option flags.
      */
-    protected abstract int getOptions(long ssl);
+    protected abstract long getOptions(long ssl);
 
     /**
      * Returns all Returns the cipher suites that are available for negotiation in an SSL handshake.
@@ -893,7 +907,7 @@ public abstract class SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setSSLContextOptions(long ctx, int options);
+    protected abstract void setSSLContextOptions(long ctx, long options);
 
     /**
      * Clears OpenSSL Options.
@@ -901,7 +915,7 @@ public abstract class SSL {
      * @param ctx     Server or Client context to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void clearSSLContextOptions(long ctx, int options);
+    protected abstract void clearSSLContextOptions(long ctx, long options);
 
     /**
      * Set OpenSSL Option.
@@ -909,7 +923,7 @@ public abstract class SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void setSSLOptions(long ssl, int options);
+    protected abstract void setSSLOptions(long ssl, long options);
 
     /**
      * Clears OpenSSL Options.
@@ -917,7 +931,7 @@ public abstract class SSL {
      * @param ssl     Server or Client SSL to use.
      * @param options See SSL.SSL_OP_* for option flags.
      */
-    protected abstract void clearSSLOptions(long ssl, int options);
+    protected abstract void clearSSLOptions(long ssl, long options);
 
     /**
      * Cipher Suite available for negotiation in SSL handshake.
@@ -1178,6 +1192,42 @@ public abstract class SSL {
      * @return {@code true} if success, {@code false} otherwise.
      */
     protected abstract boolean setSessionIdContext(long ctx, byte[] sidCtx);
+
+    /**
+     * Set the minimum supported protocol version. This will call {@code SSL_set_min_proto_version}.
+     * See https://www.openssl.org/docs/manmaster/man3/SSL_set_min_proto_version.html.
+     *
+     * @param ssl the SSL engine
+     * @param version the minimum supported protocol version
+     */
+    protected abstract void setMinProtoVersion(long ssl, int version);
+
+    /**
+     * Set the maximum supported protocol version. This will call {@code SSL_set_max_proto_version}.
+     * See https://www.openssl.org/docs/manmaster/man3/SSL_set_max_proto_version.html.
+     *
+     * @param ssl the SSL engine
+     * @param version the maximum supported protocol version
+     */
+    protected abstract void setMaxProtoVersion(long ssl, int version);
+
+    /**
+     * Get the minimum supported protocol version. This will call {@code SSL_get_min_proto_version}.
+     * See https://www.openssl.org/docs/manmaster/man3/SSL_get_min_proto_version.html.
+     *
+     * @param ssl the SSL engine
+     * @return the minimum supported protocol version
+     */
+    protected abstract int getMinProtoVersion(long ssl);
+
+    /**
+     * Get the maximum supported protocol version. This will call {@code SSL_get_max_proto_version}.
+     * See https://www.openssl.org/docs/manmaster/man3/SSL_get_max_proto_version.html.
+     *
+     * @param ssl the SSL engine
+     * @return the maximum supported protocol version
+     */
+    protected abstract int getMaxProtoVersion(long ssl);
 
     private static final class VersionedLibrary implements Comparable<VersionedLibrary> {
         final String file;

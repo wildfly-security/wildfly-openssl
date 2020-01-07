@@ -68,6 +68,7 @@ public class Messages {
     private static final String MSG36 = formatCode(36);
     private static final String MSG37 = formatCode(37);
     private static final String MSG38 = formatCode(38);
+    private static final String MSG39 = formatCode(39);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -218,4 +219,8 @@ public class Messages {
     public String directBufferDeallocationFailed() {
         return interpolate(MSG38);
     }
+    public String unsupportedProtocolVersion(int p) {
+        return interpolate(MSG39, p);
+    }
+
 }

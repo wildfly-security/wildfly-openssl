@@ -49,10 +49,10 @@ WF_OPENSSL(jobjectArray, getCiphers)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jboolean, setCipherSuites)(JNIEnv *e, jobject o, jlong ssl, jstring ciphers);
 WF_OPENSSL(jboolean, setServerNameIndication)(JNIEnv *e, jobject o, jlong ssl, jstring ciphers);
 WF_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx);
-WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt);
-WF_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt);
-WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
-WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt);
+WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jlong opt);
+WF_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jlong opt);
+WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt);
+WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt);
 WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ciphers);
 WF_OPENSSL(jboolean, setCARevocation)(JNIEnv *e, jobject o, jlong ctx, jstring file, jstring path);
 WF_OPENSSL(jboolean, setCertificate)(JNIEnv *e, jobject o, jlong ctx, jbyteArray javaCert, jobjectArray intermediateCerts, jbyteArray javaKey, jint idx);
@@ -83,6 +83,11 @@ WF_OPENSSL(jobjectArray, getPeerCertChain)(JNIEnv *e, jobject o, jlong ssl /* SS
 WF_OPENSSL(jint , shutdownSSL)(JNIEnv *e, jobject o, jlong ssl);
 WF_OPENSSL(jbyteArray, getPeerCertificate)(JNIEnv *e, jobject o, jlong ssl /* SSL * */);
 WF_OPENSSL(jstring, version)(JNIEnv *e);
+WF_OPENSSL(jlong, versionNumber)(JNIEnv *e);
+WF_OPENSSL(void, setMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version);
+WF_OPENSSL(void, setMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version);
+WF_OPENSSL(jint, getMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl);
+WF_OPENSSL(jint, getMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl);
 void init_app_data_idx(void);
 void SSL_set_app_data1(SSL *ssl, tcn_ssl_conn_t *arg);
 void SSL_set_app_data2(SSL *ssl, tcn_ssl_ctxt_t *arg);
@@ -379,6 +384,12 @@ int load_openssl_dynamic_methods(JNIEnv *e, const char * libCryptoPath, const ch
     GET_SSL_SYMBOL(TLS_client_method);
     GET_SSL_SYMBOL(TLS_server_method);
     GET_SSL_SYMBOL(TLS_method);
+    GET_SSL_SYMBOL(SSL_set_options);
+    GET_SSL_SYMBOL(SSL_get_options);
+    GET_SSL_SYMBOL(SSL_clear_options);
+    GET_SSL_SYMBOL(SSL_CTX_set_options);
+    GET_SSL_SYMBOL(SSL_CTX_get_options);
+    GET_SSL_SYMBOL(SSL_CTX_clear_options);
 
     REQUIRE_CRYPTO_SYMBOL(ASN1_INTEGER_cmp);
     REQUIRE_CRYPTO_SYMBOL(BIO_ctrl);
@@ -559,20 +570,20 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
     c->protocol = protocol;
     c->mode     = mode;
     c->ctx      = ctx;
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_ALL),NULL);
+    set_CTX_options_internal((c->ctx), SSL_OP_ALL);
     /* always disable SSLv2, as per RFC 6176 */
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv2),NULL);
+    set_CTX_options_internal((c->ctx), SSL_OP_NO_SSLv2);
     if (!(protocol & SSL_PROTOCOL_SSLV3))
-        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SSLv3),NULL);
+        set_CTX_options_internal((c->ctx), SSL_OP_NO_SSLv3);
     if (!(protocol & SSL_PROTOCOL_TLSV1))
-        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1),NULL);
+        set_CTX_options_internal((c->ctx), SSL_OP_NO_TLSv1);
     if(ssl_methods.TLSv1_1_server_method != NULL) { /* we use the presence of the method to test if it is supported */
         if (!(protocol & SSL_PROTOCOL_TLSV1_1))
-            ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_1),NULL);
+            set_CTX_options_internal((c->ctx), SSL_OP_NO_TLSv1_1);
     }
     if(ssl_methods.TLSv1_2_server_method != NULL) {
         if (!(protocol & SSL_PROTOCOL_TLSV1_2))
-            ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_TLSv1_2),NULL);
+            set_CTX_options_internal((c->ctx), SSL_OP_NO_TLSv1_2);
     }
 
     /* We need to disable TLSv1.3 if running on OpenSSL 1.1.0+ */
@@ -588,12 +599,12 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
     /*
      * Configure additional context ingredients
      */
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_DH_USE),NULL);
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_SINGLE_ECDH_USE),NULL);
+    set_CTX_options_internal((c->ctx), SSL_OP_SINGLE_DH_USE);
+    set_CTX_options_internal((c->ctx), SSL_OP_SINGLE_ECDH_USE);
 /* TODO: what do we do with these defines? */
 #ifdef SSL_OP_NO_COMPRESSION
     /* Disable SSL compression to be safe */
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_COMPRESSION),NULL);
+    set_CTX_options_internal((c->ctx), SSL_OP_NO_COMPRESSION);
 #endif
 
 
@@ -605,7 +616,7 @@ WF_OPENSSL(jlong, makeSSLContext)(JNIEnv *e, jobject o, jint protocol, jint mode
      * Disallow a session from being resumed during a renegotiation,
      * so that an acceptable cipher suite can be negotiated.
      */
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION),NULL);
+    set_CTX_options_internal((c->ctx), SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 #endif
 #ifdef SSL_MODE_RELEASE_BUFFERS
     /* Release idle buffers to the SSL_CTX free list */
@@ -756,7 +767,7 @@ WF_OPENSSL(jint, freeSSLContext)(JNIEnv *e, jobject o, jlong ctx)
     return 0;
 }
 
-WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt)
+WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jlong opt)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
@@ -767,20 +778,24 @@ WF_OPENSSL(void, setSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt
     if (opt & 0x00040000) {
         opt &= ~0x00040000;
     }
-	ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_OPTIONS,(opt),NULL);
+	set_CTX_options_internal(c->ctx, opt);
 }
 
-WF_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jint opt)
+WF_OPENSSL(void, clearSSLContextOptions)(JNIEnv *e, jobject o, jlong ctx, jlong opt)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     tcn_ssl_ctxt_t *c = J2P(ctx, tcn_ssl_ctxt_t *);
 
     UNREFERENCED_STDARGS;
     TCN_ASSERT(ctx != 0);
-    ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    if (ssl_methods.SSL_CTX_clear_options != NULL) {
+        ssl_methods.SSL_CTX_clear_options(c->ctx, opt);
+    } else {
+        ssl_methods.SSL_CTX_ctrl((c->ctx),SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    }
 }
 
-WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
+WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *c = J2P(ssl, SSL *);
@@ -789,16 +804,20 @@ WF_OPENSSL(void, setSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
     /* Clear the flag if not supported */
     if (opt & 0x00040000)
         opt &= ~0x00040000;
-    ssl_methods.SSL_ctrl(c,SSL_CTRL_OPTIONS,(opt),NULL);
+    set_options_internal(c, opt);
 }
 
-WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jint opt)
+WF_OPENSSL(void, clearSSLOptions)(JNIEnv *e, jobject o, jlong ssl, jlong opt)
 {
 #pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
     SSL *c = J2P(ssl, SSL *);
 
     UNREFERENCED_STDARGS;
-    ssl_methods.SSL_ctrl(c,SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    if (ssl_methods.SSL_clear_options != NULL) {
+        ssl_methods.SSL_clear_options(c, opt);
+    } else {
+        ssl_methods.SSL_ctrl(c,SSL_CTRL_CLEAR_OPTIONS,(opt),NULL);
+    }
 }
 
 WF_OPENSSL(jboolean, setCipherSuite)(JNIEnv *e, jobject o, jlong ctx, jstring ciphers)
@@ -1572,6 +1591,49 @@ WF_OPENSSL(jstring, version)(JNIEnv *e)
     char * version = ssl_methods.SSLeay_version(0);
     return (*e)->NewStringUTF(e, version);
 }
+
+WF_OPENSSL(jlong, versionNumber)(JNIEnv *e)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    return ssl_methods.SSLeay();
+}
+
+WF_OPENSSL(void, setMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    ssl_methods.SSL_ctrl(c, SSL_CTRL_SET_MIN_PROTO_VERSION, (version), NULL);
+}
+
+WF_OPENSSL(void, setMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl, jint version)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    ssl_methods.SSL_ctrl(c, SSL_CTRL_SET_MAX_PROTO_VERSION, (version), NULL);
+}
+
+WF_OPENSSL(jint, getMinProtoVersion)(JNIEnv *e, jobject o, jlong ssl)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    return ssl_methods.SSL_ctrl(c, SSL_CTRL_GET_MIN_PROTO_VERSION, 0, NULL);
+}
+
+WF_OPENSSL(jint, getMaxProtoVersion)(JNIEnv *e, jobject o, jlong ssl)
+{
+#pragma comment(linker, "/EXPORT:"__FUNCTION__"="__FUNCDNAME__)
+    SSL *c = J2P(ssl, SSL *);
+
+    UNREFERENCED_STDARGS;
+    return ssl_methods.SSL_ctrl(c, SSL_CTRL_GET_MAX_PROTO_VERSION, 0, NULL);
+}
+
 
 /* sets up diffie hellman params using the apps/dh2048.pem file from openssl */
 void setupDH(JNIEnv *e, SSL_CTX * ctx)
