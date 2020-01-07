@@ -40,6 +40,12 @@ import org.junit.Test;
 public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     public static final String MESSAGE = "Hello World";
+    private static final String javaSpecVersion = System.getProperty("java.specification.version");
+
+    static int getJavaSpecVersion() {
+        if ("1.8".equals(javaSpecVersion)) return 8;
+        return Integer.parseInt(javaSpecVersion);
+    }
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
@@ -268,11 +274,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
                 // expected
             }
             try {
-                SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                socket.connect(SSLTestUtils.createSocketAddress());
-                socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-                Assert.fail("Expected SSLHandshakeException not thrown");
+                if (getJavaSpecVersion() >= 11) {
+                    SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+                    socket.setEnabledProtocols(new String[]{"TLSv1.3"});
+                    socket.connect(SSLTestUtils.createSocketAddress());
+                    socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+                    Assert.fail("Expected SSLHandshakeException not thrown");
+                }
             } catch (SSLHandshakeException e) {
                 // expected
             }
