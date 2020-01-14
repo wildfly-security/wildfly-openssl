@@ -83,12 +83,82 @@ jint throwIllegalArgumentException( JNIEnv *env, char *message )
     return (*env)->ThrowNew( env, exClass, message );
 }
 
+#define DP_S_DEFAULT 0
+#define DP_S_CONV    1
+#define DP_S_DONE    2
+
+static void dopr_outch(char *buffer, int *currlen, int maxlen, char c) {
+    if (*currlen < maxlen) {
+        buffer[(*currlen)] = c;
+    }
+    (*currlen)++;
+}
+
+static void fmtstr(char *buffer, int *currlen, size_t maxlen, char *value) {
+    if (value == 0) {
+        value = (char*)"<NULL>";
+    }
+
+    while (*value && *currlen < maxlen) {
+        dopr_outch(buffer, currlen, maxlen, *value++);
+    }
+}
+
+#define MSG_MAXLEN 4096
+
 void tcn_Throw(JNIEnv *env, char *fmt, ...) {
-    char msg[4096];
+    char msg[MSG_MAXLEN];
     va_list ap;
+    char ch;
+    int state;
+    int currlen;
+    char *strvalue;
 
     va_start(ap, fmt);
-    vsnprintf(msg, sizeof(msg), fmt, ap);
+
+    /* TODO: no vsprintf in some envs. Short format function
+     *       that just prints %s options
+     *       (all other options are skipped)
+     */
+    state = DP_S_DEFAULT;
+    ch = *fmt++;
+    currlen = 0;
+    while (state != DP_S_DONE) {
+        if (ch == '\0') {
+            state = DP_S_DONE;
+        }
+
+        switch(state) {
+            case DP_S_DEFAULT:
+                if (ch == '%')
+                    state = DP_S_CONV;
+                else
+                    dopr_outch(msg, &currlen, MSG_MAXLEN, ch);
+                ch = *fmt++;
+                break;
+            case DP_S_CONV:
+                switch (ch) {
+                    case 's':
+                        strvalue = va_arg(ap, char *);
+                        fmtstr(msg, &currlen, MSG_MAXLEN, strvalue);
+                        break;
+                    default:
+                        break;
+                }
+                ch = *fmt++;
+                state = DP_S_DEFAULT;
+                break;
+            case DP_S_DONE:
+            default:
+                break;
+        }
+    }
+    if (currlen < MSG_MAXLEN - 1) {
+        msg[currlen] = '\0';
+    } else {
+        msg[MSG_MAXLEN - 1] = '\0';
+    }
+
     va_end(ap);
     throwIllegalStateException(env, msg);
 }
