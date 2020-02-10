@@ -221,7 +221,7 @@ void generate_openssl_stack_error(JNIEnv *e, char *buf, long len) {
     if (bio_len > len) {
         bio_len = len;
     }
-    memcpy(buf, bio_buf, bio_len);
+    memmove(buf, bio_buf, bio_len);
     buf[bio_len] = '\0';
     crypto_methods.BIO_free(bio);
 }
