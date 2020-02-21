@@ -244,5 +244,35 @@
                 <module>windows-i386</module>
             </modules>
         </profile>
+        <profile>
+            <id>custom-x86_64</id>
+            <activation>
+                <property>
+                    <name>jboss.modules.os-name</name>
+                </property>
+                <os>
+                    <family>linux</family>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>${jboss.modules.os-name}-x86_64</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>custom-i386</id>
+            <activation>
+                <property>
+                    <name>jboss.modules.os-name</name>
+                </property>
+                <os>
+                    <family>linux</family>
+                    <arch>i386</arch>
+                </os>
+            </activation>
+            <modules>
+                <module>${jboss.modules.os-name}-i386</module>
+            </modules>
+        </profile>
     </profiles>
 </project>
