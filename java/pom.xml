@@ -294,6 +294,46 @@
             </dependencies>
         </profile>
         <profile>
+            <id>custom-x86_64</id>
+            <activation>
+                <property>
+                    <name>jboss.modules.os-name</name>
+                </property>
+                <os>
+                    <family>linux</family>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-${jboss.modules.os-name}-x86_64</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>custom-i386</id>
+            <activation>
+                <property>
+                    <name>jboss.modules.os-name</name>
+                </property>
+                <os>
+                    <family>linux</family>
+                    <arch>i386</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.openssl</groupId>
+                    <artifactId>wildfly-openssl-${jboss.modules.os-name}-i386</artifactId>
+                    <version>${project.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>release</id>
             <activation>
                 <property>
