@@ -17,6 +17,8 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
@@ -48,13 +50,16 @@ public class ClientCertTest extends AbstractOpenSSLTest {
             })));
             acceptThread.start();
             try (SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket()) {
+                socket.setReuseAddress(true);
                 socket.connect(SSLTestUtils.createSocketAddress());
                 socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
                 byte[] data = new byte[100];
                 int read = socket.getInputStream().read(data);
 
                 Assert.assertEquals(MESSAGE, new String(data, 0, read));
-                Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                if (! isTLS13Supported()) {
+                    Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                }
             }
 
             serverSocket.close();

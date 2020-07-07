@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 abstract class OpenSSLSessionContext implements SSLSessionContext {
 
-    private final Map<Key, OpenSSlSession> sessions = new ConcurrentHashMap<>();
+    protected final Map<Key, OpenSSlSession> sessions = new ConcurrentHashMap<>();
 
     private final OpenSSLSessionStats stats;
     final long context;
@@ -102,9 +102,14 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
+        // This method gets invoked every time a new session is established. Note that prior to
+        // TLS 1.3, sessions are established as part of the handshake but from TLS 1.3 onward,
+        // sessions are not established until after handshake has completed
         final OpenSSlSession openSSlSession = new OpenSSlSession(true, this);
         openSSlSession.initialised(session, ssl, sessionId);
-        sessions.put(new Key(sessionId), openSSlSession);
+        if (sessionId != null) {
+            sessions.put(new Key(sessionId), openSSlSession);
+        }
     }
 
     synchronized void sessionRemovedCallback(byte[] sessionId) {
@@ -123,14 +128,16 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     protected void clientSessionCreated(long ssl, long sessionPointer, byte[] sessionId) {
-        Key key = new Key(sessionId);
-        OpenSSlSession existing = this.sessions.get(key);
-        if(existing != null) {
-            return;
+        if (sessionId != null) {
+            Key key = new Key(sessionId);
+            OpenSSlSession existing = this.sessions.get(key);
+            if (existing != null) {
+                return;
+            }
+            OpenSSlSession session = new OpenSSlSession(false, this);
+            session.initialised(sessionPointer, ssl, sessionId);
+            this.sessions.put(key, session);
         }
-        OpenSSlSession session = new OpenSSlSession(false, this);
-        session.initialised(sessionPointer, ssl, sessionId);
-        this.sessions.put(key, session);
     }
 
     private static class Key {

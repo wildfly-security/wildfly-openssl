@@ -36,16 +36,25 @@ class EchoRunnable implements Runnable {
     private final SSLContext sslContext;
     private final AtomicReference<byte[]> sessionID;
     private final EngineCustomizer engineCustomizer;
+    private final AtomicReference<String> protocol;
+    private final AtomicReference<String> cipherSuite;
 
     EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID) {
-        this(serverSocket, sslContext, sessionID, null);
+        this(serverSocket, sslContext, sessionID, null, new AtomicReference<>(), new AtomicReference<>());
     }
 
     EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer) {
+        this(serverSocket, sslContext, sessionID, engineCustomizer, new AtomicReference<>(), new AtomicReference<>());
+    }
+
+    EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer, AtomicReference<String> protocol,
+                 AtomicReference<String> cipherSuite) {
         this.serverSocket = serverSocket;
         this.sslContext = sslContext;
         this.sessionID = sessionID;
         this.engineCustomizer = engineCustomizer;
+        this.protocol = protocol;
+        this.cipherSuite = cipherSuite;
     }
 
     @Override
@@ -111,6 +120,8 @@ class EchoRunnable implements Runnable {
                         }
                         if(engine.getSession() != null) {
                             sessionID.set(engine.getSession().getId());
+                            protocol.set(engine.getSession().getProtocol());
+                            cipherSuite.set(engine.getSession().getCipherSuite());
                         }
                         while (true) {
                             in.clear();
@@ -139,6 +150,7 @@ class EchoRunnable implements Runnable {
                                 out.clear();
                                 if(close) {
                                     engine.closeOutbound();
+                                    engine.closeInbound();
                                     s.close();
                                 }
                             }
@@ -168,15 +180,15 @@ class EchoRunnable implements Runnable {
                             //ignore
                         }
                         e.printStackTrace();
-                        //throw new RuntimeException(e);
+                        throw new RuntimeException(e);
                     }
 
                 });
                 t.start();
             }
         } catch (Exception e) {
-            //e.printStackTrace();
-            //throw new RuntimeException(e);
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 

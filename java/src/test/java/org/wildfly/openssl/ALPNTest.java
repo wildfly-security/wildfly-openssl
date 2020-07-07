@@ -17,6 +17,8 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
@@ -38,9 +40,20 @@ public class ALPNTest extends AbstractOpenSSLTest {
     @Test
     public void testALPN() throws IOException, NoSuchAlgorithmException, InterruptedException {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
+        testALPNBase("TLSv1.2");
+    }
+
+    @Test
+    public void testALPNTLS13() throws IOException, NoSuchAlgorithmException, InterruptedException {
+        Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
+        Assume.assumeTrue(isTLS13Supported());
+        testALPNBase("TLSv1.3");
+    }
+
+    private void testALPNBase(String protocol) throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl." + protocol);
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 OpenSSLEngine openSSLEngine = (OpenSSLEngine) engine;
@@ -50,8 +63,9 @@ public class ALPNTest extends AbstractOpenSSLTest {
             })));
             acceptThread.start();
 
-            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.2");
+            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl." + protocol);
             final OpenSSLSocket socket = (OpenSSLSocket) clientSslContext.getSocketFactory().createSocket();
+            socket.setReuseAddress(true);
             socket.setApplicationProtocols("h2/13", "h2", "http");
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
@@ -61,6 +75,10 @@ public class ALPNTest extends AbstractOpenSSLTest {
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
             Assert.assertEquals("server side", "h2", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertEquals("client side", "h2", socket.getSelectedApplicationProtocol());
+            Assert.assertEquals(protocol, socket.getSession().getProtocol());
+            Assert.assertEquals(protocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(socket.getSession().getCipherSuite()));
+            socket.getSession().invalidate();
+            socket.close();
             serverSocket.close();
             acceptThread.join();
         }
@@ -69,10 +87,21 @@ public class ALPNTest extends AbstractOpenSSLTest {
     @Test
     public void testALPNFailure() throws IOException, NoSuchAlgorithmException, InterruptedException {
         Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
+        testALPNFailureBase("TLSv1.2");
+    }
+
+    @Test
+    public void testALPNFailureTLS13() throws IOException, NoSuchAlgorithmException, InterruptedException {
+        Assume.assumeTrue(OpenSSLEngine.isAlpnSupported());
+        Assume.assumeTrue(isTLS13Supported());
+        testALPNFailureBase("TLSv1.3");
+    }
+
+    private void testALPNFailureBase(String protocol) throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
-            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.2");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl." + protocol);
+            final SSLContext clientSslContext = SSLTestUtils.createClientSSLContext("openssl." + protocol);
             final AtomicReference<OpenSSLEngine> engineAtomicReference = new AtomicReference<>();
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 OpenSSLEngine openSSLEngine = (OpenSSLEngine) engine;
@@ -82,6 +111,7 @@ public class ALPNTest extends AbstractOpenSSLTest {
             })));
             acceptThread.start();
             final OpenSSLSocket socket = (OpenSSLSocket) clientSslContext.getSocketFactory().createSocket();
+            socket.setReuseAddress(true);
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
             byte[] data = new byte[100];
@@ -90,6 +120,10 @@ public class ALPNTest extends AbstractOpenSSLTest {
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
             Assert.assertNull("server side", engineAtomicReference.get().getSelectedApplicationProtocol());
             Assert.assertNull("client side", socket.getSelectedApplicationProtocol());
+            Assert.assertEquals(protocol, socket.getSession().getProtocol());
+            Assert.assertEquals(protocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(socket.getSession().getCipherSuite()));
+            socket.getSession().invalidate();
+            socket.close();
             serverSocket.close();
             acceptThread.join();
         }

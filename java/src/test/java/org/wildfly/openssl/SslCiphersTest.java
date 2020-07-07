@@ -17,6 +17,8 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +30,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -45,6 +48,7 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
     public void testCipherSuiteConverter() throws IOException {
 
         final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+        socket.setReuseAddress(true);
         for (String cipher : socket.getSupportedCipherSuites()) {
             if (cipher.contains("EMPTY")) {
                 continue;
@@ -53,6 +57,7 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
             Assert.assertNotNull(cipher, openSslCipherSuite);
             Assert.assertEquals(cipher, CipherSuiteConverter.toJava(openSslCipherSuite, cipher.substring(0, 3)));
         }
+        socket.close();
     }
 
     @Test
@@ -89,6 +94,7 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
             acceptThread.start();
 
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+            socket.setReuseAddress(true);
             socket.setEnabledCipherSuites(new String[]{suite});
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
@@ -108,6 +114,64 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
             Assert.assertEquals(session.getCipherSuite(), cipherSuite);
             Assert.assertEquals(session.getCipherSuite(), suite);
             Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            socket.getSession().invalidate();
+            socket.close();
+            echo.stop();
+            serverSocket.close();
+            acceptThread.join();
+        }
+    }
+
+    @Test
+    public void testAvailableProtocolsWithTLS13CipherSuites() throws Exception {
+        Assume.assumeTrue(isTLS13Supported());
+        final AtomicReference<byte[]> sessionID = new AtomicReference<>();
+        final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.3");
+
+        String[] suites = new String[]{
+                "TLS_AES_256_GCM_SHA384",
+                "TLS_CHACHA20_POLY1305_SHA256",
+                "TLS_AES_128_GCM_SHA256",
+                "TLS_AES_128_CCM_8_SHA256",
+                "TLS_AES_128_CCM_SHA256"
+        };
+
+        for (String suite : suites) {
+
+            final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
+
+            ServerSocket serverSocket = SSLTestUtils.createServerSocket();
+            EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
+                engineRef.set(engine);
+                try {
+                    engine.setEnabledCipherSuites(new String[]{"TLS_RSA_WITH_AES_128_CBC_SHA256", suite});
+                    return engine;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+            Thread acceptThread = new Thread(echo);
+            acceptThread.start();
+
+            final SSLContext clientContext = SSLTestUtils.createClientSSLContext("openssl.TLSv1.3");
+            final SSLSocket socket = (SSLSocket) clientContext.getSocketFactory().createSocket();
+            socket.setReuseAddress(true);
+            socket.setEnabledCipherSuites(new String[]{"TLS_RSA_WITH_AES_128_CBC_SHA256", suite});
+            socket.connect(SSLTestUtils.createSocketAddress());
+            socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
+            byte[] data = new byte[100];
+            int read = socket.getInputStream().read(data);
+
+            Assert.assertEquals("hello world", new String(data, 0, read));
+            //make sure the names match
+            String cipherSuite = socket.getSession().getCipherSuite();
+            String protocol = socket.getSession().getProtocol();
+            SSLEngine sslEngine = engineRef.get();
+            SSLSession session = sslEngine.getSession();
+            Assert.assertEquals(session.getCipherSuite(), cipherSuite);
+            Assert.assertEquals(session.getCipherSuite(), suite);
+            Assert.assertEquals(session.getProtocol(), protocol);
+
             socket.getSession().invalidate();
             socket.close();
             echo.stop();

@@ -17,6 +17,8 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.OpenSSLEngine.isOpenSSL10;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
@@ -48,13 +50,14 @@ class OpenSSlSession implements SSLSession {
     // lazy init for memory reasons
     private Map<String, Object> values;
 
-    private volatile long creationTime = System.currentTimeMillis();
+    private volatile long creationTime;
 
     private volatile byte[] sessionId;
     private volatile long sessionPointer;
     private volatile boolean valid = true;
     private String cipherSuite = OpenSSLEngine.INVALID_CIPHER;
     private String protocol = "TLS";
+    private boolean reused;
 
     OpenSSlSession(boolean server, OpenSSLSessionContext sessionContext) {
         this.server = server;
@@ -74,7 +77,6 @@ class OpenSSlSession implements SSLSession {
 
     @Override
     public long getCreationTime() {
-        // We need ot multiple by 1000 as openssl uses seconds and we need milli-seconds.
         return creationTime;
     }
 
@@ -88,7 +90,7 @@ class OpenSSlSession implements SSLSession {
     public synchronized void invalidate() {
         if (valid) {
             if(sessionPointer > 0) {
-                SSL.getInstance().invalidateSession(sessionPointer);
+                SSL.getInstance().invalidateSession(sessionPointer); // this decrements the ref count and frees the session
             }
             sessionContext.remove(sessionId);
             sessionPointer = 0;
@@ -237,6 +239,9 @@ class OpenSSlSession implements SSLSession {
         return OpenSSLEngine.MAX_PLAINTEXT_LENGTH;
     }
 
+    boolean isReused() {
+        return reused;
+    }
 
     private void initPeerCertChain(long ssl) {
         byte[][] chain = SSL.getInstance().getPeerCertChain(ssl);
@@ -289,12 +294,26 @@ class OpenSSlSession implements SSLSession {
     }
 
     void initialised(long pointer, long ssl, byte[] sessionId) {
-        this.creationTime = System.currentTimeMillis();
         this.sessionPointer = pointer;
         this.sessionId = sessionId;
+        initCreationTime(ssl);
         initPeerCertChain(ssl);
         initCipherSuite(ssl);
         initProtocol(ssl);
+        initReused(ssl);
+    }
+
+    void initialised(long ssl) {
+        initCreationTime(ssl);
+        initSessionId(ssl);
+        initPeerCertChain(ssl);
+        initCipherSuite(ssl);
+        initProtocol(ssl);
+        initReused(ssl);
+    }
+
+    private void initSessionId(long ssl) {
+        sessionId = SSL.getInstance().getSessionId(ssl);
     }
 
     private void initProtocol(long ssl) {
@@ -308,5 +327,17 @@ class OpenSSlSession implements SSLSession {
         }
     }
 
+    private void initCreationTime(long ssl) {
+        // We need to multiply by 1000 as openssl uses seconds and we need milli-seconds.
+        creationTime = SSL.getInstance().getTime(ssl) * 1000L;
+    }
+
+    private void initReused(long ssl) {
+        if (isOpenSSL10()) {
+            reused = false; // ssl_session_reused did not exist in OpenSSL 1.0.x
+        } else {
+            reused = SSL.getInstance().getSSLSessionReused(ssl);
+        }
+    }
 
 }

@@ -55,6 +55,7 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
             acceptThread.start();
             final SSLContext sslContext = SSLTestUtils.createClientDSASSLContext("openssl.TLSv1.2");
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket();
+            socket.setReuseAddress(true);
             socket.setEnabledCipherSuites(new String[] {"TLS_DHE_DSS_WITH_AES_128_CBC_SHA256"});
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
@@ -65,6 +66,8 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
             Assert.assertEquals("hello world", new String(data, 0, read));
             //TODO: fix client session id
             //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            socket.getSession().invalidate();
+            socket.close();
             serverSocket.close();
             acceptThread.join();
         }
@@ -81,6 +84,7 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
             final SSLContext sslContext = SSLTestUtils.createClientDSASSLContext("openssl.TLSv1");
             InetSocketAddress socketAddress = (InetSocketAddress) SSLTestUtils.createSocketAddress();
             final SSLSocket socket = (SSLSocket) sslContext.getSocketFactory().createSocket(socketAddress.getAddress(), socketAddress.getPort());
+            socket.setReuseAddress(true);
             socket.setEnabledCipherSuites(new String[] {"TLS_DHE_DSS_WITH_AES_128_CBC_SHA"});
             socket.getOutputStream().write("hello world".getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().flush();
@@ -90,8 +94,11 @@ public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
             Assert.assertEquals("hello world", new String(data, 0, read));
             //TODO: fix client session id
             //Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+            socket.getSession().invalidate();
+            socket.close();
             serverSocket.close();
             acceptThread.join();
         }
     }
+
 }
