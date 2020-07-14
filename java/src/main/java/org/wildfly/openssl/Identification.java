@@ -21,6 +21,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Copied from JBoss modules. Used to generate the directory name that the library is loaded from
@@ -30,6 +32,7 @@ class Identification {
     static final String CPU_ID;
     static final String ARCH_NAME;
     static final String[] NATIVE_SEARCH_PATHS;
+    private static final Pattern RHEL_PATTERN = Pattern.compile(".*\\.(el[678])\\..*");
 
     static {
         final Object[] strings = AccessController.doPrivileged(new PrivilegedAction<Object[]>() {
@@ -47,7 +50,13 @@ class Identification {
                     } else {
                         sysOs = sysOs.toUpperCase(Locale.US);
                         if (sysOs.startsWith("LINUX")) {
-                            osName = "linux";
+                            String sysVersion = System.getProperty("os.version");
+                            Matcher m = RHEL_PATTERN.matcher(sysVersion);
+                            if (m.matches()) {
+                                osName = m.group(1); // el6, el7, or el8
+                            } else {
+                                osName = "linux";
+                            }
                         } else if (sysOs.startsWith("MAC OS")) {
                             osName = "macosx";
                         } else if (sysOs.startsWith("WINDOWS")) {
@@ -257,11 +266,20 @@ class Identification {
 
                 // Finally, search paths.
                 final int cpuCount = cpuNames.size();
-                String[] searchPaths = new String[cpuCount];
+                final int searchPathsSize = isRHEL(osName) ? cpuCount * 2 : cpuCount;
+                String[] searchPaths = new String[searchPathsSize];
                 if (knownOs && knownCpu) {
                     for (int i = 0; i < cpuCount; i++) {
                         final String name = cpuNames.get(i);
                         searchPaths[i] = osName + "-" + name;
+                    }
+                    // fallback to linux modules if the el6, el7, or el8 modules do not exist
+                    if (isRHEL(osName)) {
+                        int j = cpuCount;
+                        for (int i = 0; i < cpuCount; i++) {
+                            final String name = cpuNames.get(i);
+                            searchPaths[j++] = "linux-" + name;
+                        }
                     }
                 } else {
                     searchPaths = new String[0];
@@ -279,5 +297,9 @@ class Identification {
         CPU_ID = strings[1].toString();
         ARCH_NAME = strings[2].toString();
         NATIVE_SEARCH_PATHS = (String[]) strings[3];
+    }
+
+    private static boolean isRHEL(String osName) {
+        return osName.equals("el6") || osName.equals("el7") || osName.equals("el8");
     }
 }
