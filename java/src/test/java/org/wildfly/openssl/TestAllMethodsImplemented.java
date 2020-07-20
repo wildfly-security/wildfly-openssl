@@ -44,7 +44,7 @@ public class TestAllMethodsImplemented extends AbstractOpenSSLTest  {
 
         Set<String> implemented = new HashSet<>();
         Pattern pattern = Pattern.compile("WF_OPENSSL\\([^,]*,([^\\)]*)");
-        File path = new File("../libwfssl" + File.separator + "src");
+        File path = new File("target/libwfssl" + File.separator + "src");
         for(String i : path.list()) {
             String file = read(new File(path, i));
             Matcher matcher = pattern.matcher(file);
