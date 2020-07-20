@@ -122,7 +122,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-macosx-x86_64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -139,7 +139,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-aarch64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -156,7 +156,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-ppc64le</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -173,7 +173,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-s390x</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -193,7 +193,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-i386</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -214,7 +214,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-x86_64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -234,7 +234,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-i386</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -254,7 +254,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-x86_64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -271,7 +271,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -288,7 +288,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -308,7 +308,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-${jboss.modules.os-name}-x86_64</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -328,7 +328,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-${jboss.modules.os-name}-i386</artifactId>
-                    <version>${project.version}</version>
+                    <version>${version.org.wildfly.openssl.natives}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
