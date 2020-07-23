@@ -109,10 +109,7 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         server2.signal();
         SSLContext clientContext = SSLTestUtils.createClientSSLContext(clientProvider);
         SSLSessionContext clientSession = clientContext.getClientSessionContext();
-        while (! server1.started) {
-            Thread.yield();
-        }
-        while (! server2.started) {
+        while (! server1.started || ! server2.started) {
             Thread.yield();
         }
         SSLSession firstSession1 = connect(clientContext, port1);
@@ -143,6 +140,9 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         server1.signal();
         server2.go = false;
         server2.signal();
+        while (server1.started || server2.started) {
+            Thread.yield();
+        }
     }
 
     void testSessionInvalidation(String serverProvider, String clientProvider) throws Exception {
@@ -196,6 +196,9 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         secondSession.invalidate();
         server.go = false;
         server.signal();
+        while (server.started) {
+            Thread.yield();
+        }
     }
 
     void testSessionSize(String serverProvider, String clientProvider) throws Exception {
@@ -259,10 +262,7 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         SSLContext clientContext = SSLTestUtils.createClientSSLContext(clientProvider);
         final SSLSessionContext clientSession = clientContext.getClientSessionContext();
 
-        while (! server1.started) {
-            Thread.yield();
-        }
-        while (! server2.started) {
+        while (! server1.started || ! server2.started) {
             Thread.yield();
         }
 
@@ -321,6 +321,10 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         server1.signal();
         server2.go = false;
         server2.signal();
+
+        while (server1.started || server2.started) {
+            Thread.yield();
+        }
     }
 
     void testClientSessionInvalidationMultiThreadAccess(String serverProvider, String clientProvider) throws Exception {
@@ -570,29 +574,31 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         public void run() {
             try {
                 SSLContext serverContext = SSLTestUtils.createSSLContext(provider);
-                SSLServerSocket sslServerSocket = (SSLServerSocket) serverContext.getServerSocketFactory().createServerSocket(port, 10, InetAddress.getByName(HOST));
+                try (SSLServerSocket sslServerSocket = (SSLServerSocket) serverContext.getServerSocketFactory().createServerSocket(port, 10, InetAddress.getByName(HOST))) {
 
-                waitForSignal();
-                started = true;
-                while (go) {
-                    try {
-                        System.out.println("Waiting for connection");
-                        Socket sock = sslServerSocket.accept();
-                        BufferedReader reader = new BufferedReader(
-                                new InputStreamReader(sock.getInputStream()));
-                        String line = reader.readLine();
-                        System.out.println("server read: " + line);
-                        PrintWriter out = new PrintWriter(
-                                new OutputStreamWriter(sock.getOutputStream()));
-                        out.println(line);
-                        out.flush();
-                        waitForSignal();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
+                    waitForSignal();
+                    started = true;
+                    while (go) {
+                        try {
+                            System.out.println("Waiting for connection");
+                            Socket sock = sslServerSocket.accept();
+                            BufferedReader reader = new BufferedReader(
+                                    new InputStreamReader(sock.getInputStream()));
+                            String line = reader.readLine();
+                            System.out.println("server read: " + line);
+                            PrintWriter out = new PrintWriter(
+                                    new OutputStreamWriter(sock.getOutputStream()));
+                            out.println(line);
+                            out.flush();
+                            waitForSignal();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     }
                 }
-                sslServerSocket.close();
+                started = false;
             } catch (Exception ex) {
+                started = false;
                 throw new RuntimeException(ex);
             }
         }
