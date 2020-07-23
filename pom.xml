@@ -32,6 +32,7 @@
     <packaging>pom</packaging>
 
     <properties>
+        <jdk.min.version>11</jdk.min.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.org.wildfly.checkstyle>1.0.8.Final</version.org.wildfly.checkstyle>
         <version.org.wildfly.openssl.natives>2.0.0.Alpha2-SNAPSHOT</version.org.wildfly.openssl.natives>
