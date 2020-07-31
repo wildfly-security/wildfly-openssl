@@ -17,6 +17,11 @@
 
 package org.wildfly.openssl;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -32,7 +37,16 @@ class Identification {
     static final String CPU_ID;
     static final String ARCH_NAME;
     static final String[] NATIVE_SEARCH_PATHS;
-    private static final Pattern RHEL_PATTERN = Pattern.compile(".*\\.(el[678])\\..*");
+    static final Pattern OS_RELEASE_VERSION_ID_PATTERN = Pattern.compile("([0-9]+).*");
+    static final Pattern DISTRIBUTION_RELEASE_VERSION_PATTERN = Pattern.compile(".*\\s([0-9]+).*");
+    static final Pattern MAC_VERSION_PATTERN = Pattern.compile("([0-9]+\\.[0-9]+)\\.[0-9]+");
+    static final String OS_RELEASE_FILE = "/etc/os-release";
+    static final String FEDORA_RELEASE_FILE = "/etc/fedora-release";
+    static final String REDHAT_RELEASE_FILE = "/etc/redhat-release";
+    static final String ID = "ID=";
+    static final String VERSION_ID = "VERSION_ID=";
+    static final String RHEL = "rhel";
+    static final String FEDORA = "fedora";
 
     static {
         final Object[] strings = AccessController.doPrivileged(new PrivilegedAction<Object[]>() {
@@ -40,6 +54,7 @@ class Identification {
                 // First, identify the operating system.
                 boolean knownOs = true;
                 String osName;
+                String osVersion = null;
                 // let the user override it.
                 osName = System.getProperty("jboss.modules.os-name");
                 if (osName == null) {
@@ -50,15 +65,15 @@ class Identification {
                     } else {
                         sysOs = sysOs.toUpperCase(Locale.US);
                         if (sysOs.startsWith("LINUX")) {
-                            String sysVersion = System.getProperty("os.version");
-                            Matcher m = RHEL_PATTERN.matcher(sysVersion);
-                            if (m.matches()) {
-                                osName = m.group(1); // el6, el7, or el8
-                            } else {
-                                osName = "linux";
-                            }
+                            osName = "linux";
+                            osVersion = getLinuxOSVersion();
                         } else if (sysOs.startsWith("MAC OS")) {
                             osName = "macosx";
+                            String sysVersion = System.getProperty("os.version");
+                            Matcher m = MAC_VERSION_PATTERN.matcher(sysVersion);
+                            if (m.matches()) {
+                                osVersion = m.group(1);
+                            }
                         } else if (sysOs.startsWith("WINDOWS")) {
                             osName = "win";
                         } else if (sysOs.startsWith("OS/2")) {
@@ -266,19 +281,21 @@ class Identification {
 
                 // Finally, search paths.
                 final int cpuCount = cpuNames.size();
-                final int searchPathsSize = isRHEL(osName) ? cpuCount * 2 : cpuCount;
+                final int searchPathsSize = osVersion != null ? cpuCount * 2 : cpuCount;
                 String[] searchPaths = new String[searchPathsSize];
                 if (knownOs && knownCpu) {
+                    // attempt OS-version specific category first
+                    String osNameAndVersion = osVersion != null ? osName + "-" + osVersion : osName;
                     for (int i = 0; i < cpuCount; i++) {
                         final String name = cpuNames.get(i);
-                        searchPaths[i] = osName + "-" + name;
+                        searchPaths[i] = osNameAndVersion + "-" + name;
                     }
-                    // fallback to linux modules if the el6, el7, or el8 modules do not exist
-                    if (isRHEL(osName)) {
+                    // fallback to general category
+                    if (osVersion != null) {
                         int j = cpuCount;
                         for (int i = 0; i < cpuCount; i++) {
                             final String name = cpuNames.get(i);
-                            searchPaths[j++] = "linux-" + name;
+                            searchPaths[j++] = osName + "-" + name;
                         }
                     }
                 } else {
@@ -299,7 +316,77 @@ class Identification {
         NATIVE_SEARCH_PATHS = (String[]) strings[3];
     }
 
-    private static boolean isRHEL(String osName) {
-        return osName.equals("el6") || osName.equals("el7") || osName.equals("el8");
+    private static String getLinuxOSVersionFromOSReleaseFile() {
+        try (InputStream releaseFile = new FileInputStream(OS_RELEASE_FILE)) {
+            try (InputStreamReader inputStreamReader = new InputStreamReader(releaseFile, StandardCharsets.UTF_8)) {
+                try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+                    String currentLine;
+                    String id = null;
+                    String versionId = null;
+                    while ((id == null || versionId == null) && (currentLine = reader.readLine()) != null) {
+                        final String trimmed = currentLine.trim();
+                        if (trimmed.startsWith(ID)) {
+                            int equalsIndex = trimmed.indexOf('=');
+                            id = trimmed.substring(equalsIndex + 1).replaceAll("\"", "");
+                        } else if (trimmed.startsWith(VERSION_ID)) {
+                            int equalsIndex = trimmed.indexOf('=');
+                            versionId = trimmed.substring(equalsIndex + 1).replaceAll("\"", "");
+                        }
+                    }
+                    if (id != null && versionId != null) {
+                        String abbreviatedVersionId = versionId;
+                        Matcher m = OS_RELEASE_VERSION_ID_PATTERN.matcher(versionId);
+                        if (m.matches()) {
+                            abbreviatedVersionId = m.group(1);
+                        }
+                        return id + abbreviatedVersionId;
+                    }
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String getLinuxOSVersionFromDistributionFile(String distributionFile) {
+        try (InputStream releaseFile = new FileInputStream(distributionFile)) {
+            try (InputStreamReader inputStreamReader = new InputStreamReader(releaseFile, StandardCharsets.UTF_8)) {
+                try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+                    String currentLine;
+                    String id = null;
+                    String abbreviatedVersionId = null;
+                    if ((currentLine = reader.readLine()) != null) {
+                        final String trimmed = currentLine.trim();
+                        if (trimmed.startsWith("Red Hat Enterprise Linux")) {
+                            id = RHEL;
+                        } else if (trimmed.startsWith("Fedora")) {
+                            id = FEDORA;
+                        }
+                        Matcher m = DISTRIBUTION_RELEASE_VERSION_PATTERN.matcher(trimmed);
+                        if (m.matches()) {
+                            abbreviatedVersionId = m.group(1);
+                        }
+                    }
+                    if (id != null && abbreviatedVersionId != null) {
+                        return id + abbreviatedVersionId;
+                    }
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String getLinuxOSVersion() {
+        String osVersion = getLinuxOSVersionFromOSReleaseFile();
+        if (osVersion == null) {
+            osVersion = getLinuxOSVersionFromDistributionFile(FEDORA_RELEASE_FILE);
+            if (osVersion == null) {
+                osVersion = getLinuxOSVersionFromDistributionFile(REDHAT_RELEASE_FILE);
+            }
+        }
+        return osVersion;
     }
 }
