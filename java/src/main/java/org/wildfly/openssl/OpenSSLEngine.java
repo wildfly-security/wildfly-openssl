@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 
 import static org.wildfly.openssl.Messages.MESSAGES;
 import static org.wildfly.openssl.OpenSSLProvider.getJavaSpecVersion;
+import static org.wildfly.openssl.SSL.SSL_PROTO_TLSv1_3;
 import static org.wildfly.openssl.SSL.VERSION_1_1_0;
 import static org.wildfly.openssl.SSL.VERSION_1_1_0_F;
 import static org.wildfly.openssl.SSL.VERSION_1_1_1;
@@ -1404,6 +1405,19 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setSSLParameters(SSLParameters sslParameters) {
+        // WFSSL-46: Remove this block once we are ready to enable TLS 1.3 by default
+        if (! tls13CipherSuitesConfigured(sslParameters.getCipherSuites())) {
+            // If no TLS 1.3 cipher suites have been explicitly configured, OpenSSL will
+            // still attempt to use its default TLS 1.3 cipher suites. If we attempt to
+            // set the TLS 1.3 cipher suites to the empty list, OpenSSL will throw
+            // an error if the TLS 1.3 protocol is enabled since it considers this to be
+            // a configuration error (see https://github.com/openssl/openssl/issues/5057#issuecomment-357240325).
+            // Since we want to disable TLS 1.3 by default if no TLS 1.3 cipher suites have
+            // been explicitly configured, we're going to temporarily remove TLS 1.3 from the
+            // configured protocols here.
+            sslParameters.setProtocols(removeTLS13IfNecessary(sslParameters.getProtocols()));
+        }
+
         super.setSSLParameters(sslParameters);
 
         Runnable config = () -> {
@@ -1458,6 +1472,34 @@ public final class OpenSSLEngine extends SSLEngine {
             config.run();
         }
 
+    }
+
+    private boolean tls13CipherSuitesConfigured(String[] cipherSuites) {
+        if (cipherSuites != null) {
+            for (String cipherSuite : cipherSuites) {
+                if (CipherSuiteConverter.isTLSv13CipherSuite(cipherSuite)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String[] removeTLS13IfNecessary(String[] protocols) {
+        if (protocols != null) {
+            ArrayList<String> updatedProtocols = new ArrayList<>();
+            for (String protocol : protocols) {
+                if (! protocol.equals(SSL_PROTO_TLSv1_3)) {
+                    updatedProtocols.add(protocol);
+                }
+            }
+            if (updatedProtocols.size() == protocols.length) {
+                return protocols;
+            } else {
+                return updatedProtocols.toArray(new String[updatedProtocols.size()]);
+            }
+        }
+        return null;
     }
 
     void setHost(final String host) {
