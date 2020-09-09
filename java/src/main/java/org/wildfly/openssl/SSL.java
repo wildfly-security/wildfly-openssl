@@ -296,6 +296,7 @@ public abstract class SSL {
      */
     static final String SSL_PROTO_ALL = "all";
     static final String SSL_PROTO_TLS = "TLS";
+    static final String SSL_PROTO_TLSv1_3 = "TLSv1.3";
     static final String SSL_PROTO_TLSv1_2 = "TLSv1.2";
     static final String SSL_PROTO_TLSv1_1 = "TLSv1.1";
     static final String SSL_PROTO_TLSv1 = "TLSv1";
@@ -354,7 +355,8 @@ public abstract class SSL {
     static final int SSL_PROTOCOL_TLSV1 = (1 << 2);
     static final int SSL_PROTOCOL_TLSV1_1 = (1 << 3);
     static final int SSL_PROTOCOL_TLSV1_2 = (1 << 4);
-    static final int SSL_PROTOCOL_ALL = (SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2);
+    static final int SSL_PROTOCOL_TLSV1_3 = (1 << 5);
+    static final int SSL_PROTOCOL_ALL = (SSL_PROTOCOL_TLSV1 | SSL_PROTOCOL_TLSV1_1 | SSL_PROTOCOL_TLSV1_2 | SSL_PROTOCOL_TLSV1_3);
 
     /*
      * Define the SSL verify levels
@@ -419,6 +421,7 @@ public abstract class SSL {
     static final int SSL_OP_NO_SSLv2 = 0x01000000;
     static final int SSL_OP_NO_SSLv3 = 0x02000000;
     static final int SSL_OP_NO_TLSv1 = 0x04000000;
+    static final int SSL_OP_NO_TLSv1_3 = 0x20000000;
     static final int SSL_OP_NO_TLSv1_2 = 0x08000000;
     static final int SSL_OP_NO_TLSv1_1 = 0x10000000;
 
@@ -426,6 +429,7 @@ public abstract class SSL {
     static final int TLS1_VERSION = 0x0301;
     static final int TLS1_1_VERSION = 0x0302;
     static final int TLS1_2_VERSION = 0x0303;
+    static final int TLS1_3_VERSION = 0x0304;
 
     static final int SSL_OP_NO_TICKET = 0x00004000;
 
@@ -514,8 +518,8 @@ public abstract class SSL {
      */
     static final int SSL_INFO_CLIENT_CERT_CHAIN = 0x0400;
 
-    /* Only support OFF and SERVER for now */
     static final long SSL_SESS_CACHE_OFF = 0x0000;
+    static final long SSL_SESS_CACHE_CLIENT = 0x0001;
     static final long SSL_SESS_CACHE_SERVER = 0x0002;
 
     static final int SSL_SELECTOR_FAILURE_NO_ADVERTISE = 0;
@@ -523,6 +527,7 @@ public abstract class SSL {
 
     static final long VERSION_1_1_0 = 0x10100000L;
     static final long VERSION_1_1_0_F = 0x1010006fL;
+    static final long VERSION_1_1_1 = 0x10101000L;
 
     /* Return OpenSSL version number */
     protected abstract String version();
@@ -824,6 +829,17 @@ public abstract class SSL {
     protected abstract boolean setCipherSuites(long ssl, String ciphers)
             throws Exception;
 
+    /**
+     * Sets the cipher suites available for negotiation in the SSL handshake.
+     * <br />
+     * This is a simple colon (":") separated list of TLSv1.3 ciphersuite names in order of preference.
+     *
+     * @param ssl     the SSL instance (SSL *)
+     * @param ciphers an SSL cipher specification
+     */
+    protected abstract boolean setCipherSuitesTLS13(long ssl, String ciphers)
+            throws Exception;
+
     protected abstract boolean setServerNameIndication(long ssl,
                                                        String hostName);
 
@@ -879,6 +895,7 @@ public abstract class SSL {
      *                 {@link SSL#SSL_PROTOCOL_TLSV1}
      *                 {@link SSL#SSL_PROTOCOL_TLSV1_1}
      *                 {@link SSL#SSL_PROTOCOL_TLSV1_2}
+     *                 {@link SSL#SSL_PROTOCOL_TLSV1_3}
      *                 {@link SSL#SSL_PROTOCOL_ALL} ( == all TLS versions, no SSL)
      *                 </PRE>
      * @param mode     SSL mode to use
@@ -949,6 +966,17 @@ public abstract class SSL {
      * @param ciphers An SSL cipher specification.
      */
     protected abstract boolean setCipherSuite(long ctx, String ciphers)
+            throws Exception;
+
+    /**
+     * Sets the cipher suites available for negotiation in the SSL handshake.
+     * <br />
+     * This is a simple colon (":") separated list of TLSv1.3 ciphersuite names in order of preference.
+     *
+     * @param ctx     Server or Client context to use.
+     * @param ciphers an SSL cipher specification
+     */
+    protected abstract boolean setCipherSuiteTLS13(long ctx, String ciphers)
             throws Exception;
 
     /**
@@ -1133,7 +1161,7 @@ public abstract class SSL {
      */
     protected abstract void invalidateSession(long ctx);
 
-    protected abstract void registerSessionContext(long context, OpenSSLServerSessionContext openSSLServerSessionContext);
+    protected abstract void registerSessionContext(long context, OpenSSLSessionContext openSSLSessionContext);
 
     /**
      * Interface implemented by components that will receive the call back to
@@ -1228,6 +1256,14 @@ public abstract class SSL {
      * @return the maximum supported protocol version
      */
     protected abstract int getMaxProtoVersion(long ssl);
+
+    /**
+     * Return whether or not the SSL session was reused.
+     * See https://www.openssl.org/docs/man1.1.1/man3/SSL_session_reused.html
+     * @param ssl the SSL engine
+     * @return {@code true} if the SSL session was reused and {@code false} otherwise
+     */
+    protected abstract boolean getSSLSessionReused(long ssl);
 
     private static final class VersionedLibrary implements Comparable<VersionedLibrary> {
         final String file;

@@ -39,13 +39,19 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
     private volatile int timeout;
     private final long context;
     private int maxCacheSize = 100;
-    private volatile boolean enabled;
+    private String handshakeKeyHost;
+    private int handshakeKeyPort;
 
     OpenSSLClientSessionContext(long context) {
         super(context);
         this.context = context;
         cache = new ConcurrentHashMap<>();
         accessQueue = ConcurrentDirectDeque.newInstance();
+    }
+
+    @Override
+    synchronized void sessionCreatedCallback(long ssl, long session, byte[] sessionId) {
+        storeClientSideSession(getHandshakeKey(), ssl, session, sessionId);
     }
 
     @Override
@@ -77,21 +83,45 @@ public final class OpenSSLClientSessionContext extends OpenSSLSessionContext {
         return maxCacheSize;
     }
 
-    synchronized void storeClientSideSession(final long ssl, final String host, final int port, byte[] sessionId) {
-        if (host != null && port >= 0) {
-            final ClientSessionKey key = new ClientSessionKey(host, port);
-            // set with the session pointer from the found session
-            final ClientSessionInfo foundSessionPtr = getCacheValue(key);
-            if (foundSessionPtr != null) {
-                if(getSession(foundSessionPtr.sessionId) != null) {
-                    removeCacheEntry(key);
-                } else {
-                    removeCacheEntry(key);
+    public void setSessionCacheEnabled(boolean enabled) {
+        long mode = enabled ? SSL.SSL_SESS_CACHE_CLIENT : SSL.SSL_SESS_CACHE_OFF;
+        SSL.getInstance().setSessionCacheMode(context, mode);
+    }
+
+    public boolean isSessionCacheEnabled() {
+        return SSL.getInstance().getSessionCacheMode(context) == SSL.SSL_SESS_CACHE_CLIENT;
+    }
+
+    void setHandshakeKeyHost(String handshakeKeyHost) {
+        this.handshakeKeyHost = handshakeKeyHost;
+    }
+
+    void setHandshakeKeyPort(int handshakeKeyPort) {
+        this.handshakeKeyPort = handshakeKeyPort;
+    }
+
+    public ClientSessionKey getHandshakeKey() {
+        if (handshakeKeyHost != null && handshakeKeyPort >= 0) {
+            return new ClientSessionKey(handshakeKeyHost, handshakeKeyPort);
+        }
+        return null;
+    }
+
+    synchronized void storeClientSideSession(ClientSessionKey key, long ssl, long sessionPointer, byte[] sessionId) {
+        if (sessionId != null) {
+            if (key != null) {
+                // set with the session pointer from the found session
+                final ClientSessionInfo foundSessionPtr = getCacheValue(key);
+                if (foundSessionPtr != null) {
+                    if (getSession(foundSessionPtr.sessionId) != null) {
+                        removeCacheEntry(key);
+                    } else {
+                        removeCacheEntry(key);
+                    }
                 }
+                addCacheEntry(key, new ClientSessionInfo(sessionPointer, sessionId, System.currentTimeMillis()));
+                clientSessionCreated(ssl, sessionPointer, sessionId);
             }
-            final long sessionPointer = SSL.getInstance().getSession(ssl);
-            addCacheEntry(key, new ClientSessionInfo(sessionPointer, sessionId, System.currentTimeMillis()));
-            clientSessionCreated(ssl, sessionPointer, sessionId);
         }
     }
 

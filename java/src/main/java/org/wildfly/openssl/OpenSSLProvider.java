@@ -27,6 +27,13 @@ public final class OpenSSLProvider extends Provider {
 
     private static boolean registered = false;
 
+    private static final String javaSpecVersion = System.getProperty("java.specification.version");
+
+    static int getJavaSpecVersion() {
+        if ("1.8".equals(javaSpecVersion)) return 8;
+        return Integer.parseInt(javaSpecVersion);
+    }
+
     public static final OpenSSLProvider INSTANCE = new OpenSSLProvider();
 
     public OpenSSLProvider() {
@@ -35,10 +42,16 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.openssl.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
         put("SSLContext.openssl.TLSv1.1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getSimpleName());
         put("SSLContext.openssl.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
+        if (getJavaSpecVersion() >= 11) {
+            put("SSLContext.openssl.TLSv1.3", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_3_ContextSpi.class.getSimpleName());
+        }
         put("SSLContext.TLS", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLSContextSpi.class.getSimpleName());
         put("SSLContext.TLSv1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_0_ContextSpi.class.getSimpleName());
         put("SSLContext.TLSv1.1", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_1_ContextSpi.class.getSimpleName());
         put("SSLContext.TLSv1.2", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_2_ContextSpi.class.getSimpleName());
+        if (getJavaSpecVersion() >= 11) {
+            put("SSLContext.TLSv1.3", OpenSSLContextSPI.class.getName() + "$" + OpenSSLContextSPI.OpenSSLTLS_1_3_ContextSpi.class.getSimpleName());
+        }
     }
 
     public static synchronized void register() {

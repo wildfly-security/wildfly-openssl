@@ -69,6 +69,10 @@ public class Messages {
     private static final String MSG37 = formatCode(37);
     private static final String MSG38 = formatCode(38);
     private static final String MSG39 = formatCode(39);
+    private static final String MSG40 = formatCode(40);
+    private static final String MSG41 = formatCode(41);
+    private static final String MSG42 = formatCode(42);
+    private static final String MSG43 = formatCode(43);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -222,5 +226,13 @@ public class Messages {
     public String unsupportedProtocolVersion(int p) {
         return interpolate(MSG39, p);
     }
-
+    public String handshakeFailed() {
+        return interpolate(MSG41);
+    }
+    public String settingCipherSuites(String s) {
+        return interpolate(MSG42, s);
+    }
+    public String settingTls13CipherSuites(String s) {
+        return interpolate(MSG43, s);
+    }
 }

@@ -17,9 +17,15 @@
 
 package org.wildfly.openssl;
 
+import static org.wildfly.openssl.OpenSSLEngine.LEGACY_SUPPORTED_PROTOCOLS;
+import static org.wildfly.openssl.OpenSSLEngine.SUPPORTED_PROTOCOLS;
+import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 
 /**
@@ -28,6 +34,7 @@ import javax.net.ssl.SSLServerSocket;
 public class OpenSSLServerSocket extends SSLServerSocket {
 
     private final OpenSSLContextSPI openSSLContextSPI;
+    private final SSLParameters sslParameters = new SSLParameters();
 
     public OpenSSLServerSocket(OpenSSLContextSPI openSSLContextSPI) throws IOException {
         this.openSSLContextSPI = openSSLContextSPI;
@@ -51,16 +58,19 @@ public class OpenSSLServerSocket extends SSLServerSocket {
     @Override
     public Socket accept() throws IOException {
         final Socket delegate = super.accept();
-        return new OpenSSLSocket(delegate, true, (OpenSSLEngine) openSSLContextSPI.createSSLEngine());
+        OpenSSLEngine engine = (OpenSSLEngine) openSSLContextSPI.createSSLEngine();
+        engine.setSSLParameters(sslParameters);
+        return new OpenSSLSocket(delegate, true, engine);
     }
 
     @Override
     public String[] getEnabledCipherSuites() {
-        return null;
+        return sslParameters.getCipherSuites();
     }
 
     @Override
     public void setEnabledCipherSuites(String[] suites) {
+        sslParameters.setCipherSuites(suites);
     }
 
     @Override
@@ -70,37 +80,41 @@ public class OpenSSLServerSocket extends SSLServerSocket {
 
     @Override
     public String[] getSupportedProtocols() {
-        return new String[0];
+        if (isTLS13Supported()) {
+            return SUPPORTED_PROTOCOLS.clone();
+        } else {
+            return LEGACY_SUPPORTED_PROTOCOLS.clone();
+        }
     }
 
     @Override
     public String[] getEnabledProtocols() {
-        return new String[0];
+        return sslParameters.getProtocols();
     }
 
     @Override
     public void setEnabledProtocols(String[] protocols) {
-
+        sslParameters.setProtocols(protocols);
     }
 
     @Override
     public void setNeedClientAuth(boolean need) {
-
+        sslParameters.setNeedClientAuth(need);
     }
 
     @Override
     public boolean getNeedClientAuth() {
-        return false;
+        return sslParameters.getNeedClientAuth();
     }
 
     @Override
     public void setWantClientAuth(boolean want) {
-
+        sslParameters.setWantClientAuth(want);
     }
 
     @Override
     public boolean getWantClientAuth() {
-        return false;
+        return sslParameters.getWantClientAuth();
     }
 
     @Override

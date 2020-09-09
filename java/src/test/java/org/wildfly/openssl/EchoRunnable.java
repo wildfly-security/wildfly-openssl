@@ -36,16 +36,25 @@ class EchoRunnable implements Runnable {
     private final SSLContext sslContext;
     private final AtomicReference<byte[]> sessionID;
     private final EngineCustomizer engineCustomizer;
+    private final AtomicReference<String> protocol;
+    private final AtomicReference<String> cipherSuite;
 
     EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID) {
-        this(serverSocket, sslContext, sessionID, null);
+        this(serverSocket, sslContext, sessionID, null, new AtomicReference<>(), new AtomicReference<>());
     }
 
     EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer) {
+        this(serverSocket, sslContext, sessionID, engineCustomizer, new AtomicReference<>(), new AtomicReference<>());
+    }
+
+    EchoRunnable(ServerSocket serverSocket, SSLContext sslContext, AtomicReference<byte[]> sessionID, EngineCustomizer engineCustomizer, AtomicReference<String> protocol,
+                 AtomicReference<String> cipherSuite) {
         this.serverSocket = serverSocket;
         this.sslContext = sslContext;
         this.sessionID = sessionID;
         this.engineCustomizer = engineCustomizer;
+        this.protocol = protocol;
+        this.cipherSuite = cipherSuite;
     }
 
     @Override
@@ -64,54 +73,83 @@ class EchoRunnable implements Runnable {
                     ByteBuffer out = ByteBuffer.allocateDirect(20000);
                     ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
                     try {
-                        SSLEngineResult result = null;
-                        boolean forceWrap = false;
+                        SSLEngineResult result;
+                        SSLEngineResult.HandshakeStatus status = SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
                         boolean moreData = false;
-                        while (result == null || result.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED) {
+                        while (status != SSLEngineResult.HandshakeStatus.FINISHED) {
                             if(!moreData) {
                                 in.clear();
                             }
                             out.clear();
-                            if (result == null || result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
-                                if(!moreData) {
-                                    int read = s.getInputStream().read(bytes);
-                                    in.put(bytes, 0, read);
-                                    in.flip();
-                                }
+                            switch (status) {
+                                case NEED_UNWRAP:
+                                        if(!moreData) {
+                                            // read data from socket into the buffer
+                                            int read = s.getInputStream().read(bytes);
+                                            in.put(bytes, 0, read);
+                                            in.flip();
+                                        }
+                                        result = engine.unwrap(in, out);
+                                        status = result.getHandshakeStatus();
+                                        moreData = in.hasRemaining();
+                                        if (result.bytesProduced() > 0) {
+                                            out.flip();
+                                            byte[] b = new byte[out.remaining()];
+                                            out.get(b);
+                                            dataStream.write(b);
+                                        }
+                                        break;
+                                case NEED_WRAP:
+                                        int remaining = 0, position = 0;
+                                        if (moreData) {
+                                            // backup if there is remaining data
+                                            remaining = in.remaining();
+                                            position = in.position();
+                                        }
+                                        in.flip();
+                                        result = engine.wrap(in, out);
+                                        status = result.getHandshakeStatus();
+                                        out.flip();
+                                        int len = out.remaining();
+                                        out.get(bytes, 0, len);
+                                        s.getOutputStream().write(bytes, 0, len);
+                                        if (moreData) {
+                                            in.limit(position + remaining);
+                                            in.position(position);
+                                        }
+                                        break;
+                                case NEED_TASK:
+                                    Runnable task = engine.getDelegatedTask();
+                                    while (task != null) {
+                                        task.run();
+                                        task = engine.getDelegatedTask();
+                                    }
+                                    status = engine.getHandshakeStatus();
+                                    break;
+                                default:
+                                    throw new RuntimeException("invalid status: " + status.toString());
+                            }
+                        }
+                        if(engine.getSession() != null) {
+                            sessionID.set(engine.getSession().getId());
+                            protocol.set(engine.getSession().getProtocol());
+                            cipherSuite.set(engine.getSession().getCipherSuite());
+                        }
+
+                        if (moreData) {
+                            // process remaining data in the buffer if necessary
+                            while (in.hasRemaining()) {
+                                out.clear();
                                 result = engine.unwrap(in, out);
-                                moreData = in.hasRemaining();
                                 if (result.bytesProduced() > 0) {
                                     out.flip();
                                     byte[] b = new byte[out.remaining()];
                                     out.get(b);
                                     dataStream.write(b);
                                 }
-                            } else if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_WRAP || forceWrap) {
-                                forceWrap = false;
-                                in.flip();
-                                result = engine.wrap(in, out);
-                                out.flip();
-                                int len = out.remaining();
-                                out.get(bytes, 0, len);
-                                s.getOutputStream().write(bytes, 0, len);
-                            } else if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) {
-                                Runnable task = engine.getDelegatedTask();
-                                while (task != null) {
-                                    task.run();
-                                    task = engine.getDelegatedTask();
-                                }
-                                if(moreData) {
-                                    result = null;
-                                } else {
-                                    forceWrap = true;
-                                }
-                            } else {
-                                throw new RuntimeException(result.toString());
                             }
                         }
-                        if(engine.getSession() != null) {
-                            sessionID.set(engine.getSession().getId());
-                        }
+
                         while (true) {
                             in.clear();
                             out.clear();
@@ -139,6 +177,7 @@ class EchoRunnable implements Runnable {
                                 out.clear();
                                 if(close) {
                                     engine.closeOutbound();
+                                    engine.closeInbound();
                                     s.close();
                                 }
                             }
@@ -168,15 +207,15 @@ class EchoRunnable implements Runnable {
                             //ignore
                         }
                         e.printStackTrace();
-                        //throw new RuntimeException(e);
+                        throw new RuntimeException(e);
                     }
 
                 });
                 t.start();
             }
         } catch (Exception e) {
-            //e.printStackTrace();
-            //throw new RuntimeException(e);
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 

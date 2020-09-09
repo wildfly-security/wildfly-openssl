@@ -25,9 +25,7 @@ public final class OpenSSLServerSessionContext extends OpenSSLSessionContext {
 
     OpenSSLServerSessionContext(long context) {
         super(context);
-        SSL.getInstance().registerSessionContext(context, this);
     }
-
 
     @Override
     public void setSessionTimeout(int seconds) {

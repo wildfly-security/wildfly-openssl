@@ -31,6 +31,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngineResult;
@@ -43,6 +46,8 @@ import javax.net.ssl.SSLSocket;
  * @author Stuart Douglas
  */
 public class OpenSSLSocket extends SSLSocket {
+
+    private static final Logger logger = Logger.getLogger(OpenSSLSocket.class.getName());
 
     private final OpenSSLEngine sslEngine;
     private final List<HandshakeCompletedListener> handshakeCompletedListenerList = new ArrayList<>();
@@ -190,7 +195,16 @@ public class OpenSSLSocket extends SSLSocket {
 
     @Override
     public SSLSession getSession() {
-        return sslEngine.getSession();
+        if (sslEngine.isHandshakeFinished() || sslEngine.isOutboundDone() || sslEngine.isInboundDone()) {
+            return sslEngine.getSession();
+        } else {
+            try {
+                startHandshake();
+            } catch (IOException e) {
+                logger.log(Level.WARNING, Messages.MESSAGES.handshakeFailed(), e);
+            }
+            return sslEngine.getSession();
+        }
     }
 
     @Override

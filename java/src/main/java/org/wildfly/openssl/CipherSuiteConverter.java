@@ -17,6 +17,9 @@
 
 package org.wildfly.openssl;
 
+import static java.util.Collections.singletonMap;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -81,9 +84,8 @@ public final class CipherSuiteConverter {
     private static final Pattern JAVA_AES_PATTERN = Pattern.compile("^(AES)_([0-9]+)_(.*)$");
     private static final Pattern OPENSSL_AES_CBC_PATTERN = Pattern.compile("^(AES)([0-9]+)$");
     private static final Pattern OPENSSL_AES_PATTERN = Pattern.compile("^(AES)([0-9]+)-(.*)$");
-    // Covers TLSv1.3 ciphers and help avoid weird behaviours like what happens in
-    // BasicOpenSSLEngineTest#testWrongClientSideTrustManagerFailsValidation:70
-    private static final Pattern OPENSSL_TLSv13_PATTERN = Pattern.compile("^(TLS)_(AES|CHACHA20)_(POLY1305|[0-9]+)_(.*)$");
+    // There are only 5 supported cipher suites for TLS 1.3, including them directly here
+    private static final Pattern OPENSSL_TLSv13_PATTERN = Pattern.compile("^(TLS_AES_128_GCM_SHA256|TLS_AES_256_GCM_SHA384|TLS_CHACHA20_POLY1305_SHA256|TLS_AES_128_CCM_SHA256|TLS_AES_128_CCM_8_SHA256)$");
 
     /**
      * Java-to-OpenSSL cipher suite conversion map
@@ -97,6 +99,31 @@ public final class CipherSuiteConverter {
      * a Java cipher suite has the protocol name prefix (TLS_, SSL_)
      */
     private static final ConcurrentMap<String, Map<String, String>> o2j = new ConcurrentHashMap<>();
+
+    /**
+     * Cipher suite conversion maps for TLS 1.3. The Java and OpenSSL cipher suite names
+     * are the same.
+     */
+    private static final Map<String, String> j2oTls13;
+    private static final Map<String, Map<String, String>> o2jTls13;
+
+    static {
+        Map<String, String> j2oTls13Map = new HashMap<>();
+        j2oTls13Map.put("TLS_AES_128_GCM_SHA256", "TLS_AES_128_GCM_SHA256");
+        j2oTls13Map.put("TLS_AES_256_GCM_SHA384", "TLS_AES_256_GCM_SHA384");
+        j2oTls13Map.put("TLS_CHACHA20_POLY1305_SHA256", "TLS_CHACHA20_POLY1305_SHA256");
+        j2oTls13Map.put("TLS_AES_128_CCM_SHA256", "TLS_AES_128_CCM_SHA256");
+        j2oTls13Map.put("TLS_AES_128_CCM_8_SHA256", "TLS_AES_128_CCM_8_SHA256");
+        j2oTls13 = Collections.unmodifiableMap(j2oTls13Map);
+
+        Map<String, Map<String, String>> o2jTls13Map = new HashMap<>();
+        o2jTls13Map.put("TLS_AES_128_GCM_SHA256", singletonMap("TLS", "TLS_AES_128_GCM_SHA256"));
+        o2jTls13Map.put("TLS_AES_256_GCM_SHA384", singletonMap("TLS", "TLS_AES_256_GCM_SHA384"));
+        o2jTls13Map.put("TLS_CHACHA20_POLY1305_SHA256", singletonMap("TLS", "TLS_CHACHA20_POLY1305_SHA256"));
+        o2jTls13Map.put("TLS_AES_128_CCM_SHA256", singletonMap("TLS", "TLS_AES_128_CCM_SHA256"));
+        o2jTls13Map.put("TLS_AES_128_CCM_8_SHA256", singletonMap("TLS", "TLS_AES_128_CCM_8_SHA256"));
+        o2jTls13 = Collections.unmodifiableMap(o2jTls13Map);
+    }
 
     /**
      * Clears the cache for testing purpose.
@@ -158,11 +185,20 @@ public final class CipherSuiteConverter {
      * @return {@code null} if the conversion has failed
      */
     public static String toOpenSsl(String javaCipherSuite) {
-        String converted = j2o.get(javaCipherSuite);
+        String converted = javaToOpenSsl(javaCipherSuite);
         if (converted != null) {
             return converted;
         } else {
             return cacheFromJava(javaCipherSuite);
+        }
+    }
+
+    private static String javaToOpenSsl(String javaCipherSuite) {
+        String converted = j2oTls13.get(javaCipherSuite);
+        if (converted != null) {
+            return converted;
+        } else {
+            return j2o.get(javaCipherSuite);
         }
     }
 
@@ -279,7 +315,7 @@ public final class CipherSuiteConverter {
      * @return The translated cipher suite name according to java conventions. This will not be {@code null}.
      */
     public static String toJava(String openSslCipherSuite, String protocol) {
-        Map<String, String> p2j = o2j.get(openSslCipherSuite);
+        Map<String, String> p2j = toJava(openSslCipherSuite);
         if (p2j == null) {
             p2j = cacheFromOpenSsl(openSslCipherSuite);
         }
@@ -292,6 +328,15 @@ public final class CipherSuiteConverter {
         return javaCipherSuite;
     }
 
+    private static Map<String, String> toJava(String openSslCipherSuite) {
+        Map<String, String> p2j = o2jTls13.get(openSslCipherSuite);
+        if (p2j != null) {
+            return p2j;
+        } else {
+            return o2j.get(openSslCipherSuite);
+        }
+    }
+
     private static Map<String, String> cacheFromOpenSsl(String openSslCipherSuite) {
         String javaCipherSuiteSuffix = toJavaUncached(openSslCipherSuite);
         if (javaCipherSuiteSuffix == null) {
@@ -299,12 +344,7 @@ public final class CipherSuiteConverter {
         }
 
         final String javaCipherSuiteSsl = "SSL_" + javaCipherSuiteSuffix;
-        final String javaCipherSuiteTls;
-        if (openSslCipherSuite.startsWith("TLS_")) {
-            javaCipherSuiteTls = javaCipherSuiteSuffix;
-        } else {
-            javaCipherSuiteTls = "TLS_" + javaCipherSuiteSuffix;
-        }
+        final String javaCipherSuiteTls = "TLS_" + javaCipherSuiteSuffix;
 
         // Cache the mapping.
         final Map<String, String> p2j = new HashMap<>(4);
@@ -327,11 +367,6 @@ public final class CipherSuiteConverter {
 
     static String toJavaUncached(String openSslCipherSuite) {
         Matcher m = OPENSSL_CIPHERSUITE_PATTERN.matcher(openSslCipherSuite);
-
-        if (openSslCipherSuite.startsWith("TLS_")) {
-            m = OPENSSL_TLSv13_PATTERN.matcher(openSslCipherSuite);
-        }
-
         if (!m.matches()) {
             return null;
         }
@@ -352,20 +387,8 @@ public final class CipherSuiteConverter {
         }
 
         handshakeAlgo = toJavaHandshakeAlgo(handshakeAlgo, export);
-        String bulkCipher;
-        String hmacAlgo;
-        if ("TLS".equals(handshakeAlgo)) {
-            String groups = m.group(2) + "_" + m.group(3);
-            bulkCipher = toJavaBulkCipher(groups, export);
-            hmacAlgo = m.group(4);
-        } else {
-            bulkCipher = toJavaBulkCipher(m.group(2), export);
-            hmacAlgo = toJavaHmacAlgo(m.group(3));
-        }
-
-        if ("TLS".equals(handshakeAlgo)) {
-            return handshakeAlgo + "_" + bulkCipher + "_" + hmacAlgo;
-        }
+        String bulkCipher = toJavaBulkCipher(m.group(2), export);
+        String hmacAlgo = toJavaHmacAlgo(m.group(3));
         return handshakeAlgo + "_WITH_" + bulkCipher + '_' + hmacAlgo;
     }
 
@@ -441,5 +464,9 @@ public final class CipherSuiteConverter {
     }
 
     private CipherSuiteConverter() {
+    }
+
+    static boolean isTLSv13CipherSuite(String openSslCipherSuite) {
+        return OPENSSL_TLSv13_PATTERN.matcher(openSslCipherSuite).matches();
     }
 }
