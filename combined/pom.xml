@@ -78,7 +78,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-macosx-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -126,7 +126,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-s390x</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-s390x}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -145,7 +145,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-i386}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -165,7 +165,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -184,7 +184,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-windows-i386}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -203,7 +203,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-windows-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -219,7 +219,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -235,7 +235,7 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-sparcv9}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -261,32 +261,32 @@
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-windows-x86_64}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-windows-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-windows-i386}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-x86_64}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-linux-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-i386}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-macosx-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64}</version>
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.natives}</version>
+                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
