@@ -31,4 +31,4 @@ target/util.o : ../libwfssl/src/util.c target/classes/solaris-sparcv9
 	$(CC) $(CFLAGS) -m64 -fPIC -c $< -o $@ -I../libwfssl/include -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/solaris
 
 target/classes/solaris-sparcv9/libwfssl.so: $(OBJ)
-	$(CC) $(CFLAGS) -m64 -shared $(OBJ) -o $@ $(LDFLAGS) -Wl,--no-as-needed -ldl
+	$(CC) $(CFLAGS) -m64 -shared $(OBJ) -o $@ $(LDFLAGS) -ldl
