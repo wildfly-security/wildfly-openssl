@@ -334,7 +334,6 @@ void remove_session_cb(SSL_CTX *ctx, SSL_SESSION * session) {
     (*e)->CallVoidMethod(e, c->session_context, sessionRemove, sessionId);
 
     (*javavm)->DetachCurrentThread(javavm);
-    ssl_methods.SSL_SESSION_free(session);
 }
 
 void setup_session_context(JNIEnv *e, tcn_ssl_ctxt_t *c) {
