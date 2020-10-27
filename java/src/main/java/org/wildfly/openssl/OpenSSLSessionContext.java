@@ -113,7 +113,10 @@ abstract class OpenSSLSessionContext implements SSLSessionContext {
     }
 
     synchronized void sessionRemovedCallback(byte[] sessionId) {
-        sessions.remove(new Key(sessionId));
+        OpenSSlSession existing = sessions.remove(new Key(sessionId));
+        if (existing != null) {
+            existing.invalidate();
+        }
     }
 
     public void mergeHandshakeSession(SSLSession handshakeSession, byte[] sessionId) {
