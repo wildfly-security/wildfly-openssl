@@ -934,7 +934,7 @@ public final class OpenSSLEngine extends SSLEngine {
             boolean tlsv1_1 = false;
             boolean tlsv1_2 = false;
             boolean tlsv1_3 = false;
-            int minProtocolIndex = OPENSSL_PROTOCOLS.length;
+            int minProtocolIndex = OPENSSL_PROTOCOLS.length - 1;
             int maxProtocolIndex = 0;
 
             for (String p : protocols) {
