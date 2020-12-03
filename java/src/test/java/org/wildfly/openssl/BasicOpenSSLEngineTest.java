@@ -198,8 +198,11 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             int read = socket.getInputStream().read(data);
 
             Assert.assertEquals(MESSAGE, new String(data, 0, read));
+            SSLSession session = engineRef.get().getSession();
+            Assert.assertNotNull(session);
             if (! protocol.equals("TLSv1.3")) {
                 Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
+                Assert.assertArrayEquals(socket.getSession().getId(), session.getId());
             }
             Assert.assertEquals(protocol, socket.getSession().getProtocol());
             Assert.assertEquals(protocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(socket.getSession().getCipherSuite()));
@@ -569,6 +572,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
         });
 
         SSLServerSocket sslServerSocket = (SSLServerSocket) serverContext.getServerSocketFactory().createServerSocket(PORT, 10, InetAddress.getByName(HOST));
+        sslServerSocket.setNeedClientAuth(true);
         SSLSocket serverSocket = (SSLSocket) sslServerSocket.accept();
         SSLSession serverSession = serverSocket.getSession();
         SSLSocket clientSocket = socketFuture.get();
@@ -585,6 +589,8 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             Assert.assertEquals(expectedProtocol, serverSession.getProtocol());
             Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(clientSession.getCipherSuite()));
             Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(serverSession.getCipherSuite()));
+            Assert.assertNotNull(clientSession.getPeerCertificateChain());
+            Assert.assertNotNull(serverSession.getPeerCertificateChain());
         } finally {
             serverSocket.close();
             clientSocket.close();
