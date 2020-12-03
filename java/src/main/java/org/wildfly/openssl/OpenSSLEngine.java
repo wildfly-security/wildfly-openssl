@@ -50,6 +50,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private static final SSLException ENGINE_CLOSED = new SSLException(MESSAGES.engineIsClosed());
     private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException(MESSAGES.renegotiationNotSupported());
     private static final SSLException ENCRYPTED_PACKET_OVERSIZED = new SSLException(MESSAGES.oversidedPacket());
+    private static final String NONE_CIPHER = "(NONE)";
 
     static {
         ENGINE_CLOSED.setStackTrace(new StackTraceElement[0]);
@@ -1224,7 +1225,7 @@ public final class OpenSSLEngine extends SSLEngine {
      * Converts the specified OpenSSL cipher suite to the Java cipher suite.
      */
     static String toJavaCipherSuite(String openSslCipherSuite, long ssl) {
-        if (openSslCipherSuite == null) {
+        if (openSslCipherSuite == null || openSslCipherSuite.equals(NONE_CIPHER)) {
             return null;
         }
 
