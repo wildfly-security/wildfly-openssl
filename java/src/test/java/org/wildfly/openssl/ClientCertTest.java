@@ -42,7 +42,7 @@ public class ClientCertTest extends AbstractOpenSSLTest {
     public void jsseClientCertTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
 
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
                 //engine.setNeedClientAuth(true);

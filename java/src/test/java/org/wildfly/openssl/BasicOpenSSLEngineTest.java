@@ -17,10 +17,7 @@
 
 package org.wildfly.openssl;
 
-import static org.wildfly.openssl.OpenSSLEngine.isOpenSSL10;
-import static org.wildfly.openssl.OpenSSLEngine.isOpenSSL110FOrLower;
 import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
-import static org.wildfly.openssl.OpenSSLProvider.getJavaSpecVersion;
 import static org.wildfly.openssl.SSL.SSL_PROTO_SSLv2Hello;
 import static org.wildfly.openssl.SSLTestUtils.HOST;
 import static org.wildfly.openssl.SSLTestUtils.PORT;
@@ -37,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -56,10 +52,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void basicOpenSSLTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
-        final String[] providers = new String[] { "openssl.TLSv1", "openssl.TLSv1.1", "openssl.TLSv1.2" };
-        for (String provider : providers) {
-            basicTest(provider, provider);
-        }
+        basicTest("openssl.TLSv1.2", "openssl.TLSv1.2");
     }
 
     @Test
@@ -70,13 +63,8 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void basicOpenSSLTestInterop() throws IOException, NoSuchAlgorithmException, InterruptedException {
-        final String[] providers = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String provider : providers) {
-            basicTest("openssl." + provider, provider);
-        }
-        for (String provider : providers) {
-            basicTest(provider, "openssl." + provider);
-        }
+        basicTest("openssl.TLSv1.2", "TLSv1.2");
+        basicTest("TLSv1.2", "openssl.TLSv1.2");
     }
 
     @Test
@@ -161,10 +149,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void testSingleEnabledProtocol() throws IOException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String protocol : protocols) {
-            testSingleEnabledProtocolBase(protocol);
-        }
+        testSingleEnabledProtocolBase("TLSv1.2");
     }
 
     @Test
@@ -285,180 +270,14 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
     }
 
     @Test
-    public void testMultipleEnabledProtocolsWithClientProtocolExactMatch() throws IOException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1" };
-
-        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
-            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLS");
-            final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
-
-            EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
-                engineRef.set(engine);
-                try {
-                    engine.setEnabledProtocols(protocols);
-                    return engine;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }));
-            Thread acceptThread = new Thread(echo);
-            acceptThread.start();
-            SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.setReuseAddress(true);
-            socket.setEnabledProtocols(new String[] { "TLSv1" }); // from list of enabled protocols on the server side
-            socket.connect(SSLTestUtils.createSocketAddress());
-            socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-            byte[] data = new byte[100];
-            int read = socket.getInputStream().read(data);
-
-            Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-            Assert.assertEquals("TLSv1", socket.getSession().getProtocol());
-            Assert.assertArrayEquals(new String[]{ SSL_PROTO_SSLv2Hello, "TLSv1", "TLSv1.1" }, engineRef.get().getEnabledProtocols());
-            socket.getSession().invalidate();
-            socket.close();
-
-            socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.setReuseAddress(true);
-            socket.setEnabledProtocols(new String[] { "TLSv1.1" }); // from list of enabled protocols on the server side
-            socket.connect(SSLTestUtils.createSocketAddress());
-            socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-            data = new byte[100];
-            read = socket.getInputStream().read(data);
-
-            Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-            Assert.assertEquals("TLSv1.1", socket.getSession().getProtocol());
-            Assert.assertArrayEquals(new String[]{ SSL_PROTO_SSLv2Hello, "TLSv1", "TLSv1.1"}, engineRef.get().getEnabledProtocols());
-
-            socket.getSession().invalidate();
-            socket.close();
-            serverSocket.close();
-            acceptThread.join();
-        }
-    }
-
-    @Test
-    public void testMultipleEnabledProtocolsWithClientProtocolWithinEnabledRange() throws IOException, InterruptedException {
-        Assume.assumeTrue(! isOpenSSL10() && ! isOpenSSL110FOrLower());
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.2" };
-
-        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
-            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLS");
-            final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
-
-            EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
-                engineRef.set(engine);
-                try {
-                    engine.setEnabledProtocols(protocols);
-                    return engine;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }));
-            Thread acceptThread = new Thread(echo);
-            acceptThread.start();
-
-            SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-            socket.setReuseAddress(true);
-            socket.setEnabledProtocols(new String[] { "TLSv1.1" });
-            socket.connect(SSLTestUtils.createSocketAddress());
-            socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-            byte[] data = new byte[100];
-            int read = socket.getInputStream().read(data);
-
-            Assert.assertEquals(MESSAGE, new String(data, 0, read));
-            Assert.assertArrayEquals(socket.getSession().getId(), sessionID.get());
-            Assert.assertEquals("TLSv1.1", socket.getSession().getProtocol());
-            Assert.assertArrayEquals(new String[]{SSL_PROTO_SSLv2Hello, "TLSv1", "TLSv1.1", "TLSv1.2"}, engineRef.get().getEnabledProtocols());
-
-            socket.getSession().invalidate();
-            socket.close();
-            serverSocket.close();
-            acceptThread.join();
-        }
-    }
-
-    @Test
-    public void testMultipleEnabledProtocolsWithClientProtocolOutsideOfEnabledRange() throws IOException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1.1", "TLSv1.2" };
-
-        try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
-            final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLS");
-            final AtomicReference<SSLEngine> engineRef = new AtomicReference<>();
-
-            EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, sessionID, (engine -> {
-                engineRef.set(engine);
-                try {
-                    engine.setEnabledProtocols(protocols);
-                    return engine;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }));
-            Thread acceptThread = new Thread(echo);
-            acceptThread.start();
-
-            SSLSocket socket = null;
-            try {
-                socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-                socket.setReuseAddress(true);
-                socket.setEnabledProtocols(new String[]{"SSLv3"});
-                socket.connect(SSLTestUtils.createSocketAddress());
-                socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-                Assert.fail("Expected SSLHandshakeException not thrown");
-            } catch (SSLHandshakeException e) {
-                // expected
-                if (socket != null) {
-                    socket.close();
-                }
-            }
-            try {
-                socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-                socket.setReuseAddress(true);
-                socket.setEnabledProtocols(new String[]{"TLSv1"});
-                socket.connect(SSLTestUtils.createSocketAddress());
-                socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-                Assert.fail("Expected SSLHandshakeException not thrown");
-            } catch (SSLHandshakeException e) {
-                // expected
-                if (socket != null) {
-                    socket.close();
-                }
-            }
-            try {
-                if (getJavaSpecVersion() >= 11) {
-                    socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
-                    socket.setReuseAddress(true);
-                    socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                    socket.connect(SSLTestUtils.createSocketAddress());
-                    socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
-                    Assert.fail("Expected SSLHandshakeException not thrown");
-                }
-            } catch (SSLHandshakeException e) {
-                // expected
-                if (socket != null) {
-                    socket.close();
-                }
-            }
-
-            serverSocket.close();
-            acceptThread.join();
-        }
-    }
-
-    @Test
     public void testWrongClientSideTrustManagerFailsValidation() throws IOException, NoSuchAlgorithmException, InterruptedException {
         try (ServerSocket serverSocket = SSLTestUtils.createServerSocket()) {
             final AtomicReference<byte[]> sessionID = new AtomicReference<>();
-            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1");
+            final SSLContext sslContext = SSLTestUtils.createSSLContext("openssl.TLSv1.2");
 
             Thread acceptThread = new Thread(new EchoRunnable(serverSocket, sslContext, sessionID));
             acceptThread.start();
-            final SSLSocket socket = (SSLSocket) SSLTestUtils.createSSLContext("openssl.TLSv1").getSocketFactory().createSocket();
+            final SSLSocket socket = (SSLSocket) SSLTestUtils.createSSLContext("openssl.TLSv1.2").getSocketFactory().createSocket();
             socket.setReuseAddress(true);
             socket.setSSLParameters(socket.getSSLParameters());
             socket.connect(SSLTestUtils.createSocketAddress());
@@ -476,10 +295,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void openSslLotsOfDataTest() throws IOException, NoSuchAlgorithmException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String protocol : protocols) {
-            openSslLotsOfDataTestBase(protocol);
-        }
+        openSslLotsOfDataTestBase("TLSv1.2");
     }
 
     @Test
@@ -526,10 +342,7 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void testTwoWay() throws Exception {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLS" };
-        for (String protocol : protocols) {
-            performTestTwoWay("openssl." + protocol, "openssl." + protocol, protocol);
-        }
+        performTestTwoWay("openssl.TLSv1.2", "openssl.TLSv1.2", "TLSv1.2");
     }
 
     @Test
@@ -540,13 +353,8 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
 
     @Test
     public void testTwoWayInterop() throws Exception {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String protocol : protocols) {
-            performTestTwoWay("openssl." + protocol, protocol, protocol); // openssl server
-        }
-        for (String protocol : protocols) {
-            performTestTwoWay(protocol, "openssl." + protocol, protocol); // openssl client
-        }
+        performTestTwoWay("openssl.TLSv1.2", "TLSv1.2", "TLSv1.2"); // openssl server
+        performTestTwoWay("TLSv1.2", "openssl.TLSv1.2", "TLSv1.2"); // openssl client
     }
 
     @Test

@@ -40,10 +40,7 @@ public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
 
     @Test
     public void basicOpenSSLTest1() throws IOException, NoSuchAlgorithmException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String protocol : protocols) {
-            basicOpenSSLTest1Base(protocol);
-        }
+        basicOpenSSLTest1Base("TLSv1.2");
     }
 
     @Test
@@ -93,10 +90,7 @@ public class BasicOpenSSLSocketTest extends AbstractOpenSSLTest {
 
     @Test
     public void basicOpenSSLTest2() throws IOException, NoSuchAlgorithmException, InterruptedException {
-        final String[] protocols = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String protocol : protocols) {
-            basicOpenSSLTest2Base(protocol);
-        }
+        basicOpenSSLTest2Base("TLSv1.2");
     }
 
     @Test

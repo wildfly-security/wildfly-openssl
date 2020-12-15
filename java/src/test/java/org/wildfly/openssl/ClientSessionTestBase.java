@@ -357,7 +357,7 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
 
             EchoRunnable echo = new EchoRunnable(serverSocket, sslContext, new AtomicReference<>(), (engine -> {
                 try {
-                    engine.setEnabledProtocols(new String[]{ "TLSv1", "TLSv1.1", "TLSv1.2"});
+                    engine.setEnabledProtocols(new String[]{ "TLSv1.2"});
                     return engine;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -440,9 +440,9 @@ public class ClientSessionTestBase extends AbstractOpenSSLTest {
         EchoRunnable echo = new EchoRunnable(serverSocket, SSLTestUtils.createSSLContext(serverProvider), new AtomicReference<>(), (engine -> {
             try {
                 if (isTLS13Supported()) {
-                    engine.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"});
+                    engine.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.3"});
                 } else {
-                    engine.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"});
+                    engine.setEnabledProtocols(new String[]{"TLSv1.2"});
                 }
                 return engine;
             } catch (Exception e) {
