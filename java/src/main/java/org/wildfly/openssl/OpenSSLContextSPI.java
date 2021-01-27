@@ -152,33 +152,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 // Ignore
             }
             // Disable compression
-            boolean disableCompressionSupported = false;
-            try {
-                disableCompressionSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_COMPRESSION);
-                if (disableCompressionSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
-                }
-            } catch (UnsatisfiedLinkError e) {
-                // Ignore
-            }
-            if (!disableCompressionSupported) {
-                LOG.fine("The version of SSL in use does not support disabling compression");
-            }
+            SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_COMPRESSION);
 
             // Disable TLS Session Tickets (RFC4507) to protect perfect forward secrecy
-            boolean disableSessionTicketsSupported = false;
-            try {
-                disableSessionTicketsSupported = SSL.getInstance().hasOp(SSL.SSL_OP_NO_TICKET);
-                if (disableSessionTicketsSupported) {
-                    SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
-                }
-            } catch (UnsatisfiedLinkError e) {
-                // Ignore
-            }
-            if (!disableSessionTicketsSupported) {
-                // OpenSSL is too old to support TLS Session Tickets.
-                LOG.fine("The version of SSL in use does not support disabling session tickets");
-            }
+            SSL.getInstance().setSSLContextOptions(ctx, SSL.SSL_OP_NO_TICKET);
         } catch (Exception e) {
             throw new RuntimeException(Messages.MESSAGES.failedToInitializeSslContext(), e);
         }
