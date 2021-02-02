@@ -32,15 +32,12 @@ public class ClientSessionInteropTest extends ClientSessionTestBase {
 
     @Test
     public void testJsse() throws Exception {
-        final String[] providers = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" }; // testing session id doesn't make sense for TLSv1.3 or higher
-        for (String provider : providers) {
-            testSessionId(SSLTestUtils.createSSLContext(provider), "openssl." + provider);
-        }
+        testSessionId(SSLTestUtils.createSSLContext("TLSv1.2"), "openssl.TLSv1.2");
     }
 
     @Test
     public void testSessionTimeoutJsse() throws Exception {
-        testSessionTimeout("TLSv1", "openssl.TLSv1");
+        testSessionTimeout("TLSv1.2", "openssl.TLSv1.2");
     }
 
     @Test
@@ -51,10 +48,7 @@ public class ClientSessionInteropTest extends ClientSessionTestBase {
 
     @Test
     public void testSessionInvalidationJsse() throws Exception {
-        final String[] providers = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String provider : providers) {
-            testSessionInvalidation(provider, "openssl." + provider);
-        }
+        testSessionInvalidation("TLSv1.2", "openssl.TLSv1.2");
     }
 
     @Test
@@ -65,10 +59,7 @@ public class ClientSessionInteropTest extends ClientSessionTestBase {
 
     @Test
     public void testSessionSizeJsse() throws Exception {
-        final String[] providers = new String[] { "TLSv1", "TLSv1.1", "TLSv1.2" };
-        for (String provider : providers) {
-            testSessionSize(provider, "openssl." + provider);
-        }
+        testSessionSize("TLSv1.2", "openssl.TLSv1.2");
     }
 
     @Test
