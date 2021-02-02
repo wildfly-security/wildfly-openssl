@@ -1425,20 +1425,8 @@ public final class OpenSSLEngine extends SSLEngine {
 
             // Use server's preference order for ciphers (rather than
             // client's)
-            boolean orderCiphersSupported = false;
-            try {
-                orderCiphersSupported = SSL.getInstance().hasOp(SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                if (orderCiphersSupported) {
-                    if (sslParameters.getUseCipherSuitesOrder()) {
-                        SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
-                    }
-                }
-            } catch (UnsatisfiedLinkError e) {
-                // Ignore
-            }
-            if (!orderCiphersSupported) {
-                // OpenSSL does not support ciphers ordering.
-                LOG.fine("The version of SSL in use does not support cipher ordering");
+            if (sslParameters.getUseCipherSuitesOrder()) {
+                SSL.getInstance().setSSLOptions(ssl, SSL.SSL_OP_CIPHER_SERVER_PREFERENCE);
             }
 
             if(!clientMode) {
