@@ -1112,7 +1112,7 @@ public abstract class SSL {
     static long sniCallBack(long currentCtx, String sniHostName) {
         SNICallBack sniCallBack = sniCallBacks.get(Long.valueOf(currentCtx));
         if (sniCallBack == null) {
-            return 0;
+            return currentCtx;
         }
         return sniCallBack.getSslContext(sniHostName);
     }
@@ -1140,7 +1140,7 @@ public abstract class SSL {
      *                          <code>defaultSSLContext</code> to the correct  OpenSSL
      *                          SSLContext
      */
-    static void registerDefault(Long defaultSSLContext,
+    public static void registerDefault(Long defaultSSLContext,
                                 SNICallBack sniCallBack) {
         sniCallBacks.put(defaultSSLContext, sniCallBack);
     }
@@ -1152,7 +1152,7 @@ public abstract class SSL {
      * @param defaultSSLContext The Java representation of a pointer to the
      *                          OpenSSL SSLContext that will no longer be used
      */
-    static void unregisterDefault(Long defaultSSLContext) {
+    public static void unregisterDefault(Long defaultSSLContext) {
         sniCallBacks.remove(defaultSSLContext);
     }
 
@@ -1168,7 +1168,7 @@ public abstract class SSL {
      * select an OpenSSL SSLContext based on the host name requested by the
      * client.
      */
-    interface SNICallBack {
+    public interface SNICallBack {
 
         /**
          * This callback is made during the TLS handshake when the client uses
