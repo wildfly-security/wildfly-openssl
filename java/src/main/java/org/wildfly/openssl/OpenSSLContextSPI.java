@@ -272,15 +272,30 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                     final String lowerSniHostname = sniHostName.toLowerCase();
 
-                    for (ArrayList<String> hostnames: x509CertificateToSSLContextMap.keySet()) {
+                    String sniHostnameAsWildcard = null;
+                    final int idx = lowerSniHostname.indexOf('.');
+                    if (idx > 0) {
+                        sniHostnameAsWildcard = "*" + lowerSniHostname.substring(idx);
+                    }
 
-                      // find a ssl ctx by hostname
+                    long wildcardSSLContext = 0L;
+
+                    for (ArrayList<String> hostnames: x509CertificateToSSLContextMap.keySet()) {
+                      // find a ssl ctx by hostname, return if its a perfect match
                       if (hostnames.contains(lowerSniHostname)) {
                         return x509CertificateToSSLContextMap.get(hostnames);
                       }
+
+                      // check if context might be good with as a wildcard cert, but
+                      // there might be another ctx with a better match, so don't
+                      // return it yet, let's wait until we checked all ctx avail
+                      if (sniHostnameAsWildcard != null && hostnames.contains(sniHostnameAsWildcard)) {
+                        wildcardSSLContext = x509CertificateToSSLContextMap.get(hostnames);
+                      }
                     }
 
-                    return ctx;
+                    // if we have a ssl ctx with a matching wildcard cert, prefer it
+                    return wildcardSSLContext != 0L ? wildcardSSLContext : ctx;
                   }
                 });
             }
