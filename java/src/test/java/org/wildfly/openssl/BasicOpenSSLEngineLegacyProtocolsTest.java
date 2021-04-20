@@ -51,6 +51,13 @@ public class BasicOpenSSLEngineLegacyProtocolsTest extends AbstractOpenSSLTest  
     public static final String MESSAGE = "Hello World";
     public static String disabledAlgorithms;
 
+    // @SECLEVEL=1 is a needed directive to enable security level 1
+    private static String[] RSA_CIPHERS_SECLEVEL_1 = {
+        "@SECLEVEL=1", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+        "TLS_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA"
+    };
+
     @BeforeClass
     public static void setUp() {
         disabledAlgorithms = Security.getProperty("jdk.tls.disabledAlgorithms");
@@ -79,6 +86,9 @@ public class BasicOpenSSLEngineLegacyProtocolsTest extends AbstractOpenSSLTest  
                 engineRef.set(engine);
                 try {
                     engine.setEnabledProtocols(protocols);
+                    if (!isOpenSSL10()) {
+                        engine.setEnabledCipherSuites(RSA_CIPHERS_SECLEVEL_1);
+                    }
                     return engine;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -135,6 +145,9 @@ public class BasicOpenSSLEngineLegacyProtocolsTest extends AbstractOpenSSLTest  
                 engineRef.set(engine);
                 try {
                     engine.setEnabledProtocols(protocols);
+                    if (!isOpenSSL10()) {
+                        engine.setEnabledCipherSuites(RSA_CIPHERS_SECLEVEL_1);
+                    }
                     return engine;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -175,6 +188,9 @@ public class BasicOpenSSLEngineLegacyProtocolsTest extends AbstractOpenSSLTest  
                 engineRef.set(engine);
                 try {
                     engine.setEnabledProtocols(protocols);
+                    if (!isOpenSSL10()) {
+                        engine.setEnabledCipherSuites(RSA_CIPHERS_SECLEVEL_1);
+                    }
                     return engine;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
