@@ -307,20 +307,24 @@ class OpenSSlSession implements SSLSession {
     void initialised(long pointer, long ssl, byte[] sessionId) {
         this.sessionPointer = pointer;
         this.sessionId = sessionId;
-        initCreationTime(ssl);
-        initPeerCertChain(ssl);
-        initCipherSuite(ssl);
-        initProtocol(ssl);
-        initReused(ssl);
+        if (ssl != 0) {
+            initCreationTime(ssl);
+            initPeerCertChain(ssl);
+            initCipherSuite(ssl);
+            initProtocol(ssl);
+            initReused(ssl);
+        }
     }
 
     void initialised(long ssl) {
-        initCreationTime(ssl);
-        initSessionId(ssl);
-        initPeerCertChain(ssl);
-        initCipherSuite(ssl);
-        initProtocol(ssl);
-        initReused(ssl);
+        if (ssl != 0) {
+            initCreationTime(ssl);
+            initSessionId(ssl);
+            initPeerCertChain(ssl);
+            initCipherSuite(ssl);
+            initProtocol(ssl);
+            initReused(ssl);
+        }
     }
 
     private void initSessionId(long ssl) {
