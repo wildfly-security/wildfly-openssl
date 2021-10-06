@@ -18,6 +18,7 @@
 package org.wildfly.openssl;
 
 import org.wildfly.openssl.util.DirectByteBufferDeallocator;
+import org.wildfly.common.Assert;
 
 import java.nio.ByteBuffer;
 
@@ -54,6 +55,8 @@ public class ByteBufferUtils {
      * need for expansion
      */
     public static ByteBuffer expand(ByteBuffer in, int newSize) {
+        Assert.checkNotNullParam("in", in);
+        Assert.checkMinimumParameter("newSize", 0, newSize);
         if (in.capacity() >= newSize) {
             return in;
         }

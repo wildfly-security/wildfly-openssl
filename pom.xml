@@ -70,6 +70,11 @@
                 <version>4.8.2</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.wildfly.common</groupId>
+                <artifactId>wildfly-common</artifactId>
+                <version>1.5.4.Final</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
