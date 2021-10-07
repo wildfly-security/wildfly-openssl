@@ -46,8 +46,8 @@ public abstract class SSL {
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
     public static final String ORG_WILDFLY_LIBWFSSL_PATH = "org.wildfly.openssl.libwfssl.path";
 
-    private static final String[] LIBCRYPTO_NAMES = {"crypto.1.1", "libcrypto-1_1-x64", "crypto", "libeay32", "libcrypto-1_1"};
-    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "ssl", "ssleay32", "libssl32", "libssl-1_1"};
+    private static final String[] LIBCRYPTO_NAMES = {"crypto.1.1", "libcrypto-1_1-x64", "libcrypto-3-x64", "crypto", "libeay32", "libcrypto-1_1"};
+    private static final String[] LIBSSL_NAMES = {"ssl.1.1", "libssl-1_1-x64", "libssl-3-x64", "ssl", "ssleay32", "libssl32", "libssl-1_1"};
 
     public SSL() {
     }
@@ -528,6 +528,7 @@ public abstract class SSL {
     static final long VERSION_1_1_0 = 0x10100000L;
     static final long VERSION_1_1_0_F = 0x1010006fL;
     static final long VERSION_1_1_1 = 0x10101000L;
+    static final long VERSION_3_0_0 = 0x30000000L;
 
     /* Return OpenSSL version number */
     protected abstract String version();
