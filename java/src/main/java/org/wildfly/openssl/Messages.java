@@ -28,7 +28,7 @@ public class Messages {
 
     private static final String CODE = "WFOPENSSL";
 
-    public static Messages MESSAGES = new Messages();
+    public static final Messages MESSAGES = new Messages();
 
     private static final String MSG1 = formatCode(1);
     private static final String MSG2 = formatCode(2);
