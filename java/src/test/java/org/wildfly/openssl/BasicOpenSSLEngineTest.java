@@ -397,8 +397,8 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             Assert.assertEquals(expectedProtocol, serverSession.getProtocol());
             Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(clientSession.getCipherSuite()));
             Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(serverSession.getCipherSuite()));
-            Assert.assertNotNull(clientSession.getPeerCertificateChain());
-            Assert.assertNotNull(serverSession.getPeerCertificateChain());
+            Assert.assertNotNull(clientSession.getPeerCertificates());
+            Assert.assertNotNull(serverSession.getPeerCertificates());
         } finally {
             serverSocket.close();
             clientSocket.close();
