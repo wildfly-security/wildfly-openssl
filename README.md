@@ -132,3 +132,11 @@ set "JAVA_HOME=%USERPROFILE%\apps\java-1.8.0"
 set "INCLUDE=%INCLUDE%;%OPENSSL_64%\include"
 mvn clean install
 ```
+
+Contributions
+-------------
+
+Our [contribution guide](https://github.com/wildfly-security/wildfly-openssl/blob/master/CONTRIBUTING.md) will guide you 
+through the steps for getting started on the WildFly OpenSSL project and will go through how to format and submit your first PR.
+
+For more details, check out our [getting started guide](https://wildfly-security.github.io/wildfly-elytron/getting-started-for-developers/) for developers.
