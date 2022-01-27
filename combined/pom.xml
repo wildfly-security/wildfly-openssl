@@ -131,25 +131,6 @@
             </dependencies>
         </profile>
         <profile>
-            <id>linux-i386</id>
-            <activation>
-                <os>
-                    <family>linux</family>
-                </os>
-                <property>
-                    <name>sun.arch.data.model</name>
-                    <value>32</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-linux-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-i386}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>linux-x86_64</id>
             <activation>
                 <os>
@@ -208,38 +189,6 @@
             </dependencies>
         </profile>
         <profile>
-            <id>solaris-x64</id>
-            <activation>
-                <os>
-                    <name>sunos</name>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-x86_64}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>solaris-sparcv9</id>
-            <activation>
-                <os>
-                    <name>sunos</name>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-sparcv9</artifactId>
-                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-sparcv9}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>release</id>
             <activation>
                 <property>
@@ -275,18 +224,8 @@
                 </dependency>
                 <dependency>
                     <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-linux-i386</artifactId>
-                    <version>${version.org.wildfly.openssl.wildfly-openssl-linux-i386}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.wildfly.openssl</groupId>
                     <artifactId>wildfly-openssl-macosx-x86_64</artifactId>
                     <version>${version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.wildfly.openssl</groupId>
-                    <artifactId>wildfly-openssl-solaris-x86_64</artifactId>
-                    <version>${version.org.wildfly.openssl.wildfly-openssl-solaris-x86_64}</version>
                 </dependency>
             </dependencies>
         </profile>
