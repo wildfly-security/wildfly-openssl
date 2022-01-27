@@ -41,6 +41,7 @@ import static org.wildfly.openssl.SSL.SSL_PROTO_TLSv1_3;
 import static org.wildfly.openssl.SSL.VERSION_1_1_0;
 import static org.wildfly.openssl.SSL.VERSION_1_1_0_F;
 import static org.wildfly.openssl.SSL.VERSION_1_1_1;
+import static org.wildfly.openssl.SSL.VERSION_3_0_0;
 
 public final class OpenSSLEngine extends SSLEngine {
 
@@ -1536,6 +1537,14 @@ public final class OpenSSLEngine extends SSLEngine {
      */
     static boolean isOpenSSL111OrHigher() {
         return SSL.getInstance().versionNumber() >= VERSION_1_1_1;
+    }
+
+    /**
+     * Checks for OpenSSL 3.0.0 or higher
+     * @return If the openssl version is 3.0.0 or higher
+     */
+    static boolean isOpenSSL300OrHigher() {
+        return SSL.getInstance().versionNumber() >= VERSION_3_0_0;
     }
 
     static boolean isTLS13Supported() {

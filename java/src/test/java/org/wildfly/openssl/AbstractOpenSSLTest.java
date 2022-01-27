@@ -18,6 +18,7 @@
 package org.wildfly.openssl;
 
 import org.junit.BeforeClass;
+import static org.wildfly.openssl.OpenSSLEngine.isOpenSSL10;
 
 /**
  * @author Stuart Douglas
@@ -37,9 +38,7 @@ public class AbstractOpenSSLTest {
                 System.setProperty("javax.net.ssl.trustStore", "java/src/test/resources/client.truststore");
                 System.setProperty("javax.net.ssl.keyStorePassword", "password");
             }
-            final String openSSLVersion = SSL.getInstance().version();
-            // very crude (but acceptable) way to check the version
-            if (openSSLVersion.contains("1.0.2")) {
+            if (isOpenSSL10()) {
                 // 1.0.2 doesn't support "Extended master secret" extension, which is enabled in
                 // Java by default. here we disable that extension on the Java side to allow
                 // session resumption tests to pass
