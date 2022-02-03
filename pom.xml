@@ -35,7 +35,7 @@
         <jdk.min.version>11</jdk.min.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.org.wildfly.checkstyle>1.0.8.Final</version.org.wildfly.checkstyle>
-        <version.org.wildfly.openssl.natives>2.2.1.CR1-SNAPSHOT</version.org.wildfly.openssl.natives>
+        <version.org.wildfly.openssl.natives>2.2.0.Final</version.org.wildfly.openssl.natives>
         <version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>2.2.0.SP01</version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>
         <version.org.wildfly.openssl.wildfly-openssl-linux-s390x>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-linux-s390x>
         <version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64>
