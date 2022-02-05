@@ -26,11 +26,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import static org.wildfly.openssl.OpenSSLEngine.isOpenSSL10;
 
 /**
  * @author Stuart Douglas
@@ -38,8 +38,7 @@ import org.junit.Test;
 public class BasicOpenSSLSocketDSATest extends AbstractOpenSSLTest {
     @Before
     public void testOpenSSLVersion() {
-        String openSSLVersion = SSL.getInstance().version().split(" ")[1];
-        Assume.assumeThat(openSSLVersion.startsWith("1.1."), CoreMatchers.is(false));
+        Assume.assumeTrue(isOpenSSL10());
     }
 
     @Test
