@@ -20,10 +20,9 @@ package org.wildfly.openssl;
 
 import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
@@ -51,17 +50,18 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
@@ -151,6 +151,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private long makeSSLContext() throws RuntimeException {
         final long sslCtx;
+
         try {
             // Create SSL Context
             try {
@@ -200,7 +201,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         // this simple map is used later on during certificate selection in the SNICallback,
         // as a single ssl ctx can have multiple certificate, and SNI uses a requested
         // hostname to allow the server to choose the certificate, we flatten everything
-        final Map<ArrayList<String>, Long> x509CertificateToSSLContextMap = new LinkedHashMap<>();
+        final Map<SNIMatcher, Long> x509CertificateToSSLContextMap = new LinkedHashMap<>();
 
         try {
             // Load Server key and certificate
@@ -245,17 +246,19 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
                             // if no existing context could be found, and this is the first round, establish the
                             // "default" context
-                            if (sslCtx == null && counter == 1) {
-                                sslCtx = ctx;
-                                subjectToSSLContextMap.put(certificate.getSubjectX500Principal().getName(), sslCtx);
-                            } else {
-                                sslCtx = makeSSLContext();
+                            if (sslCtx == null) {
+                                if (counter == 1) {
+                                    sslCtx = ctx;
+                                } else {
+                                    sslCtx = makeSSLContext();
+                                }
+
                                 subjectToSSLContextMap.put(certificate.getSubjectX500Principal().getName(), sslCtx);
                             }
 
                             // set the certifcates to use for this context
                             SSL.getInstance().setCertificate(sslCtx, certificate.getEncoded(), encodedIntermediaries, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
-                            x509CertificateToSSLContextMap.put(getHostnames(certificate), sslCtx);
+                            x509CertificateToSSLContextMap.put(getHostnamesSNIMatcher(certificate), sslCtx);
                         }
                     }
                 }
@@ -270,27 +273,32 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                       return ctx;
                     }
 
-                    final String lowerSniHostname = sniHostName.toLowerCase();
+                    final String lowerSniHostname = sniHostName.toLowerCase(Locale.ENGLISH);
+                    final SNIHostName lowerSniHostnameForMatcher = new SNIHostName(lowerSniHostname.getBytes(StandardCharsets.UTF_8));
 
                     String sniHostnameAsWildcard = null;
+                    SNIHostName sniHostnameAsWildcardForMatcher = null;
+
                     final int idx = lowerSniHostname.indexOf('.');
+
                     if (idx > 0) {
                         sniHostnameAsWildcard = "*" + lowerSniHostname.substring(idx);
+                        sniHostnameAsWildcardForMatcher = new SNIHostName(sniHostnameAsWildcard.getBytes(StandardCharsets.UTF_8));
                     }
 
                     long wildcardSSLContext = 0L;
 
-                    for (ArrayList<String> hostnames: x509CertificateToSSLContextMap.keySet()) {
+                    for (final SNIMatcher hostnameMatcher: x509CertificateToSSLContextMap.keySet()) {
                       // find a ssl ctx by hostname, return if its a perfect match
-                      if (hostnames.contains(lowerSniHostname)) {
-                        return x509CertificateToSSLContextMap.get(hostnames);
+                      if (hostnameMatcher.matches(lowerSniHostnameForMatcher)) {
+                        return x509CertificateToSSLContextMap.get(hostnameMatcher);
                       }
 
                       // check if context might be good with as a wildcard cert, but
                       // there might be another ctx with a better match, so don't
                       // return it yet, let's wait until we checked all ctx avail
-                      if (sniHostnameAsWildcard != null && hostnames.contains(sniHostnameAsWildcard)) {
-                        wildcardSSLContext = x509CertificateToSSLContextMap.get(hostnames);
+                      if (sniHostnameAsWildcard != null && hostnameMatcher.matches(sniHostnameAsWildcardForMatcher)) {
+                        wildcardSSLContext = x509CertificateToSSLContextMap.get(hostnameMatcher);
                       }
                     }
 
@@ -314,29 +322,15 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             */
             // Client certificate verification
 
-            SSL.getInstance().setSessionCacheSize(ctx, DEFAULT_SESSION_CACHE_SIZE);
-            final X509TrustManager manager = chooseTrustManager(tms);
-            if(manager != null) {
-                SSL.getInstance().setCertVerifyCallback(ctx, (ssl, chain, cipherNo, server) -> {
-                    X509Certificate[] peerCerts = certificates(chain);
-                    Cipher cipher = Cipher.valueOf(cipherNo);
-                    String auth = cipher == null ? "RSA" : cipher.getAu().toString();
-                    try {
-                        if(server) {
-                            manager.checkClientTrusted(peerCerts, auth);
-                        } else {
-                            manager.checkServerTrusted(peerCerts, auth);
-                        }
-                        return true;
-                    } catch (Exception e) {
-                        if (LOG.isLoggable(Level.FINE)) {
-                            LOG.log(Level.FINE, "Certificate verification failed", e);
-                        }
-                    }
-                    return false;
-                });
-            }
+            final Set<Long> sslContexts = new HashSet<>(x509CertificateToSSLContextMap.values());
 
+            if (sslContexts.isEmpty()) {
+                configureSSLContext(tms, ctx);
+            } else {
+                for (long sslCtx : sslContexts) {
+                    configureSSLContext(tms, sslCtx);
+                }
+            }
 
             serverSessionContext = new OpenSSLServerSessionContext(ctx);
             serverSessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
@@ -348,6 +342,31 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void configureSSLContext(final TrustManager[] tms, final long sslCtx) {
+        SSL.getInstance().setSessionCacheSize(sslCtx, DEFAULT_SESSION_CACHE_SIZE);
+        final X509TrustManager manager = chooseTrustManager(tms);
+        if(manager != null) {
+            SSL.getInstance().setCertVerifyCallback(sslCtx, (ssl, chain, cipherNo, server) -> {
+                X509Certificate[] peerCerts = certificates(chain);
+                Cipher cipher = Cipher.valueOf(cipherNo);
+                String auth = cipher == null ? "RSA" : cipher.getAu().toString();
+                try {
+                    if(server) {
+                        manager.checkClientTrusted(peerCerts, auth);
+                    } else {
+                        manager.checkServerTrusted(peerCerts, auth);
+                    }
+                    return true;
+                } catch (Exception e) {
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.log(Level.FINE, "Certificate verification failed", e);
+                    }
+                }
+                return false;
+            });
         }
     }
 
@@ -529,50 +548,41 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         serverSessionContext.remove(session);
     }
 
-    private ArrayList<String> getHostnames(X509Certificate cert) {
+    private SNIMatcher getHostnamesSNIMatcher(final X509Certificate cert) {
         if (cert == null) {
-            Collections.emptyList();
+            return SNIHostName.createSNIMatcher("");
         }
 
-        final ArrayList<String> hostnames = new ArrayList<>();
-        final String certSubjectDN = cert.getSubjectX500Principal().getName();
+        final StringBuilder builder = new StringBuilder();
 
         // extract all the valid "hostnames" from the SANs
         try {
             final Collection<List<?>> sansList = cert.getSubjectAlternativeNames();
-            if (sansList != null && sansList.size() > 0) {
-                for (List<?> san : sansList) {
-                    switch ((Integer) san.get(0)) {
-                        case 2: // DNS
-                        case 7: // IP
-                            Object sanData = san.get(1);
-                            if (sanData instanceof String) {
-                                hostnames.add((String) sanData);
-                            }
-                            break;
-                        default:
+
+            if (sansList != null && !sansList.isEmpty()) {
+                for (final List<?> san : sansList) {
+                    if ((Integer) san.get(0) == 2) { // DNS
+                        final Object sanData = san.get(1);
+
+                        if (sanData instanceof String) {
+                            builder.append(Pattern.quote((String) sanData));
+                            builder.append("|");
+                        }
                     }
                 }
             }
-        } catch (CertificateParsingException ex) {
-            final String msg = String.format("Unable to parse SANS of own certificate [%s].", certSubjectDN);
+        } catch (final CertificateParsingException ex) {
+            final String msg = String.format("Unable to parse SANS of own certificate [%s].", cert.getSubjectX500Principal().getName());
             LOG.log(Level.WARNING, msg, ex);
         }
 
-        // extract the commonName from the subject
-        try {
-            final LdapName ldapName = new LdapName(certSubjectDN);
-            final Rdn commonNameRdn = ldapName.getRdns().stream()
-                    .filter(item -> item.getType().equalsIgnoreCase("CN"))
-                    .findFirst()
-                    .orElse(null);
-            hostnames.add((String) commonNameRdn.getValue());
-        } catch (InvalidNameException ex) {
-            final String msg = String.format("Unable to parse subject of own certificate [%s].", certSubjectDN);
-            LOG.log(Level.WARNING, msg, ex);
+        final int len = builder.length();
+
+        if (len > 0 && builder.charAt(len - 1) == '|') {
+            builder.deleteCharAt(len - 1);
         }
 
-        return hostnames;
+        return SNIHostName.createSNIMatcher(builder.toString());
     }
 
     public static final class OpenSSLTLSContextSpi extends OpenSSLContextSPI {

@@ -1077,44 +1077,43 @@ public final class OpenSSLEngine extends SSLEngine {
         }
     }
 
+    protected String alpnCallback(final String[] data) {
+        String version = SSL.getInstance().getVersion(ssl);
+        if((protocolSelector == null && applicationProtocols == null) || version == null || ! (version.equals("TLSv1.2") || version.equals("TLSv1.3"))) {
+            //only offer ALPN on TLS 1.2+, try and force http/1.1 if it is offered, otherwise fail the connection
+            //it seems wrong to hard code protocols in the SSL impl, but openssl does not really allow alpn to be enabled
+            //on a per engine basis
+            for(String i : data) {
+                if(i.equals("http/1.1")) {
+                    return i;
+                }
+            }
+            selectedApplicationProtocol = "";
+            return null;
+        }
+        if (protocolSelector != null) {
+            selectedApplicationProtocol = protocolSelector.apply(OpenSSLEngine.this, Arrays.asList(data));
+            return selectedApplicationProtocol;
+        }
+
+        for (String proto : applicationProtocols) {
+            for (String clientProto : data) {
+                if (clientProto.equals(proto)) {
+                    selectedApplicationProtocol = proto;
+                    return proto;
+                }
+            }
+        }
+        selectedApplicationProtocol = "";
+        return null;
+    }
+
     private void handshake() throws SSLException {
         initSsl();
         if (!alpnRegistered) {
             alpnRegistered = true;
             if (!isClientMode()) {
-                SSL.getInstance().setServerALPNCallback(ssl, new ServerALPNCallback() {
-                    @Override
-                    public String select(String[] data) {
-                        String version = SSL.getInstance().getVersion(ssl);
-                        if((protocolSelector == null && applicationProtocols == null) || version == null || ! (version.equals("TLSv1.2") || version.equals("TLSv1.3"))) {
-                            //only offer ALPN on TLS 1.2+, try and force http/1.1 if it is offered, otherwise fail the connection
-                            //it seems wrong to hard code protocols in the SSL impl, but openssl does not really allow alpn to be enabled
-                            //on a per engine basis
-                            for(String i : data) {
-                                if(i.equals("http/1.1")) {
-                                    return i;
-                                }
-                            }
-                            selectedApplicationProtocol = "";
-                            return null;
-                        }
-                        if (protocolSelector != null) {
-                            selectedApplicationProtocol = protocolSelector.apply(OpenSSLEngine.this, Arrays.asList(data));
-                            return selectedApplicationProtocol;
-                        }
-
-                        for (String proto : applicationProtocols) {
-                            for (String clientProto : data) {
-                                if (clientProto.equals(proto)) {
-                                    selectedApplicationProtocol = proto;
-                                    return proto;
-                                }
-                            }
-                        }
-                        selectedApplicationProtocol = "";
-                        return null;
-                    }
-                });
+                SSL.getInstance().setServerALPNCallback(ssl, new OpenSSLEngineServerALPNCallback(this));
             } else if(applicationProtocols != null){
                 SSL.getInstance().setAlpnProtos(ssl, applicationProtocols);
             }
