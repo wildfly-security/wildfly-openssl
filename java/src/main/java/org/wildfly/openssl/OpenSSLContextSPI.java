@@ -402,6 +402,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             }
 
             @Override
+            public ServerSocket createServerSocket() throws IOException {
+                return new OpenSSLServerSocket(OpenSSLContextSPI.this);
+            }
+
+            @Override
             public ServerSocket createServerSocket(int port) throws IOException {
                 return new OpenSSLServerSocket(port, OpenSSLContextSPI.this);
             }
