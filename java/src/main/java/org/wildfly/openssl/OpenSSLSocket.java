@@ -19,6 +19,7 @@ package org.wildfly.openssl;
 
 import static org.wildfly.openssl.Messages.MESSAGES;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,7 +38,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -325,7 +326,9 @@ public class OpenSSLSocket extends SSLSocket {
                             indirectPooled.getBuffer().flip();
                         } else {
                             close();
-                            throw new SSLException(MESSAGES.connectionClosed());
+                            SSLHandshakeException ex = new SSLHandshakeException(MESSAGES.connectionClosed());
+                            ex.initCause(new EOFException());
+                            throw ex;
                         }
                         for (; ; ) {
                                 if (unwrappedData != null) {
