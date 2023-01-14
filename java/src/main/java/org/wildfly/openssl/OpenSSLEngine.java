@@ -254,7 +254,9 @@ public final class OpenSSLEngine extends SSLEngine {
                 return sslWrote;
             }
         } else {
-            ByteBuffer buf = ByteBuffer.allocateDirect(len);
+            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
+            ByteBuffer buf = pooledByteBuffer.getBuffer();
+            buf.limit(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -271,8 +273,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     src.position(pos);
                 }
             } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
+                pooledByteBuffer.close();
             }
         }
 
@@ -293,7 +294,9 @@ public final class OpenSSLEngine extends SSLEngine {
                 return netWrote;
             }
         } else {
-            ByteBuffer buf = ByteBuffer.allocateDirect(len);
+            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
+            ByteBuffer buf = pooledByteBuffer.getBuffer();
+            buf.limit(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -307,8 +310,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     src.position(pos);
                 }
             } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
+                pooledByteBuffer.close();
             }
         }
 
@@ -344,7 +346,9 @@ public final class OpenSSLEngine extends SSLEngine {
             final int pos = dst.position();
             final int limit = dst.limit();
             final int len = Math.min(MAX_ENCRYPTED_PACKET_LENGTH, limit - pos);
-            final ByteBuffer buf = ByteBuffer.allocateDirect(len);
+            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
+            final ByteBuffer buf = pooledByteBuffer.getBuffer();
+            buf.limit(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -368,8 +372,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                 }
             } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
+                pooledByteBuffer.close();
             }
         }
 
@@ -389,7 +392,9 @@ public final class OpenSSLEngine extends SSLEngine {
                 return bioRead;
             }
         } else {
-            final ByteBuffer buf = ByteBuffer.allocateDirect(pending);
+            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
+            final ByteBuffer buf = pooledByteBuffer.getBuffer();
+            buf.limit(pending);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -403,8 +408,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     return bioRead;
                 }
             } finally {
-                buf.clear();
-                ByteBufferUtils.cleanDirectBuffer(buf);
+                pooledByteBuffer.close();
             }
         }
 
