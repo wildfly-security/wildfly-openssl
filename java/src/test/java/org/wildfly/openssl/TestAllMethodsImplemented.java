@@ -29,8 +29,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.Assert;
-import org.junit.internal.matchers.StringContains;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.StringContains;
 
 /**
  * A really hacky test that all methods are implemented
@@ -82,7 +82,7 @@ public class TestAllMethodsImplemented extends AbstractOpenSSLTest  {
             while (rootCause.getCause() != null) {
                 rootCause = rootCause.getCause();
             }
-            Assert.assertThat(rootCause.getMessage(), StringContains.containsString(":no cipher match:"));
+            MatcherAssert.assertThat(rootCause.getMessage(), StringContains.containsString(":no cipher match:"));
             throw e;
         } finally {
             if (ssl != null && ctx != 0) {

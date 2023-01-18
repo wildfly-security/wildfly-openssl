@@ -34,6 +34,7 @@
     <properties>
         <jdk.min.version>11</jdk.min.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <version.junit.junit>4.13.2</version.junit.junit>
         <version.org.wildfly.checkstyle>1.0.8.Final</version.org.wildfly.checkstyle>
         <version.org.wildfly.openssl.natives>2.2.2.Final</version.org.wildfly.openssl.natives>
         <version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>2.2.2.SP01</version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>
@@ -63,7 +64,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.8.2</version>
+                <version>${version.junit.junit}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
