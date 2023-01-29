@@ -61,6 +61,7 @@ public final class OpenSSLEngine extends SSLEngine {
     }
 
     static final int MAX_PLAINTEXT_LENGTH = 16 * 1024; // 2^14
+    static final boolean USE_POOLED_BYTEBUFFER = Boolean.getBoolean("org.wildfly.openssl.use-pooled-buffer");
     private static final int MAX_COMPRESSED_LENGTH = MAX_PLAINTEXT_LENGTH + 1024;
     private static final int MAX_CIPHERTEXT_LENGTH = MAX_COMPRESSED_LENGTH + 1024;
 
@@ -254,9 +255,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return sslWrote;
             }
         } else {
-            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
-            ByteBuffer buf = pooledByteBuffer.getBuffer();
-            buf.limit(len);
+            final ByteBufferAllocator allocator = getByteBufferAllocator();
+            final ByteBuffer buf = allocator.allocate(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -273,7 +273,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     src.position(pos);
                 }
             } finally {
-                pooledByteBuffer.close();
+                allocator.close();
             }
         }
 
@@ -294,9 +294,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return netWrote;
             }
         } else {
-            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
-            ByteBuffer buf = pooledByteBuffer.getBuffer();
-            buf.limit(len);
+            final ByteBufferAllocator allocator = getByteBufferAllocator();
+            final ByteBuffer buf = allocator.allocate(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -310,7 +309,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     src.position(pos);
                 }
             } finally {
-                pooledByteBuffer.close();
+                allocator.close();
             }
         }
 
@@ -346,9 +345,8 @@ public final class OpenSSLEngine extends SSLEngine {
             final int pos = dst.position();
             final int limit = dst.limit();
             final int len = Math.min(MAX_ENCRYPTED_PACKET_LENGTH, limit - pos);
-            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
-            final ByteBuffer buf = pooledByteBuffer.getBuffer();
-            buf.limit(len);
+            final ByteBufferAllocator allocator = getByteBufferAllocator();
+            final ByteBuffer buf = allocator.allocate(len);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -372,7 +370,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                 }
             } finally {
-                pooledByteBuffer.close();
+                allocator.close();
             }
         }
 
@@ -392,9 +390,8 @@ public final class OpenSSLEngine extends SSLEngine {
                 return bioRead;
             }
         } else {
-            DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
-            final ByteBuffer buf = pooledByteBuffer.getBuffer();
-            buf.limit(pending);
+            final ByteBufferAllocator allocator = getByteBufferAllocator();
+            final ByteBuffer buf = allocator.allocate(pending);
             try {
                 final long addr = memoryAddress(buf);
 
@@ -408,7 +405,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     return bioRead;
                 }
             } finally {
-                pooledByteBuffer.close();
+                allocator.close();
             }
         }
 
@@ -1610,4 +1607,47 @@ public final class OpenSSLEngine extends SSLEngine {
         }
     }
 
+    private interface ByteBufferAllocator {
+        ByteBuffer allocate(final int length);
+
+        void close();
+    }
+
+    private ByteBufferAllocator getByteBufferAllocator() {
+        if (USE_POOLED_BYTEBUFFER) {
+            return new ByteBufferAllocator() {
+                final DefaultByteBufferPool.PooledByteBuffer pooledByteBuffer = DefaultByteBufferPool.DIRECT_POOL.allocate();
+
+                @Override
+                public ByteBuffer allocate(int length) {
+                    ByteBuffer buf = pooledByteBuffer.getBuffer();
+                    buf.limit(length);
+                    return buf;
+                }
+
+                @Override
+                public void close() {
+                    pooledByteBuffer.close();
+                }
+            };
+        } else {
+            return new ByteBufferAllocator() {
+                ByteBuffer buf;
+
+                @Override
+                public ByteBuffer allocate(int length) {
+                    buf = ByteBuffer.allocateDirect(length);
+                    return buf;
+                }
+
+                @Override
+                public void close() {
+                    if (buf != null) {
+                        buf.clear();
+                        ByteBufferUtils.cleanDirectBuffer(buf);
+                    }
+                }
+            };
+        }
+    }
 }
