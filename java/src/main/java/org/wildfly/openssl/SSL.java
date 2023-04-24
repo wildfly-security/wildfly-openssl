@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -186,10 +187,18 @@ public abstract class SSL {
                         }
                     }
                     if (sslPath == null) {
-                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH, attemptedSSL.toString()));
+                        final String warningMessage = Messages.MESSAGES.couldNotFindLibSSL(ORG_WILDFLY_OPENSSL_PATH, attemptedSSL.toString());
+                        if(logger.isLoggable(Level.WARNING)) {
+                            logger.warning(warningMessage);
+                        }
+                        throw new RuntimeException(warningMessage);
                     }
                     if (cryptoPath == null) {
-                        throw new RuntimeException(Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attemptedCrypto.toString()));
+                        final String warningMessage = Messages.MESSAGES.couldNotFindLibCrypto(ORG_WILDFLY_OPENSSL_PATH, attemptedCrypto.toString());
+                        if(logger.isLoggable(Level.WARNING)) {
+                            logger.warning(warningMessage);
+                        }
+                        throw new RuntimeException(warningMessage);
                     }
                     instance.initialize(cryptoPath, sslPath);
                     String version = instance.version();
