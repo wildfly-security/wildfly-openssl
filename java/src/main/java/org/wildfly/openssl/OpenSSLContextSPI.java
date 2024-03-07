@@ -50,6 +50,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
@@ -88,8 +89,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private static final String TLS13_CIPHERS = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256";
 
-    protected final long ctx;
-    protected long defaultSSLContext = 0L;
+    protected final long serverCtx; // the default SSL server ctx
+    protected final long clientCtx; // the default SSL client ctx
+    protected Set<Long> allServerCtxs; // All initialized SSL server ctxs
+    protected Set<Long> allClientCtxs; // All initialized SSL client ctxs
     final int supportedCiphers;
 
 
@@ -149,7 +152,10 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     OpenSSLContextSPI(final int value) throws SSLException {
         this.supportedCiphers = value;
         SSL.init();
-        ctx = makeSSLContext();
+        serverCtx = makeSSLContext();
+        clientCtx = makeSSLContext();
+        allServerCtxs = new HashSet<>(Arrays.asList(serverCtx)); // include the only existing context, this might become bigger during initialization
+        allClientCtxs = new HashSet<>(Arrays.asList(clientCtx)); // include the only existing context, this might become bigger during initialization
     }
 
     private long makeSSLContext() throws RuntimeException {
@@ -190,11 +196,22 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
      * @param tms
      */
     private synchronized void init(KeyManager[] kms, TrustManager[] tms) throws KeyManagementException {
-        if (initialized) {
+        if (this.initialized) {
             LOG.warning(Messages.MESSAGES.ignoringSecondInit());
             return;
         }
 
+        this.allServerCtxs = this.makeAllCtxs(kms, tms, serverCtx);
+        this.serverSessionContext = new OpenSSLServerSessionContext(serverCtx);
+        this.serverSessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
+
+        this.allClientCtxs = this.makeAllCtxs(kms, tms, clientCtx);
+        this.clientSessionContext = new OpenSSLClientSessionContext(serverCtx);
+
+        this.initialized = true;
+    }
+
+    private synchronized Set<Long> makeAllCtxs(KeyManager[] kms, TrustManager[] tms, final long ctx) throws KeyManagementException {
         // a single subject can have multiple certificates for different algorithms, as
         // aliases are required to be unique, the subject is the next best thing to establish
         // some form of grouping, as a single context can have multiple certificates
@@ -205,6 +222,8 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
         // as a single ssl ctx can have multiple certificate, and SNI uses a requested
         // hostname to allow the server to choose the certificate, we flatten everything
         final Map<SNIMatcher, Long> x509CertificateToSSLContextMap = new LinkedHashMap<>();
+
+        long defaultAliasCtx = 0L;
 
         try {
             // Load Server key and certificate
@@ -259,21 +278,22 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                 subjectToSSLContextMap.put(certificate.getSubjectX500Principal().getName(), sslCtx);
                             }
 
-
                             if (alias.equals(SSL_KEYSTORE_DEFAULT_ALIAS)) {
                                 if (LOG.isLoggable(Level.FINE)) {
                                     LOG.fine("Setting defaultSSLContext to: " + sslCtx);
                                 }
-                                defaultSSLContext = sslCtx;
+                                defaultAliasCtx = sslCtx;
                             }
 
-                            // set the certifcates to use for this context
+                            // set the certificates to use for this context
                             SSL.getInstance().setCertificate(sslCtx, certificate.getEncoded(), encodedIntermediaries, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             x509CertificateToSSLContextMap.put(getHostnamesSNIMatcher(certificate), sslCtx);
                         }
                     }
                 }
             }
+
+            final long defaultSSLContext = defaultAliasCtx;
 
             if (x509CertificateToSSLContextMap.size() > 1) {
                 SSL.registerDefault(ctx, new SSL.SNICallBack() {
@@ -347,41 +367,39 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                 }
             }
 
-            serverSessionContext = new OpenSSLServerSessionContext(ctx);
-            serverSessionContext.setSessionIdContext("test".getBytes(StandardCharsets.US_ASCII));
-            clientSessionContext = new OpenSSLClientSessionContext(ctx);
-            initialized = true;
-
             //TODO: ALPN must be optional
             SSL.getInstance().enableAlpn(ctx);
 
+            return sslContexts.isEmpty() ? new HashSet<>(Arrays.asList(ctx)) : sslContexts;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected boolean verifyCallback(final X509TrustManager manager, long ssl, byte[][] chain, int cipherNo, boolean server) {
+        X509Certificate[] peerCerts = certificates(chain);
+        Cipher cipher = Cipher.valueOf(cipherNo);
+        String auth = cipher == null ? "RSA" : cipher.getAu().toString();
+        try {
+            if(server) {
+                manager.checkClientTrusted(peerCerts, auth);
+            } else {
+                manager.checkServerTrusted(peerCerts, auth);
+            }
+            return true;
+        } catch (Exception e) {
+            if (LOG.isLoggable(Level.FINE)) {
+                LOG.log(Level.FINE, "Certificate verification failed", e);
+            }
+        }
+        return false;
     }
 
     private void configureSSLContext(final TrustManager[] tms, final long sslCtx) {
         SSL.getInstance().setSessionCacheSize(sslCtx, DEFAULT_SESSION_CACHE_SIZE);
         final X509TrustManager manager = chooseTrustManager(tms);
         if(manager != null) {
-            SSL.getInstance().setCertVerifyCallback(sslCtx, (ssl, chain, cipherNo, server) -> {
-                X509Certificate[] peerCerts = certificates(chain);
-                Cipher cipher = Cipher.valueOf(cipherNo);
-                String auth = cipher == null ? "RSA" : cipher.getAu().toString();
-                try {
-                    if(server) {
-                        manager.checkClientTrusted(peerCerts, auth);
-                    } else {
-                        manager.checkServerTrusted(peerCerts, auth);
-                    }
-                    return true;
-                } catch (Exception e) {
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.log(Level.FINE, "Certificate verification failed", e);
-                    }
-                }
-                return false;
-            });
+            SSL.getInstance().setCertVerifyCallback(sslCtx, new OpenSSLCertVerifyCallback(manager, this));
         }
     }
 
@@ -428,11 +446,11 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     }
 
     public SSLEngine createSSLEngine() {
-        return new OpenSSLEngine(ctx, false, OpenSSLContextSPI.this);
+        return new OpenSSLEngine(serverCtx, false, OpenSSLContextSPI.this);
     }
 
     public SSLEngine createSSLEngine(final String host, final int port) {
-        return new OpenSSLEngine(ctx, false, OpenSSLContextSPI.this, host, port);
+        return new OpenSSLEngine(serverCtx, false, OpenSSLContextSPI.this, host, port);
     }
 
 
@@ -453,8 +471,15 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     protected final void finalize() throws Throwable {
         super.finalize();
         synchronized (OpenSSLContextSPI.class) {
-            if (ctx != 0) {
-                SSL.getInstance().freeSSLContext(ctx);
+            for (long ctx : allServerCtxs) {
+                if (ctx != 0) {
+                    SSL.getInstance().freeSSLContext(ctx);
+                }
+            }
+            for (long ctx : allClientCtxs) {
+                if (ctx != 0) {
+                    SSL.getInstance().freeSSLContext(ctx);
+                }
             }
         }
     }
@@ -479,32 +504,32 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
             @Override
             public Socket createSocket() throws IOException {
-                return new OpenSSLSocket(new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this));
+                return new OpenSSLSocket(new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this));
             }
 
             @Override
             public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
+                return new OpenSSLSocket(s, autoClose, host, port, new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(String host, int port, InetAddress localHost, int localPort) throws IOException, UnknownHostException {
-                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host, port));
+                return new OpenSSLSocket(host, port, localHost, localPort, new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this, host, port));
             }
 
             @Override
             public Socket createSocket(InetAddress host, int port) throws IOException {
-                return new OpenSSLSocket(host, port, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, host.getHostName(), port));
+                return new OpenSSLSocket(host, port, new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this, host.getHostName(), port));
             }
 
             @Override
             public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort) throws IOException {
-                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(ctx, true, OpenSSLContextSPI.this, address.getHostName(), port));
+                return new OpenSSLSocket(address, port, localAddress, localPort, new OpenSSLEngine(clientCtx, true, OpenSSLContextSPI.this, address.getHostName(), port));
             }
         };
     }

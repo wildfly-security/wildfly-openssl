@@ -1256,9 +1256,13 @@ public final class OpenSSLEngine extends SSLEngine {
 
     @Override
     public void setUseClientMode(boolean clientMode) {
-        if(ssl == 0) {
-            this.clientMode = clientMode;
-        } else if (clientMode != this.clientMode) {
+        // We can't change the client mode because OpenSSLContextSPI creates the OpenSSLEngine already enforcing whether
+        // it has client mode or server mode. If we change it here (even if we change before 'this.ssl' is set), then
+        // the underlying SSL_Ctx* that is carried by the class will be initialized with a session context that
+        // corresponding to the new mode (that is, OpenSSLSessionContext for server mode and OpenSSLClientSessionContext
+        // for client mode). However, the OpenSSLContextSPI will be unaware of that, and might re-use the SSL_Ctx* for
+        // new engines, which will lead to undesired behavior, specially memory leaks.
+        if (clientMode != this.clientMode) {
             throw new UnsupportedOperationException();
         }
     }
