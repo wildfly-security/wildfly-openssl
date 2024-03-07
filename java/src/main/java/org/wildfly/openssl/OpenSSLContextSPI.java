@@ -77,6 +77,8 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     private static final String END_DSA_CERT = "\n-----END DSA PRIVATE KEY-----";
 
+    private static final String SSL_KEYSTORE_DEFAULT_ALIAS = System.getProperty("org.wildfly.sni.keystore.default.alias");
+
     private static final String[] ALGORITHMS = {"RSA", "DSA"};
 
     private OpenSSLServerSessionContext serverSessionContext;
@@ -87,6 +89,7 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
     private static final String TLS13_CIPHERS = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256";
 
     protected final long ctx;
+    protected long defaultSSLContext = 0L;
     final int supportedCiphers;
 
 
@@ -256,6 +259,14 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                 subjectToSSLContextMap.put(certificate.getSubjectX500Principal().getName(), sslCtx);
                             }
 
+
+                            if (alias.equals(SSL_KEYSTORE_DEFAULT_ALIAS)) {
+                                if (LOG.isLoggable(Level.FINE)) {
+                                    LOG.fine("Setting defaultSSLContext to: " + sslCtx);
+                                }
+                                defaultSSLContext = sslCtx;
+                            }
+
                             // set the certifcates to use for this context
                             SSL.getInstance().setCertificate(sslCtx, certificate.getEncoded(), encodedIntermediaries, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
                             x509CertificateToSSLContextMap.put(getHostnamesSNIMatcher(certificate), sslCtx);
@@ -302,8 +313,12 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                       }
                     }
 
-                    // if we have a ssl ctx with a matching wildcard cert, prefer it
-                    return wildcardSSLContext != 0L ? wildcardSSLContext : ctx;
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine( "sniHostName:" + sniHostName + " ctx:" + ctx + " wildcardSSLContext:" + wildcardSSLContext + " defaultSSLContext:" + defaultSSLContext);
+                    }
+
+                    // if we have a ssl ctx with a matching wildcard cert, prefer it, otherwise use the defaultSSLContext
+                    return wildcardSSLContext != 0L ? wildcardSSLContext : defaultSSLContext != 0L ? defaultSSLContext : ctx;
                   }
                 });
             }
