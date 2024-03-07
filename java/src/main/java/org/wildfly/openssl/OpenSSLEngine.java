@@ -48,6 +48,12 @@ public final class OpenSSLEngine extends SSLEngine {
 
     private static final Logger LOG = Logger.getLogger(OpenSSLEngine.class.getName());
 
+    // see https://www.rfc-editor.org/rfc/rfc5246
+    private static final int TLS_CONTENT_TYPE_INDEX = 0x00;
+    private static final byte TLS_HANDSHAKE_CONTENT_TYPE = 0x16;
+    private static final int TLS_HANDSHAKE_TYPE_INDEX = 0x05;
+    private static final byte TLS_SERVER_HELLO_HANDSHAKE_TYPE = 0x02;
+    private static final int TLS_SERVER_HELLO_SESSION_ID_LENGTH_INDEX = 0x2b;
 
     private static final SSLException ENGINE_CLOSED = new SSLException(MESSAGES.engineIsClosed());
     private static final SSLException RENEGOTIATION_UNSUPPORTED = new SSLException(MESSAGES.renegotiationNotSupported());
@@ -613,6 +619,11 @@ public final class OpenSSLEngine extends SSLEngine {
                 } catch (Exception e) {
                     throw new SSLException(e);
                 }
+
+                if (!this.handshakeFinished && this.isServerHelloMessage(src)) {
+                    this.parseAndSaveServerCipher(src);
+                }
+
                 int lastPrimingReadResult = SSL.getInstance().readFromSSL(ssl, EMPTY_ADDR, 0); // priming read
                 // check if SSL_read returned <= 0. In this case we need to check the error and see if it was something
                 // fatal.
@@ -770,13 +781,10 @@ public final class OpenSSLEngine extends SSLEngine {
         if (enabled == null) {
             return new String[0];
         } else {
-            for (int i = 0; i < enabled.length; i++) {
-                String mapped = toJavaCipherSuite(enabled[i], ssl);
-                if (mapped != null) {
-                    enabled[i] = mapped;
-                }
-            }
-            return enabled;
+            return Arrays.stream(enabled)
+                    .map(cipher -> toJavaCipherSuite(cipher, this.ssl))
+                    .filter(this::shouldEnableCipherSuite)
+                    .toArray(String[]::new);
         }
     }
 
@@ -1608,6 +1616,48 @@ public final class OpenSSLEngine extends SSLEngine {
         } else {
             return LEGACY_SUPPORTED_PROTOCOLS_SET;
         }
+    }
+
+    private boolean isServerHelloMessage(final ByteBuffer content) {
+        try {
+            return (content.get(TLS_CONTENT_TYPE_INDEX) == TLS_HANDSHAKE_CONTENT_TYPE) &&
+                    (content.get(TLS_HANDSHAKE_TYPE_INDEX) == TLS_SERVER_HELLO_HANDSHAKE_TYPE);
+        } catch (final Exception ex) {
+            return false;
+        }
+    }
+
+    private void parseAndSaveServerCipher(final ByteBuffer serverHelloMessage) {
+        try {
+            final int serverCipherSuite = this.parseServerCipherSuite(serverHelloMessage);
+            SSL.getInstance().saveServerCipher(this.ssl, serverCipherSuite);
+        } catch (final RuntimeException ex) {
+            if (LOG.isLoggable(Level.WARNING)) {
+                LOG.warning("Cipher suite could not be parsed from ServerHello message");
+            }
+        }
+    }
+
+    private int parseServerCipherSuite(final ByteBuffer serverHelloMessage) {
+        try {
+            final int sessionIdLength = serverHelloMessage.get(TLS_SERVER_HELLO_SESSION_ID_LENGTH_INDEX);
+            final int cipherSuiteIndex = TLS_SERVER_HELLO_SESSION_ID_LENGTH_INDEX + sessionIdLength + 1;
+
+            return serverHelloMessage.getChar(cipherSuiteIndex);
+        } catch (final Exception ex) {
+            throw new RuntimeException("Failed to parse cipher suite from TLS record", ex);
+        }
+    }
+
+    private boolean shouldEnableCipherSuite(final String javaCipherSuite) {
+        try {
+            Cipher.valueOf(javaCipherSuite);
+        } catch (final IllegalArgumentException ex) {
+            // Cipher suite is not known
+            return false;
+        }
+
+        return true;
     }
 
 }
