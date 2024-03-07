@@ -1112,7 +1112,7 @@ public abstract class SSL {
     static long sniCallBack(long currentCtx, String sniHostName) {
         SNICallBack sniCallBack = sniCallBacks.get(Long.valueOf(currentCtx));
         if (sniCallBack == null) {
-            return 0;
+            return currentCtx;
         }
         return sniCallBack.getSslContext(sniHostName);
     }
