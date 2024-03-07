@@ -1163,6 +1163,8 @@ public abstract class SSL {
 
     protected abstract void registerSessionContext(long context, OpenSSLSessionContext openSSLSessionContext);
 
+    protected abstract void registerSniClientAuthProvider(long ssl, SniClientAuthProvider sniClientAuthProvider);
+
     /**
      * Interface implemented by components that will receive the call back to
      * select an OpenSSL SSLContext based on the host name requested by the

@@ -860,6 +860,12 @@ public class SSLImpl extends SSL {
         SSLImpl.registerSessionContext0(context, openSSLSessionContext);
     }
 
+    static native void registerSniClientAuthProvider0(long ssl, SniClientAuthProvider sniClientAuthProvider);
+
+    protected void registerSniClientAuthProvider(long ssl, SniClientAuthProvider sniClientAuthProvider) {
+        SSLImpl.registerSniClientAuthProvider0(ssl, sniClientAuthProvider);
+    }
+
     /**
      * Allow to hook {@link CertificateVerifier} into the handshake processing.
      * This will call {@code SSL_CTX_set_cert_verify_callback} and so replace the default verification

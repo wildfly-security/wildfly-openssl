@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -118,7 +120,7 @@ public final class OpenSSLEngine extends SSLEngine {
         return clientMode;
     }
 
-    enum ClientAuthMode {
+    public enum ClientAuthMode {
         NONE,
         OPTIONAL,
         REQUIRE,
@@ -148,6 +150,7 @@ public final class OpenSSLEngine extends SSLEngine {
     private volatile int destroyed;
     private boolean wantClientAuth = false;
     private boolean needClientAuth = false;
+    private Map<String, ClientAuthMode> clientAuthPerServerNameMap = new ConcurrentHashMap<>();
 
 
     private volatile ClientAuthMode clientAuth = ClientAuthMode.NONE;
@@ -206,6 +209,7 @@ public final class OpenSSLEngine extends SSLEngine {
     void initSsl() {
         if(ssl == 0 && DESTROYED_UPDATER.get(this) == 0) {
             ssl = SSL.getInstance().newSSL(sslCtx, !clientMode);
+            SSL.getInstance().registerSniClientAuthProvider(ssl, new SniClientAuthProvider(clientAuthPerServerNameMap));
             networkBIO = SSL.getInstance().makeNetworkBIO(ssl);
             if(clientMode) {
                 openSSLContextSPI.engineGetClientSessionContext().tryAttachClientSideSession(ssl, host, port);
@@ -1275,7 +1279,7 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public void setNeedClientAuth(boolean b) {
         needClientAuth = b;
-        setClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
+        configureClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
     }
 
     @Override
@@ -1286,7 +1290,7 @@ public final class OpenSSLEngine extends SSLEngine {
     @Override
     public void setWantClientAuth(boolean b) {
         wantClientAuth = b;
-        setClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
+        configureClientAuth(needClientAuth ? ClientAuthMode.REQUIRE : wantClientAuth ? ClientAuthMode.OPTIONAL : ClientAuthMode.NONE);
     }
 
     @Override
@@ -1294,7 +1298,12 @@ public final class OpenSSLEngine extends SSLEngine {
         return clientAuth == ClientAuthMode.OPTIONAL;
     }
 
-    private void setClientAuth(ClientAuthMode mode) {
+    public void registerClientAuthPerServerName(String serverName, ClientAuthMode clientAuth) {
+        clientAuthPerServerNameMap.put(serverName, clientAuth);
+        // no need to configure here
+    }
+
+    private void configureClientAuth(ClientAuthMode mode) {
         if (clientMode) {
             return;
         }
@@ -1307,6 +1316,7 @@ public final class OpenSSLEngine extends SSLEngine {
             if (clientMode) {
                 return;
             }
+
             switch (mode) {
                 case NONE:
                     SSL.getInstance().setSSLVerify(ssl, SSL.SSL_CVERIFY_NONE, VERIFY_DEPTH);
