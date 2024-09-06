@@ -303,6 +303,10 @@ public class OpenSSLSocket extends SSLSocket {
                 if (write) {
                     buffer.clear();
                     result = sslEngine.wrap(EMPTY_DIRECT, buffer);
+                    if (result.getStatus() == SSLEngineResult.Status.CLOSED) {
+                        close();
+                        throw new SSLException(MESSAGES.connectionClosed());
+                    }
                     if (result.bytesProduced() > 0) {
                         buffer.flip();
                         try (DefaultByteBufferPool.PooledByteBuffer indirectPooled = DefaultByteBufferPool.HEAP_POOL.allocate()) {
@@ -336,6 +340,10 @@ public class OpenSSLSocket extends SSLSocket {
                                 buffer.put(indirectPooled.getBuffer());
                                 buffer.flip();
                                 result = sslEngine.unwrap(buffer, unwrappedData.getBuffer());
+                                if (result.getStatus() == SSLEngineResult.Status.CLOSED) {
+                                    close();
+                                    throw new SSLException(MESSAGES.connectionClosed());
+                                }
                                 if(result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                                     underflow = true;
                                 }
