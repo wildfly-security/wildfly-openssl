@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -71,6 +72,8 @@ public abstract class SSL {
                             System.loadLibrary("wfssl");
                             instance = new SSLImpl();
                         } catch (Throwable e) {
+                            //Log the initial failure to provide a clear root cause.
+                            logger.log(Level.FINE, "Failed to load wfssl native library from system path. Falling back to classpath.", e);
                             //try using out pre-packaged version
                             LibraryClassLoader libCl = new LibraryClassLoader(SSL.class.getClassLoader());
                             try {
@@ -88,8 +91,12 @@ public abstract class SSL {
                             }
                         }
                     } else {
-                        Runtime.getRuntime().load(libPath);
-                        instance = new SSLImpl();
+                        try {
+                            Runtime.getRuntime().load(libPath);
+                            instance = new SSLImpl();
+                        } catch (Throwable t) {
+                            throw new IllegalStateException("Failed to load wfssl native library from specified path: " + libPath, t);
+                        }
                     }
                     String specifiedPath = System.getProperty(ORG_WILDFLY_OPENSSL_PATH);
 
