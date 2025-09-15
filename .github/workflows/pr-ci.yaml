@@ -31,19 +31,31 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Maven Version Info
       run: mvn -version
-    - if: matrix.os != 'windows-latest'
+    - if: matrix.os != 'macos-latest'
       name: OpenSSL Library Version Info
       run: openssl version -v
-    - if: matrix.os == 'windows-latest'
-      name: Install full OpenSSL library
+    - if: matrix.os == 'macos-latest'
+      name: OpenSSL Library Version Info on MacOS
       run: |
-        choco install --no-progress openssl
+        brew --prefix openssl@3
+        export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+        openssl version
+    - if: matrix.os == 'windows-latest'
+      name: Install OpenSSL 3 on Windows
+      shell: powershell
+      run: |
+        echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+        vcpkg install openssl:x64-windows-static-md
     - if: matrix.os == 'macos-latest'
       name: Build with Maven (macOS)
-      run: mvn -B package --file pom.xml
+      run: |
+        export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+        openssl version
+        mvn -B package --file pom.xml -Dorg.wildfly.openssl.path="/opt/homebrew/opt/openssl@3"
     - if: matrix.os == 'ubuntu-latest'
       name: Build with Maven (Ubuntu)
-      run: mvn -B package --file pom.xml -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu
+      run: |
+        mvn -B package --file pom.xml -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu
     - if: matrix.os == 'windows-latest'
       name: Build with Microsoft Visual Studio native tools command prompt and Maven
       env:
@@ -51,8 +63,9 @@ jobs:
         OPENSSL_HOME: ${{ matrix.openssl_home }}
       shell: cmd
       run: |
-        call "%VCVARS%"
-        mvn -B package --file pom.xml -Dorg.wildfly.openssl.path="%OPENSSL_HOME%"\bin
+        call "%VCVARS%" x64
+        set PATH=C:\vcpkg\installed\x64-windows\tools\openssl;%PATH%
+        mvn -B package --file pom.xml
     - uses: actions/upload-artifact@v4
       if: failure()
       with:
