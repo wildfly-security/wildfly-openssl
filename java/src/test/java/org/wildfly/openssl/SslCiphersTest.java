@@ -68,12 +68,9 @@ public class SslCiphersTest extends AbstractOpenSSLTest {
         //we only test a subset of ciphers
         //TODO: figure out which ones we need to support, and what sort of cert we need for each
         String[] suites = new String[]{
-                //"TLS_RSA_WITH_AES_256_CBC_SHA256",
-                "TLS_RSA_WITH_AES_128_CBC_SHA256",
-                "TLS_RSA_WITH_AES_128_GCM_SHA256",
-                //"TLS_RSA_WITH_AES_256_GCM_SHA384",
-                "TLS_RSA_WITH_AES_128_CBC_SHA",
-                //"TLS_RSA_WITH_AES_256_CBC_SHA"
+                "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+                "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
         };
 
         for (String suite : suites) {
