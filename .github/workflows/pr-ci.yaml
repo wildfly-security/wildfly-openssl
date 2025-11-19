@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
         java-version: [11, 17]
         include:
         - os: windows-latest
@@ -31,14 +31,14 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     - name: Maven Version Info
       run: mvn -version
-    - if: matrix.os != 'macos-latest'
+    - if: matrix.os != 'macos-15-intel'
       name: OpenSSL Library Version Info
       run: openssl version -v
-    - if: matrix.os == 'macos-latest'
+    - if: matrix.os == 'macos-15-intel'
       name: OpenSSL Library Version Info on MacOS
       run: |
-        brew --prefix openssl@3
-        export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+        #brew --prefix openssl@3
+        export PATH="/usr/local/opt/openssl@3/bin:$PATH"
         openssl version
     - if: matrix.os == 'windows-latest'
       name: Install OpenSSL 3 on Windows
@@ -46,12 +46,12 @@ jobs:
       run: |
         echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
         vcpkg install openssl:x64-windows-static-md
-    - if: matrix.os == 'macos-latest'
+    - if: matrix.os == 'macos-15-intel'
       name: Build with Maven (macOS)
       run: |
-        export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+        export PATH="/usr/local/opt/openssl@3/bin:$PATH"
         openssl version
-        mvn -B package --file pom.xml -Dorg.wildfly.openssl.path="/opt/homebrew/opt/openssl@3"
+        mvn -B package --file pom.xml -Dorg.wildfly.openssl.path="/usr/local/opt/openssl@3/lib"
     - if: matrix.os == 'ubuntu-latest'
       name: Build with Maven (Ubuntu)
       run: |
