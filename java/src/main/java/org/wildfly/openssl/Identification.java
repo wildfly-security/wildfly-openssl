@@ -155,6 +155,9 @@ class Identification {
                         } else if (sysArch.startsWith("AARCH64") || sysArch.startsWith("ARM64") || sysArch.startsWith("ARMV8") || sysArch.startsWith("PXA9") || sysArch.startsWith("PXA10")) {
                             hasEndian = true;
                             cpuName = "aarch64";
+                        } else if (sysArch.startsWith("LOONGARCH64")) {
+                            hasEndian = true;
+                            cpuName = "loongarch64";
                         } else if (sysArch.startsWith("PXA27")) {
                             hasEndian = true;
                             cpuName = "armv5t-iwmmx";
