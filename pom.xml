@@ -32,7 +32,10 @@
     <packaging>pom</packaging>
 
     <properties>
-        <jdk.min.version>11</jdk.min.version>
+        <jdk.min.version>21</jdk.min.version>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.junit.junit>4.13.2</version.junit.junit>
         <version.org.wildfly.checkstyle>1.0.8.Final</version.org.wildfly.checkstyle>
