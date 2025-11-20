@@ -58,15 +58,33 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
 
     public static final int DEFAULT_SESSION_CACHE_SIZE = 1000;
 
-    private static final String BEGIN_RSA_CERT = "-----BEGIN RSA PRIVATE KEY-----\n";
+    private static enum KeyAlgorithm {
+        RSA(SSL.SSL_AIDX_RSA),
+        EC(SSL.SSL_AIDX_ECC),
+        DSA(SSL.SSL_AIDX_DSA);
 
-    private static final String END_RSA_CERT = "\n-----END RSA PRIVATE KEY-----";
+        private final int idx;
+        private final String beginStanza;
+        private final String endStanza;
 
-    private static final String BEGIN_DSA_CERT = "-----BEGIN DSA PRIVATE KEY-----\n";
+        KeyAlgorithm(int idx) {
+            this.idx = idx;
+            this.beginStanza = String.format("-----BEGIN %s PRIVATE KEY-----\n", name());
+            this.endStanza = String.format("\n-----END %s PRIVATE KEY-----", name());
+        }
 
-    private static final String END_DSA_CERT = "\n-----END DSA PRIVATE KEY-----";
+        public String getBeginStanza() {
+            return beginStanza;
+        }
 
-    private static final String[] ALGORITHMS = {"RSA", "DSA"};
+        public String getEndStanza() {
+            return endStanza;
+        }
+
+        public int getAlgorithmIndex() {
+            return idx;
+        }
+    }
 
     private OpenSSLServerSessionContext serverSessionContext;
     private OpenSSLClientSessionContext clientSessionContext;
@@ -179,10 +197,9 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
             // Load Server key and certificate
             X509KeyManager keyManager = chooseKeyManager(kms);
             if (keyManager != null) {
-                for (String algorithm : ALGORITHMS) {
+                for (KeyAlgorithm algorithm : KeyAlgorithm.values()) {
 
-                    boolean rsa = algorithm.equals("RSA");
-                    final String[] aliases = keyManager.getServerAliases(algorithm, null);
+                    final String[] aliases = keyManager.getServerAliases(algorithm.name(), null);
                     if (aliases != null && aliases.length != 0) {
                         for(String alias: aliases) {
 
@@ -192,22 +209,23 @@ public abstract class OpenSSLContextSPI extends SSLContextSpi {
                                 continue;
                             }
                             if (LOG.isLoggable(Level.FINE)) {
-                                LOG.fine("Using alias " + alias + " for " + algorithm);
+                                LOG.log(Level.FINE, "Using alias {0} for {1}", new Object[]{alias, algorithm});
                             }
-                            StringBuilder sb = new StringBuilder(rsa ? BEGIN_RSA_CERT : BEGIN_DSA_CERT);
                             byte[] encodedPrivateKey = key.getEncoded();
                             if (encodedPrivateKey == null) {
                                 throw new KeyManagementException(Messages.MESSAGES.unableToObtainPrivateKey());
                             }
-                            sb.append(Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey));
-                            sb.append(rsa ? END_RSA_CERT : END_DSA_CERT);
+                            String keyString = algorithm.getBeginStanza()
+                                    + Base64.getMimeEncoder(64, new byte[]{'\n'}).encodeToString(encodedPrivateKey)
+                                    + algorithm.getEndStanza();
 
                             byte[][] encodedIntermediaries = new byte[certificateChain.length - 1][];
                             for(int i = 1; i < certificateChain.length; ++i) {
                                 encodedIntermediaries[i - 1] = certificateChain[i].getEncoded();
                             }
                             X509Certificate certificate = certificateChain[0];
-                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), encodedIntermediaries, sb.toString().getBytes(StandardCharsets.US_ASCII), rsa ? SSL.SSL_AIDX_RSA : SSL.SSL_AIDX_DSA);
+                            SSL.getInstance().setCertificate(ctx, certificate.getEncoded(), encodedIntermediaries,
+                                    keyString.getBytes(StandardCharsets.US_ASCII), algorithm.getAlgorithmIndex());
                             break;
                         }
                     }
