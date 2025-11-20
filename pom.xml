@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>35</version>
+        <version>51</version>
     </parent>
 
     <groupId>org.wildfly.openssl</groupId>
@@ -31,10 +31,35 @@
 
     <packaging>pom</packaging>
 
+    <name>WildFly Elytron - WildFly OpenSSL</name>
+    <description>WildFly Security - OpenSSL Wrapper</description>
+    <url>https://github.com/wildfly-security/wildfly-openssl</url>
+
+    <developers>
+        <developer>
+            <name>Darran Lofthouse</name>
+            <email>darran.lofthouse@jboss.com</email>
+            <organization>WildFly</organization>
+            <organizationUrl>https://www.wildfly.org/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:wildfly-security/wildfly-openssl.git</connection>
+        <developerConnection>scm:git:git@github.com:wildfly-security/wildfly-openssl.git</developerConnection>
+        <url>https://github.com/wildfly-security/wildfly-openssl</url>
+      <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <jdk.min.version>21</jdk.min.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+
+        <!-- Nexus Settings -->
+        <nexus.repository.staging>wildfly-staging</nexus.repository.staging>
+        <nexus.staging.tag>wildfly-openssl-${project.version}</nexus.staging.tag>
+        <nexus.repository.release>wildfly-security</nexus.repository.release>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.junit.junit>4.13.2</version.junit.junit>
@@ -80,48 +105,29 @@
     <build>
         <plugins>
             <plugin>
+                <!-- Release Plugin Configuration -->
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip>
+                    <!-- Prepare -->
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <pushChanges>false</pushChanges>
+                    <preparationProfiles>jboss-release</preparationProfiles>
+                    <arguments>-DskipTests</arguments>
+                    <!-- Perform -->
+                    <localCheckout>true</localCheckout>
+                    <releaseProfiles>jboss-release</releaseProfiles>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>default-build</id>
-            <activation>
-                <property>
-                    <name>!parent-release</name>
-                </property>
-            </activation>
-            <modules>
-                <module>java</module>
-                <module>combined</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>parent-release</id>
-            <activation>
-                <property>
-                    <name>parent-release</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-deploy-plugin</artifactId>
-                        <configuration>
-                            <skip>false</skip>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+    <modules>
+        <module>java</module>
+        <module>combined</module>
+    </modules>
+
     <repositories>
         <repository>
             <id>public-jboss</id>
