@@ -67,6 +67,7 @@
         <version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-linux-x86_64>
         <version.org.wildfly.openssl.wildfly-openssl-linux-s390x>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-linux-s390x>
         <version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-macosx-x86_64>
+        <version.org.wildfly.openssl.wildfly-openssl-macosx-aarch64>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-macosx-aarch64>
         <version.org.wildfly.openssl.wildfly-openssl-windows-x86_64>${version.org.wildfly.openssl.natives}</version.org.wildfly.openssl.wildfly-openssl-windows-x86_64>
 
         <openssl.path />
