@@ -31,6 +31,8 @@
 
     <packaging>jar</packaging>
 
+    <name>WildFly Elytron - WildFly OpenSSL - ${project.artifactId}</name>
+
     <dependencies>
         <dependency>
             <groupId>org.wildfly.openssl</groupId>
