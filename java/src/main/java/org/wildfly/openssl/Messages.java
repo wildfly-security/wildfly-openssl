@@ -73,6 +73,7 @@ public class Messages {
     private static final String MSG41 = formatCode(41);
     private static final String MSG42 = formatCode(42);
     private static final String MSG43 = formatCode(43);
+    private static final String MSG44 = formatCode(44);
 
     private static String formatCode(int i) {
         return CODE + new DecimalFormat("0000").format(i);
@@ -234,5 +235,8 @@ public class Messages {
     }
     public String settingTls13CipherSuites(String s) {
         return interpolate(MSG43, s);
+    }
+    public String failedToLoadWfsslFromSpecifiedPath(String path) {
+    return interpolate(MSG44, path);
     }
 }
