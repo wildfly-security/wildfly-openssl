@@ -42,6 +42,7 @@ public abstract class SSL {
     public static final String MAC_HOMEBREW_OPENSSL_PATH = "/usr/local/opt/openssl/lib/";
     private static SSL instance;
 
+    public static final String ORG_WILDFLY_OPENSSL_ENGINE = "org.wildfly.openssl.engine";
     public static final String ORG_WILDFLY_OPENSSL_PATH = "org.wildfly.openssl.path";
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBSSL = "org.wildfly.openssl.path.ssl";
     public static final String ORG_WILDFLY_OPENSSL_PATH_LIBCRYPTO = "org.wildfly.openssl.path.crypto";
@@ -200,7 +201,8 @@ public abstract class SSL {
                         }
                         throw new RuntimeException(warningMessage);
                     }
-                    instance.initialize(cryptoPath, sslPath);
+                    String sslEngine = System.getProperty(ORG_WILDFLY_OPENSSL_ENGINE);
+                    instance.initialize(cryptoPath, sslPath, sslEngine);
                     String version = instance.version();
                     logger.info(Messages.MESSAGES.openSSLVersion(version));
 
@@ -298,7 +300,7 @@ public abstract class SSL {
         }
     }
 
-    protected abstract void initialize(String libCryptoPath, String libSslPath);
+    protected abstract void initialize(String libCryptoPath, String libSslPath, String customEngine);
 
     /**
      * JSSE and OpenSSL protocol names

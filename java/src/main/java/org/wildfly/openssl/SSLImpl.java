@@ -27,10 +27,10 @@ public class SSLImpl extends SSL {
     public SSLImpl() {
     }
 
-    static native void initialize0(String libCryptoPath, String libSslPath);
+    static native void initialize0(String libCryptoPath, String libSslPath, String customEngine);
 
-    protected void initialize(String libCryptoPath, String libSslPath) {
-        SSLImpl.initialize0(libCryptoPath, libSslPath);
+    protected void initialize(String libCryptoPath, String libSslPath, String customEngine) {
+        SSLImpl.initialize0(libCryptoPath, libSslPath, customEngine);
     }
 
     /* Return OpenSSL version number as a string */
