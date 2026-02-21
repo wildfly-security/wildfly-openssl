@@ -58,23 +58,27 @@ public class SSLTestUtils {
         }
     }
 
-    static SSLContext createSSLContext(String provider) throws IOException {
-        KeyManager[] keyManagers;
-        try {
-            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(loadKeyStore("server.keystore"), "password".toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise KeyManager[]", e);
+    private static SSLContext createSSLContext(String provider, String keystore, String truststore) throws IOException {
+        KeyManager[] keyManagers = null;
+        if (keystore != null) {
+            try {
+                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                keyManagerFactory.init(loadKeyStore(keystore), "password".toCharArray());
+                keyManagers = keyManagerFactory.getKeyManagers();
+            } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
+                throw new RuntimeException("Unable to initialise KeyManager[]", e);
+            }
         }
 
         TrustManager[] trustManagers = null;
-        try {
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(loadKeyStore("server.truststore"));
-            trustManagers = trustManagerFactory.getTrustManagers();
-        } catch (NoSuchAlgorithmException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise TrustManager[]", e);
+        if (truststore != null) {
+            try {
+                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init(loadKeyStore(truststore));
+                trustManagers = trustManagerFactory.getTrustManagers();
+            } catch (NoSuchAlgorithmException | KeyStoreException e) {
+                throw new RuntimeException("Unable to initialise TrustManager[]", e);
+            }
         }
 
         try {
@@ -85,74 +89,30 @@ public class SSLTestUtils {
             e.printStackTrace();
             throw new RuntimeException("Unable to create and initialise the SSLContext", e);
         }
+    }
+
+    static SSLContext createSSLContext(String provider) throws IOException {
+        return createSSLContext(provider, "server.keystore", "server.truststore");
     }
 
     static SSLContext createClientSSLContext(String provider) throws IOException {
-        KeyManager[] keyManagers;
-        try {
-            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(loadKeyStore("client.keystore"), "password".toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise KeyManager[]", e);
-        }
-
-        TrustManager[] trustManagers = null;
-        try {
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(loadKeyStore("client.truststore"));
-            trustManagers = trustManagerFactory.getTrustManagers();
-        } catch (NoSuchAlgorithmException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise TrustManager[]", e);
-        }
-
-        try {
-            final SSLContext context = SSLContext.getInstance(provider);
-            context.init(keyManagers, trustManagers, new SecureRandom());
-            return context;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Unable to create and initialise the SSLContext", e);
-        }
+        return createSSLContext(provider, "client.keystore", "client.truststore");
     }
 
     static SSLContext createDSASSLContext(String provider) throws IOException {
-        KeyManager[] keyManagers;
-        try {
-            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(loadKeyStore("server-dsa.keystore"), "password".toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise KeyManager[]", e);
-        }
-
-        try {
-            final SSLContext context = SSLContext.getInstance(provider);
-            context.init(keyManagers, null, new SecureRandom());
-            return context;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Unable to create and initialise the SSLContext", e);
-        }
+        return createSSLContext(provider, "server-dsa.keystore", null);
     }
-    static SSLContext createClientDSASSLContext(String provider) throws IOException {
-        TrustManager[] trustManagers = null;
-        try {
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(loadKeyStore("client-dsa.truststore"));
-            trustManagers = trustManagerFactory.getTrustManagers();
-        } catch (NoSuchAlgorithmException | KeyStoreException e) {
-            throw new RuntimeException("Unable to initialise TrustManager[]", e);
-        }
 
-        try {
-            final SSLContext context = SSLContext.getInstance(provider);
-            context.init(null, trustManagers, new SecureRandom());
-            return context;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Unable to create and initialise the SSLContext", e);
-        }
+    static SSLContext createClientDSASSLContext(String provider) throws IOException {
+        return createSSLContext(provider, null, "client-dsa.truststore");
+    }
+
+    static SSLContext createECSSLContext(String provider) throws IOException {
+        return createSSLContext(provider, "server-ec.keystore", "server-ec.truststore");
+    }
+
+    static SSLContext createClientECSSLContext(String provider) throws IOException {
+        return createSSLContext(provider, "client-ec.keystore", "client-ec.truststore");
     }
 
     public static byte[] readData(InputStream in) throws IOException {
