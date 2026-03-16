@@ -78,6 +78,12 @@ Building
 The java side of the project uses maven and can be build as normal (`mvn install`). The native code should be build
 as part of the standard build process.
 
+Note, that if you are not on x86_64 machine, or you are on older system like RHEL-8, you have to first self build [wildfly-openssl-natives](https://github.com/wildfly-security/wildfly-openssl-natives/?tab=readme-ov-file#building).
+ * errors like `[ERROR] dependency: org.wildfly.openssl:wildfly-openssl-linux-aarch64:jar:2.3.0.Alpha3 was not found in https://repo...`
+   * means the native artifacts are missing for your platfrom, you have to self-build them.
+ * error like `/tmp/.../libwfssl.so: /lib64/libc.so.6: version GLIBC_2.34 not found (required by /tmp/.../libwfssl.so)`
+   * means that you are on the older system then the natives built for you in public repos, and so you have to self-build them.
+
 ### Windows
 
 To do the Windows build you need to run the build from a visual studio native tools command prompt. If you want to build
