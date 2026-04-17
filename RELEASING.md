@@ -3,7 +3,7 @@
 Before releasing WildFly OpenSSL it is assumed that this project has already been updated to the required version
 of WildFly OpenSSL Natives.
 
-Presently Java 21 should be used to perform the release.
+Presently Java 25 should be used to perform the release.
 
 To release WildFly OpenSSL first checkout the project and ensure you are on the latest commit for the branch you are releasing with no local changes.
 

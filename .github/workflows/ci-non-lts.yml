@@ -1,0 +1,150 @@
+name: CI - Non-LTS Testing
+
+on:
+  schedule:
+    # Run nightly at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      enabled:
+        description: 'Enable non-LTS testing'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  test-non-lts:
+    name: Test - Java 26 - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    # Allow disabling via workflow_dispatch
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.enabled == 'true' }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # 2. Install JDK 26 for building and testing
+      - name: Set up JDK 26 (Temurin) - Build
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '26'
+      
+      - name: Capture JDK 26 path
+        shell: bash
+        run: |
+          echo "JAVA_HOME_26_TEMURIN=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      
+      # 3. Generate toolchains.xml
+      - name: Generate toolchains.xml
+        shell: bash
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/toolchains.xml << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <toolchains xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      xsi:schemaLocation="http://maven.apache.org/TOOLCHAINS/1.1.0
+                                          http://maven.apache.org/xsd/toolchains-1.1.0.xsd">
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>26</version>
+                <vendor>temurin</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${env.JAVA_HOME_26_TEMURIN}</jdkHome>
+              </configuration>
+            </toolchain>
+          </toolchains>
+          EOF
+          
+          # Expand environment variables
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Windows: Use PowerShell for variable expansion
+            powershell -Command "\$content = Get-Content ~/.m2/toolchains.xml -Raw; \$content = \$content -replace '\\\$\{env\.JAVA_HOME_26_TEMURIN\}', \$env:JAVA_HOME_26_TEMURIN; \$content | Set-Content ~/.m2/toolchains.xml -NoNewline"
+          else
+            # Linux/macOS: Use envsubst
+            envsubst < ~/.m2/toolchains.xml > ~/.m2/toolchains.xml.tmp
+            mv ~/.m2/toolchains.xml.tmp ~/.m2/toolchains.xml
+          fi
+      
+      # 4. Build wildfly-openssl Java code with Java 26
+      # Note: Native libraries (libwfssl) come from pre-built Maven artifacts (wildfly-openssl-natives)
+      - name: Build with Java 26
+        shell: bash
+        run: |
+          export JAVA_HOME="${JAVA_HOME_26_TEMURIN}"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn clean install -DskipTests -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B -V
+          else
+            mvn clean install -DskipTests -B -V
+          fi
+      
+      # 5. Test with Java 26
+      - name: Test with Java 26 (Temurin)
+        id: test-java26-temurin
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=26 -Djdk.test.vendor=temurin -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=26 -Djdk.test.vendor=temurin -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 26 (Temurin) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 26 (Temurin) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 26 (Temurin) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java26-temurin-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 6. Check for test failures and fail job if any occurred
+      - name: Check test results
+        if: always()
+        shell: bash
+        run: |
+          echo "Checking test results..."
+          FAILED=0
+          
+          if [ "${{ steps.test-java26-temurin.outcome }}" != "success" ]; then
+            echo "❌ Java 26 (Temurin) tests failed"
+            FAILED=1
+          fi
+          
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "Test permutation failed. Check the test result artifacts and logs above."
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi

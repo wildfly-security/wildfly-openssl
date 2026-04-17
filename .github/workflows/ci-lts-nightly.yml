@@ -1,0 +1,400 @@
+name: CI - LTS Nightly (Full Matrix)
+
+on:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-test:
+    name: Build and Test - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
+    
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # 2. Install all required JDKs and capture their paths
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Capture JDK 17 (Temurin) path
+        shell: bash
+        run: echo "JAVA_HOME_17_TEMURIN=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Set up JDK 17 (Semeru)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'semeru'
+          java-version: '17'
+      
+      - name: Capture JDK 17 (Semeru) path
+        shell: bash
+        run: echo "JAVA_HOME_17_SEMERU=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      
+      - name: Capture JDK 21 (Temurin) path
+        shell: bash
+        run: echo "JAVA_HOME_21_TEMURIN=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Set up JDK 21 (Semeru)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'semeru'
+          java-version: '21'
+      
+      - name: Capture JDK 21 (Semeru) path
+        shell: bash
+        run: echo "JAVA_HOME_21_SEMERU=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+      
+      - name: Capture JDK 25 (Temurin) path
+        shell: bash
+        run: echo "JAVA_HOME_25_TEMURIN=$JAVA_HOME" >> $GITHUB_ENV
+      
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      
+      - name: Set up JDK 25 (Semeru)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'semeru'
+          java-version: '25'
+      
+      - name: Capture JDK 25 (Semeru) path
+        shell: bash
+        run: echo "JAVA_HOME_25_SEMERU=$JAVA_HOME" >> $GITHUB_ENV
+      
+      # 3. Generate toolchains.xml
+      - name: Generate toolchains.xml
+        shell: bash
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/toolchains.xml << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <toolchains xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      xsi:schemaLocation="http://maven.apache.org/TOOLCHAINS/1.1.0
+                                          http://maven.apache.org/xsd/toolchains-1.1.0.xsd">
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>17</version>
+                <vendor>temurin</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_17_TEMURIN}</jdkHome>
+              </configuration>
+            </toolchain>
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>17</version>
+                <vendor>semeru</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_17_SEMERU}</jdkHome>
+              </configuration>
+            </toolchain>
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>21</version>
+                <vendor>temurin</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_21_TEMURIN}</jdkHome>
+              </configuration>
+            </toolchain>
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>21</version>
+                <vendor>semeru</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_21_SEMERU}</jdkHome>
+              </configuration>
+            </toolchain>
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>25</version>
+                <vendor>temurin</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_25_TEMURIN}</jdkHome>
+              </configuration>
+            </toolchain>
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>25</version>
+                <vendor>semeru</vendor>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME_25_SEMERU}</jdkHome>
+              </configuration>
+            </toolchain>
+          </toolchains>
+          EOF
+      
+      # 4. Build wildfly-openssl Java code with Java 25
+      # Note: Native libraries (libwfssl) come from pre-built Maven artifacts (wildfly-openssl-natives)
+      - name: Build with Java 25
+        shell: bash
+        run: |
+          export JAVA_HOME="${JAVA_HOME_25_TEMURIN}"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn clean install -DskipTests -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B -V
+          else
+            mvn clean install -DskipTests -B -V
+          fi
+      
+      # 5. Run tests with Java 17 (Temurin)
+      - name: Test with Java 17 (Temurin)
+        id: test-java17-temurin
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=17 -Djdk.test.vendor=temurin -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=17 -Djdk.test.vendor=temurin -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 17 (Temurin) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 17 (Temurin) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 17 (Temurin) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java17-temurin-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 6. Run tests with Java 17 (Semeru)
+      - name: Test with Java 17 (Semeru)
+        id: test-java17-semeru
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=17 -Djdk.test.vendor=semeru -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=17 -Djdk.test.vendor=semeru -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 17 (Semeru) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 17 (Semeru) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 17 (Semeru) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java17-semeru-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 7. Run tests with Java 21 (Temurin)
+      - name: Test with Java 21 (Temurin)
+        id: test-java21-temurin
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=21 -Djdk.test.vendor=temurin -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=21 -Djdk.test.vendor=temurin -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 21 (Temurin) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 21 (Temurin) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 21 (Temurin) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java21-temurin-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 8. Run tests with Java 21 (Semeru)
+      - name: Test with Java 21 (Semeru)
+        id: test-java21-semeru
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=21 -Djdk.test.vendor=semeru -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=21 -Djdk.test.vendor=semeru -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 21 (Semeru) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 21 (Semeru) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 21 (Semeru) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java21-semeru-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 9. Run tests with Java 25 (Temurin)
+      - name: Test with Java 25 (Temurin)
+        id: test-java25-temurin
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=25 -Djdk.test.vendor=temurin -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=25 -Djdk.test.vendor=temurin -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 25 (Temurin) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 25 (Temurin) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 25 (Temurin) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java25-temurin-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 10. Run tests with Java 25 (Semeru)
+      - name: Test with Java 25 (Semeru)
+        id: test-java25-semeru
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            mvn test -Djdk.test.version=25 -Djdk.test.vendor=semeru -Dorg.wildfly.openssl.path=/usr/lib/x86_64-linux-gnu -B
+          else
+            mvn test -Djdk.test.version=25 -Djdk.test.vendor=semeru -B
+          fi
+        continue-on-error: true
+      
+      - name: Publish test results - Java 25 (Semeru) - ${{ matrix.os }}
+        if: always() && runner.os == 'Linux'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'Test Results - Java 25 (Semeru) - ${{ matrix.os }}'
+          comment_mode: off
+      
+      - name: Upload test results - Java 25 (Semeru) - ${{ matrix.os }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java25-semeru-${{ matrix.os }}
+          path: '**/target/surefire-reports/**'
+          retention-days: 30
+      
+      # 11. Check for test failures and fail job if any occurred
+      - name: Check test results
+        if: always()
+        shell: bash
+        run: |
+          echo "Checking test results from all permutations..."
+          FAILED=0
+          
+          if [ "${{ steps.test-java17-temurin.outcome }}" != "success" ]; then
+            echo "❌ Java 17 (Temurin) tests failed"
+            FAILED=1
+          fi
+          
+          if [ "${{ steps.test-java17-semeru.outcome }}" != "success" ]; then
+            echo "❌ Java 17 (Semeru) tests failed"
+            FAILED=1
+          fi
+          
+          if [ "${{ steps.test-java21-temurin.outcome }}" != "success" ]; then
+            echo "❌ Java 21 (Temurin) tests failed"
+            FAILED=1
+          fi
+          
+          if [ "${{ steps.test-java21-semeru.outcome }}" != "success" ]; then
+            echo "❌ Java 21 (Semeru) tests failed"
+            FAILED=1
+          fi
+          
+          if [ "${{ steps.test-java25-temurin.outcome }}" != "success" ]; then
+            echo "❌ Java 25 (Temurin) tests failed"
+            FAILED=1
+          fi
+          
+          if [ "${{ steps.test-java25-semeru.outcome }}" != "success" ]; then
+            echo "❌ Java 25 (Semeru) tests failed"
+            FAILED=1
+          fi
+          
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "One or more test permutations failed. Check the test result artifacts and logs above."
+            exit 1
+          else
+            echo "✅ All test permutations passed"
+          fi

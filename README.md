@@ -75,8 +75,17 @@ The SSLContext can then be used as normal, and should provide a drop in replacem
 Building
 ========
 
+**Requirements:**
+- Java 25 or later (for building)
+- Maven 3.6.0 or later
+- OpenSSL 3.0 or OpenSSL 1.1.1 series
+
 The java side of the project uses maven and can be build as normal (`mvn install`). The native code should be build
 as part of the standard build process.
+
+**Note:** The project builds with Java 25 but targets Java 17 bytecode for backward compatibility. The resulting artifacts can be used with Java 17, 21, or 25.
+
+For advanced testing scenarios (testing with specific Java versions), see the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 ### Windows
 

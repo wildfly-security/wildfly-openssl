@@ -44,6 +44,12 @@ public class SSLTestUtils {
     public static final int PORT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.port", "7677"));
     public static final int SECONDARY_PORT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.secondary.port", "7687"));
 
+    // Socket timeout in milliseconds (30 seconds)
+    public static final int SOCKET_TIMEOUT = Integer.parseInt(System.getProperty("org.wildfly.openssl.test.socket.timeout", "30000"));
+
+    // ThreadLocal to store dynamically allocated port for each test thread
+    private static final ThreadLocal<Integer> dynamicPort = new ThreadLocal<>();
+
     private static KeyStore loadKeyStore(final String name) throws IOException {
         final InputStream stream = BasicOpenSSLEngineTest.class.getClassLoader().getResourceAsStream(name);
         try {
@@ -166,17 +172,48 @@ public class SSLTestUtils {
     }
 
     public static ServerSocket createServerSocket() throws IOException {
-        return createServerSocket(PORT);
+        // Use port 0 for dynamic allocation to avoid port conflicts
+        ServerSocket serverSocket = new ServerSocket(0);
+        serverSocket.setReuseAddress(true);
+        serverSocket.setSoTimeout(SOCKET_TIMEOUT);
+        // Store the dynamically allocated port for this thread
+        dynamicPort.set(serverSocket.getLocalPort());
+        return serverSocket;
     }
 
     public static ServerSocket createServerSocket(final int port) throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
         serverSocket.setReuseAddress(true);
+        serverSocket.setSoTimeout(SOCKET_TIMEOUT);
+        // Store the port for this thread
+        dynamicPort.set(serverSocket.getLocalPort());
         return serverSocket;
     }
 
     public static SocketAddress createSocketAddress() {
-        return new InetSocketAddress(HOST, PORT);
+        // Use dynamically allocated port if available, otherwise fall back to PORT constant
+        Integer port = dynamicPort.get();
+        if (port == null) {
+            port = PORT;
+        }
+        return new InetSocketAddress(HOST, port);
+    }
+
+    /**
+     * Get the port number for the current test thread.
+     * This is useful when a dynamic port has been allocated.
+     */
+    public static int getPort() {
+        Integer port = dynamicPort.get();
+        return port != null ? port : PORT;
+    }
+
+    /**
+     * Clear the dynamic port for the current thread.
+     * Should be called in test cleanup to avoid port leakage between tests.
+     */
+    public static void clearDynamicPort() {
+        dynamicPort.remove();
     }
 
 }

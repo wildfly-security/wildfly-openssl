@@ -47,13 +47,19 @@ Once you have selected an issue you'd like to work on, make sure it's not alread
 It is recommended that you use a separate branch for every issue you work on. To keep things straightforward and memorable, you can name each branch using the JIRA issue number. This way, you can have multiple PRs open for different issues. For example, if you were working on [WFSSL-74](https://issues.redhat.com/browse/WFSSL-74), you could use WFSSL-74 as your branch name.
 
 ## Setting up your Developer Environment
-You will need:
 
-* JDK 11
+### Requirements
+
+* **JDK 25 or later** (for building)
 * Git
-* Maven 3.3.9 or later
+* Maven 3.6.0 or later
+* OpenSSL 3.0 or OpenSSL 1.1.1 series
 * An [IDE](https://en.wikipedia.org/wiki/Comparison_of_integrated_development_environments#Java)
 (e.g., [IntelliJ IDEA](https://www.jetbrains.com/idea/download/), [Eclipse](https://www.eclipse.org/downloads/), etc.)
+
+**Note:** The project builds with Java 25 but targets Java 17 bytecode. This means the resulting artifacts are compatible with Java 17, 21, and 25.
+
+### Basic Setup
 
 First `cd` to the directory where you cloned the project (eg: `cd wildfly-openssl`)
 
@@ -63,22 +69,101 @@ For example:
 ```
 git remote add upstream https://github.com/wildfly-security/wildfly-openssl
 ```
-To build `elytron-web` run:
+
+### Building and Testing
+
+#### Simple Build (Default)
+
+To build `wildfly-openssl` with Java 25:
 ```bash
 mvn clean install
 ```
 
-To skip the tests, use:
+This will:
+- Build the project with Java 25
+- Run tests using Java 25
+- Produce Java 17 bytecode (compatible with Java 17, 21, and 25)
 
+To skip the tests:
 ```bash
 mvn clean install -DskipTests=true
 ```
 
-To run only a specific test, use:
-
+To run only a specific test:
 ```bash
 mvn clean install -Dtest=TestClassName
 ```
+
+#### Advanced Testing with Multiple Java Versions
+
+The project supports testing with different Java versions to ensure compatibility. This requires setting up Maven toolchains.
+
+**Step 1: Install Multiple JDK Versions**
+
+You can use [SDKMAN!](https://sdkman.io/) to easily manage multiple JDK installations:
+
+```bash
+# Install SDKMAN (if not already installed)
+curl -s "https://get.sdkman.io" | bash
+
+# Install Java 17, 21, and 25 (both Temurin and Semeru)
+sdk install java 17.0.18-tem
+sdk install java 17.0.18.1-sem
+sdk install java 21.0.10-tem
+sdk install java 21.0.10.1-sem
+sdk install java 25.0.2-tem
+sdk install java 25.0.2.1-sem
+```
+
+**Step 2: Configure Maven Toolchains**
+
+Copy the `toolchains.xml.template` file to your Maven configuration directory:
+
+```bash
+cp toolchains.xml.template ~/.m2/toolchains.xml
+```
+
+The template includes instructions for both SDKMAN and manual JDK installations.
+
+**Step 3: Test with Specific Java Versions**
+
+Test with a specific Java version:
+```bash
+# Test with Java 17 (Temurin)
+mvn test -Djdk.test.version=17
+
+# Test with Java 21 (Semeru)
+mvn test -Djdk.test.version=21 -Djdk.test.vendor=semeru
+```
+
+Test with all supported Java versions (17, 21, 25) and both distributions (Temurin, Semeru):
+```bash
+# Test with Temurin (default)
+mvn install -Ptest-all-versions
+
+# Test with Semeru
+mvn install -Ptest-all-versions -Djdk.test.vendor=semeru
+```
+
+### CI Strategy
+
+The project uses GitHub Actions for continuous integration:
+
+- **Pull Requests**: Tests run on Linux with all 6 permutations (Java 17/21/25 × Temurin/Semeru)
+- **Nightly Builds**: Full matrix testing on Linux, Windows, and macOS (18 permutations total)
+- **Non-LTS Testing**: Optional testing with the latest non-LTS Java version (e.g., Java 26)
+
+### Reproducing CI Failures
+
+If a CI test fails on a specific Java version or distribution:
+
+1. Install the specific JDK version and distribution (see Step 1 above)
+2. Configure toolchains (see Step 2 above)
+3. Run the tests with the specific configuration:
+   ```bash
+   mvn test -Djdk.test.version=<version> -Djdk.test.vendor=<vendor>
+   ```
+
 For more information, including details on how WildFly OpenSSL is integrated in WildFly Core and WildFly, check out our [developer guide](https://wildfly-security.github.io/wildfly-elytron/getting-started-for-developers/).
 
 ## Contributing Guidelines

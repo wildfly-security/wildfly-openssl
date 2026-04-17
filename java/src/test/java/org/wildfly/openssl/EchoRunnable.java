@@ -62,6 +62,12 @@ class EchoRunnable implements Runnable {
         try {
             while (!serverSocket.isClosed()) {
                 final Socket s = serverSocket.accept();
+                // Set socket timeout to prevent indefinite blocking
+                try {
+                    s.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
+                } catch (Exception e) {
+                    // Log but continue - timeout is a best-effort improvement
+                }
                 Thread t = new Thread(() -> {
                     SSLEngine engine = sslContext.createSSLEngine();
                     if(engineCustomizer != null) {

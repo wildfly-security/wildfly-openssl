@@ -20,7 +20,6 @@ package org.wildfly.openssl;
 import static org.wildfly.openssl.OpenSSLEngine.isTLS13Supported;
 import static org.wildfly.openssl.SSL.SSL_PROTO_SSLv2Hello;
 import static org.wildfly.openssl.SSLTestUtils.HOST;
-import static org.wildfly.openssl.SSLTestUtils.PORT;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -83,8 +82,10 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLTestUtils.createClientSSLContext(clientProvider).getSocketFactory().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
 
@@ -100,7 +101,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             socket.getSession().invalidate();
             socket.close();
             serverSocket.close();
-            acceptThread.join();
+            acceptThread.join(5000);
+            if (acceptThread.isAlive()) {
+                acceptThread.interrupt();
+                Assert.fail("Accept thread did not terminate within timeout");
+            }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -123,8 +130,10 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
             SSLEngine sslEngine = engineRef.get();
@@ -143,7 +152,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             socket.getSession().invalidate();
             socket.close();
             serverSocket.close();
-            acceptThread.join();
+            acceptThread.join(5000);
+            if (acceptThread.isAlive()) {
+                acceptThread.interrupt();
+                Assert.fail("Accept thread did not terminate within timeout");
+            }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -177,8 +192,10 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
 
@@ -195,7 +212,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             socket.getSession().invalidate();
             socket.close();
             serverSocket.close();
-            acceptThread.join();
+            acceptThread.join(5000);
+            if (acceptThread.isAlive()) {
+                acceptThread.interrupt();
+                Assert.fail("Accept thread did not terminate within timeout");
+            }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -246,8 +269,10 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.connect(SSLTestUtils.createSocketAddress());
             socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
             byte[] data = new byte[100];
             int read = socket.getInputStream().read(data);
 
@@ -265,7 +290,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             socket.getSession().invalidate();
             socket.close();
             serverSocket.close();
-            acceptThread.join();
+            acceptThread.join(5000);
+            if (acceptThread.isAlive()) {
+                acceptThread.interrupt();
+                Assert.fail("Accept thread did not terminate within timeout");
+            }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -279,16 +310,23 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLTestUtils.createSSLContext("openssl.TLSv1.2").getSocketFactory().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.setSSLParameters(socket.getSSLParameters());
             socket.connect(SSLTestUtils.createSocketAddress());
             try {
                 socket.getOutputStream().write(MESSAGE.getBytes(StandardCharsets.US_ASCII));
+                socket.getOutputStream().flush();
                 Assert.fail("Expected SSLException not thrown");
             } catch (SSLException expected) {
                 socket.close();
                 serverSocket.close();
-                acceptThread.join();
+                acceptThread.join(5000);
+                if (acceptThread.isAlive()) {
+                    acceptThread.interrupt();
+                }
             }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -323,10 +361,12 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             acceptThread.start();
             final SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
             socket.setReuseAddress(true);
+            socket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
             socket.connect(SSLTestUtils.createSocketAddress());
             String message = generateMessage(1000);
             socket.getOutputStream().write(message.getBytes(StandardCharsets.US_ASCII));
             socket.getOutputStream().write(new byte[]{0});
+            socket.getOutputStream().flush();
 
             Assert.assertEquals(message, new String(SSLTestUtils.readData(socket.getInputStream())));
             if (! isTLS13Supported()) {
@@ -336,7 +376,13 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
             socket.getSession().invalidate();
             socket.close();
             serverSocket.close();
-            acceptThread.join();
+            acceptThread.join(5000);
+            if (acceptThread.isAlive()) {
+                acceptThread.interrupt();
+                Assert.fail("Accept thread did not terminate within timeout");
+            }
+        } finally {
+            SSLTestUtils.clearDynamicPort();
         }
     }
 
@@ -367,42 +413,58 @@ public class BasicOpenSSLEngineTest extends AbstractOpenSSLTest  {
     private void performTestTwoWay(String serverProvider, String clientProvider, String protocol) throws Exception {
         final SSLContext serverContext = SSLTestUtils.createSSLContext(serverProvider);
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<SSLSocket> socketFuture = executorService.submit(() -> {
-            try {
-                SSLContext clientContext = SSLTestUtils.createClientSSLContext(clientProvider);
-                SSLSocket sslSocket = (SSLSocket) clientContext.getSocketFactory().createSocket(HOST, PORT);
-                sslSocket.setReuseAddress(true);
-                sslSocket.getSession();
-                return sslSocket;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        SSLServerSocket sslServerSocket = (SSLServerSocket) serverContext.getServerSocketFactory().createServerSocket(PORT, 10, InetAddress.getByName(HOST));
-        sslServerSocket.setNeedClientAuth(true);
-        SSLSocket serverSocket = (SSLSocket) sslServerSocket.accept();
-        SSLSession serverSession = serverSocket.getSession();
-        SSLSocket clientSocket = socketFuture.get();
-        SSLSession clientSession = clientSocket.getSession();
-
         try {
-            String expectedProtocol;
-            if (protocol.equals("TLS")) {
-                expectedProtocol = isTLS13Supported() ? "TLSv1.3" : "TLSv1.2";
-            } else {
-                expectedProtocol = protocol;
+            // Create server socket FIRST to get the port before client tries to connect
+            SSLServerSocket sslServerSocket = (SSLServerSocket) serverContext.getServerSocketFactory().createServerSocket(0, 10, InetAddress.getByName(HOST));
+            sslServerSocket.setReuseAddress(true);
+            sslServerSocket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
+            sslServerSocket.setNeedClientAuth(true);
+            final int port = sslServerSocket.getLocalPort();
+
+            // NOW submit client connection task with the known port
+            Future<SSLSocket> socketFuture = executorService.submit(() -> {
+                try {
+                    SSLContext clientContext = SSLTestUtils.createClientSSLContext(clientProvider);
+                    SSLSocket sslSocket = (SSLSocket) clientContext.getSocketFactory().createSocket(HOST, port);
+                    sslSocket.setReuseAddress(true);
+                    sslSocket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
+                    sslSocket.getSession();
+                    return sslSocket;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            SSLSocket serverSocket = (SSLSocket) sslServerSocket.accept();
+            serverSocket.setSoTimeout(SSLTestUtils.SOCKET_TIMEOUT);
+            SSLSession serverSession = serverSocket.getSession();
+            SSLSocket clientSocket = socketFuture.get();
+            SSLSession clientSession = clientSocket.getSession();
+
+            try {
+                String expectedProtocol;
+                if (protocol.equals("TLS")) {
+                    expectedProtocol = isTLS13Supported() ? "TLSv1.3" : "TLSv1.2";
+                } else {
+                    expectedProtocol = protocol;
+                }
+                Assert.assertEquals(expectedProtocol, clientSession.getProtocol());
+                Assert.assertEquals(expectedProtocol, serverSession.getProtocol());
+                Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(clientSession.getCipherSuite()));
+                Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(serverSession.getCipherSuite()));
+                Assert.assertNotNull(clientSession.getPeerCertificates());
+                Assert.assertNotNull(serverSession.getPeerCertificates());
+            } finally {
+                serverSocket.close();
+                clientSocket.close();
+                sslServerSocket.close();
             }
-            Assert.assertEquals(expectedProtocol, clientSession.getProtocol());
-            Assert.assertEquals(expectedProtocol, serverSession.getProtocol());
-            Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(clientSession.getCipherSuite()));
-            Assert.assertEquals(expectedProtocol.equals("TLSv1.3"), CipherSuiteConverter.isTLSv13CipherSuite(serverSession.getCipherSuite()));
-            Assert.assertNotNull(clientSession.getPeerCertificates());
-            Assert.assertNotNull(serverSession.getPeerCertificates());
         } finally {
-            serverSocket.close();
-            clientSocket.close();
-            sslServerSocket.close();
+            executorService.shutdown();
+            if (!executorService.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+            SSLTestUtils.clearDynamicPort();
         }
     }
 

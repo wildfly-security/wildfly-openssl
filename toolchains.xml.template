@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven Toolchains Configuration Template for wildfly-openssl
+  
+  This file provides a template for configuring Maven toolchains to enable
+  multi-version testing with different JDK versions and distributions.
+  
+  SETUP INSTRUCTIONS:
+  1. Copy this file to ~/.m2/toolchains.xml (user-level, recommended)
+     OR to ${maven.home}/conf/toolchains.xml (Maven installation-level)
+  
+  2. Update the <jdkHome> paths to match your JDK installations
+     - Linux: /usr/lib/jvm/temurin-25-jdk or /opt/jdk/temurin-25
+     - macOS: /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
+     - Windows: C:\Program Files\Eclipse Adoptium\jdk-25.0.0.0-hotspot
+  
+  3. Verify configuration: mvn toolchains:display-toolchains
+  
+  AUTOMATED SETUP WITH SDKMAN! (Linux/macOS):
+  
+  # Install SDKMAN! (if not already installed)
+  curl -s "https://get.sdkman.io" | bash
+  source "$HOME/.sdkman/bin/sdkman-init.sh"
+  
+  # Install required JDKs
+  sdk install java 17.0.13-tem     # Java 17 Temurin
+  sdk install java 17.0.13-sem     # Java 17 Semeru
+  sdk install java 21.0.5-tem      # Java 21 Temurin
+  sdk install java 21.0.5-sem      # Java 21 Semeru
+  sdk install java 25.0.0-tem      # Java 25 Temurin
+  sdk install java 25.0.0-sem      # Java 25 Semeru
+  
+  # Optional: Install Java 26 for non-LTS testing
+  # sdk install java 26.0.0-tem    # Java 26 Temurin
+  
+  # Set Java 25 as default for builds
+  sdk default java 25.0.0-tem
+  
+  # After installation, update the paths below to:
+  # ~/.sdkman/candidates/java/17.0.13-tem
+  # ~/.sdkman/candidates/java/17.0.13-sem
+  # ~/.sdkman/candidates/java/21.0.5-tem
+  # ~/.sdkman/candidates/java/21.0.5-sem
+  # ~/.sdkman/candidates/java/25.0.0-tem
+  # ~/.sdkman/candidates/java/25.0.0-sem
+  
+  USAGE:
+  - Default build (no toolchains): mvn clean install
+  - Test with Java 17: mvn clean test -Djdk.test.version=17
+  - Test with Java 21: mvn clean test -Djdk.test.version=21
+  - Test with Java 25: mvn clean test -Djdk.test.version=25
+  - Test with specific vendor: mvn clean test -Djdk.test.version=21 -Djdk.test.vendor=semeru
+  
+  REQUIRED JDKs FOR FULL CI COMPATIBILITY:
+  - Java 17 (Temurin and Semeru)
+  - Java 21 (Temurin and Semeru)
+  - Java 25 (Temurin and Semeru)
+  
+  OPTIONAL: Java 26 (or latest non-LTS) for future compatibility testing
+  
+  JDK DOWNLOADS:
+  - Temurin: https://adoptium.net/
+  - Semeru: https://developer.ibm.com/languages/java/semeru-runtimes/
+  - SDKMAN!: https://sdkman.io/
+-->
+<toolchains xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/TOOLCHAINS/1.1.0
+                                http://maven.apache.org/xsd/toolchains-1.1.0.xsd">
+  
+  <!-- Java 17 - Temurin (Eclipse Adoptium) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>17</version>
+      <vendor>temurin</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 17 Temurin installation -->
+      <jdkHome>/path/to/jdk-17-temurin</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- Java 17 - Semeru (IBM) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>17</version>
+      <vendor>semeru</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 17 Semeru installation -->
+      <jdkHome>/path/to/jdk-17-semeru</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- Java 21 - Temurin (Eclipse Adoptium) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>21</version>
+      <vendor>temurin</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 21 Temurin installation -->
+      <jdkHome>/path/to/jdk-21-temurin</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- Java 21 - Semeru (IBM) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>21</version>
+      <vendor>semeru</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 21 Semeru installation -->
+      <jdkHome>/path/to/jdk-21-semeru</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- Java 25 - Temurin (Eclipse Adoptium) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>25</version>
+      <vendor>temurin</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 25 Temurin installation -->
+      <jdkHome>/path/to/jdk-25-temurin</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- Java 25 - Semeru (IBM) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>25</version>
+      <vendor>semeru</vendor>
+    </provides>
+    <configuration>
+      <!-- UPDATE THIS PATH to match your Java 25 Semeru installation -->
+      <jdkHome>/path/to/jdk-25-semeru</jdkHome>
+    </configuration>
+  </toolchain>
+  
+  <!-- OPTIONAL: Java 26 (or latest non-LTS) - Temurin -->
+  <!--
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>26</version>
+      <vendor>temurin</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/path/to/jdk-26-temurin</jdkHome>
+    </configuration>
+  </toolchain>
+  -->
+  
+</toolchains>
