@@ -29,6 +29,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.ssl.SSLException;
+
 /**
  * Converts a Java cipher suite string to an OpenSSL cipher suite string and vice versa.
  *
@@ -307,25 +309,31 @@ public final class CipherSuiteConverter {
         return hmacAlgo;
     }
 
+
     /**
      * Convert from OpenSSL cipher suite name convention to java cipher suite name convention.
      *
      * @param openSslCipherSuite An OpenSSL cipher suite name.
      * @param protocol           The cryptographic protocol (i.e. SSL, TLS, ...).
      * @return The translated cipher suite name according to java conventions. This will not be {@code null}.
+     * @throws SSLException if no corresponding OpenSSL cipher suite maps to the provided cipher.
      */
-    public static String toJava(String openSslCipherSuite, String protocol) {
+    public static String toJava(String openSslCipherSuite, String protocol) throws SSLException {
         Map<String, String> p2j = toJava(openSslCipherSuite);
         if (p2j == null) {
             p2j = cacheFromOpenSsl(openSslCipherSuite);
         }
 
-        String javaCipherSuite = p2j.get(protocol);
-        if (javaCipherSuite == null) {
-            javaCipherSuite = protocol + '_' + p2j.get("");
+        if (p2j == null) {
+            throw new SSLException("There is no corresponding OpenSSL cipher that maps to the provided cipher: " + openSslCipherSuite + " and protocol: " + protocol);
+        } 
+        else {
+            String javaCipherSuite = p2j.get(protocol);
+            if (javaCipherSuite == null) {
+                javaCipherSuite = protocol + '_' + p2j.get("");
+            }
+            return javaCipherSuite;
         }
-
-        return javaCipherSuite;
     }
 
     private static Map<String, String> toJava(String openSslCipherSuite) {
